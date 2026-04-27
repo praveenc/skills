@@ -1,0 +1,46 @@
+# Top-level gitignore for the skills repo.
+# Each skill also has its own .gitignore for skill-specific artifacts.
+
+# ─── Runtime artifacts (research sessions, downloads, scraped content) ─────
+output/
+work/
+downloads/
+
+# ─── Secrets ─────────────────────────────────────────────────────────────
+**/.env
+**/.env.local
+**/*.env
+!**/.env.example
+!**/.env.template
+
+# ─── Authoring metadata (source-tree only, never shipped) ─────────────────
+**/meta/
+
+# ─── Python ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ─── Node / JS (if any tooling lands here later) ─────────────────────────
+node_modules/
+npm-debug.log*
+.pnpm-debug.log*
+
+# ─── Editor / OS ─────────────────────────────────────────────────────────
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Build / distribution ────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
