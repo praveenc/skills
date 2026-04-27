@@ -16,16 +16,46 @@ industry-standard SKILL.md format).
 
 ### Research & Analysis
 
-- **aws-deep-research** — Multi-source, parallelized AWS research with
+- **aws-deep-research** — Multi-source, parallelized deep research with
   facet-based query decomposition, subagent dispatch, and synthesized
-  citations. Dispatches specialist subagents against AWS Knowledge MCP,
-  AWS Pricing MCP, Bedrock AgentCore docs, AWS blog feeds, GitHub, and
-  the open web. Enforces a contract-first research discipline and ships
-  a blind-evaluation harness (Palmyra X5 vs Claude Sonnet 4.6) as
-  evidence of the synthesis-quality claims.
+  citations. **Optimized for AWS topics** (dispatches specialist subagents
+  against AWS Knowledge MCP, AWS Pricing MCP, Bedrock AgentCore docs,
+  AWS blog feeds, GitHub, and the open web) **but works equally well on
+  non-AWS / generic research queries** — library internals, software
+  architecture patterns, methodology deep-dives, cross-vendor
+  comparisons, and primary-source research (papers, gists, blog posts).
+  The skill auto-classifies each query as `aws` or `generic` in Step 1
+  and routes to appropriate sources; non-AWS queries fall through to web
+  search + GitHub with the same facet-decomposition and contract-first
+  discipline.
+
+  Enforces a contract-first research workflow and ships a
+  blind-evaluation harness (Palmyra X5 vs Claude Sonnet 4.6 as the
+  synthesizer backend) as evidence of the synthesis-quality claims —
+  including one eval round on a purely non-AWS topic
+  (Karpathy's LLM knowledge-base pattern + Obsidian workflow).
 
   ```bash
   npx skills add praveenc/skills/aws-deep-research
+  ```
+
+  **Example queries that work well**:
+
+  ```
+  # AWS-centric
+  ▸ How does Bedrock AgentCore compare to Strands Agents SDK?
+  ▸ Cost-optimize a serverless RAG pipeline on Bedrock + OpenSearch
+  ▸ Review best practices for Bedrock Guardrails in production
+
+  # Cross-vendor / comparative
+  ▸ Disaggregated inference: NVIDIA Rubin CPX vs Groq LPU vs AWS Trainium
+  ▸ Compare AWS Bedrock vs Azure OpenAI vs Vertex AI for enterprise RAG
+
+  # Non-AWS / generic
+  ▸ What is Karpathy's LLM knowledge-base pattern and how do I adapt
+    an Obsidian vault?
+  ▸ Circuit breaker pattern in distributed systems — production lessons
+  ▸ Context engineering for agents: write, select, compress, isolate
   ```
 
   See [aws-deep-research/SKILL.md](./aws-deep-research/SKILL.md) for the
