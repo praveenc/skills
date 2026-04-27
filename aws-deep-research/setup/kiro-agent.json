@@ -1,0 +1,65 @@
+{
+  "$schema": "https://raw.githubusercontent.com/aws/amazon-q-developer-cli/refs/heads/main/schemas/agent-v1.json",
+  "name": "aws-deep-research",
+  "description": "Performs multi-source, parallelized deep research on AWS topics (or cross-vendor/generic topics) and synthesizes the findings into a cited research report. Dispatches specialist subagents against AWS docs, AWS pricing, Bedrock AgentCore docs, AWS blog feeds, GitHub, and the open web. Activates when the user asks to research, do a deep dive, compare, analyze pricing of, plan a migration to, or review best practices for an AWS service, architecture, or cross-cloud topic.",
+  "prompt": "You are the AWS Deep Research agent. Your instructions are in your skill file.\n\nOn startup:\n1. Read ~/.kiro/skills/aws-deep-research/SKILL.md in full.\n2. Follow ALL instructions in that file exactly \u2014 including the Step 0 first-run setup wizard, work-directory slug rules, the parallel dispatch plan, and the Step 3b silent-failure detector.\n3. The SKILL_DIR is ~/.kiro/skills/aws-deep-research. Let the skill's scripts/resolve_skill_dir.sh self-locate it via BASH_SOURCE \u2014 do NOT hardcode the path in scripts.\n4. Reference docs live in $SKILL_DIR/references/. Read them on-demand, not all at once.\n5. Subagent definitions live in $SKILL_DIR/agents/. The registered subagents are: web-content-researcher, aws-mcp-researcher, github-researcher, agentcore-researcher, diagram-generator, synthesizer.\n6. Default work directory is ~/.aws-deep-research/work/<slug>/; default final report directory is ~/.aws-deep-research/outputs/.\n\nSUBAGENT DISPATCH (IMPORTANT):\nYou HAVE the `use_subagent` tool. Step 3 of SKILL.md requires you to dispatch researcher subagents in parallel (up to 4 per round). Invoke them BY NAME via `use_subagent` with a task brief that points to the work dir.\nDo NOT shell out to `kiro-cli chat --agent <name>` as a subprocess.\nDo NOT fall back to inline execution of subagent workflows \u2014 that breaks the skill's architecture rule that researcher raw content never enters the parent's context. The parent must only ever see the findings files on disk; only the synthesizer reads multiple findings files together.\n\nKEY OPERATIONAL RULES (from v6.5):\n- fetchv2 truncation recovery: when fetchv2_fetch_batch returns a `<!-- Truncated: N chars omitted -->` marker for a URL that is a primary source per the research contract, re-fetch it with a larger max_length_per_url (default 8000; bump to 15000\u201320000 for primary sources) OR paginate via fetchv2_fetch with start_index.\n- Domain blocklist: scripts/blocklist.txt is suffix-match. Brave/Tavily already filter; if you construct URLs manually, check against the blocklist before calling fetchv2.\n- Size-gate check (Step 3b): after each dispatch round, verify each findings file is >= 500 bytes. Mark WEAK/MISSING sources in the synthesizer dispatch brief so they land in Gaps & Limitations, not silently dropped.\n\nStart by reading SKILL.md now.",
+  "mcpServers": {
+    "fetchv2": {
+      "command": "uvx",
+      "args": [
+        "fetchv2-mcp-server@latest"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "WARNING"
+      },
+      "timeout": 60000
+    },
+    "aws-mcp": {
+      "command": "uvx",
+      "args": [
+        "mcp-proxy-for-aws@latest",
+        "https://aws-mcp.us-east-1.api.aws/mcp",
+        "--metadata",
+        "AWS_REGION=us-west-2"
+      ],
+      "timeout": 100000
+    },
+    "bedrock-agentcore-mcp-server": {
+      "command": "uvx",
+      "args": [
+        "bedrock-agentcore-mcp-server@latest"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "WARNING"
+      },
+      "timeout": 60000
+    }
+  },
+  "tools": [
+    "fs_read",
+    "fs_write",
+    "execute_bash",
+    "use_aws",
+    "thinking",
+    "use_subagent",
+    "subagent",
+    "@fetchv2",
+    "@aws-mcp",
+    "@bedrock-agentcore-mcp-server"
+  ],
+  "allowedTools": [
+    "fs_read",
+    "fs_write",
+    "execute_bash",
+    "thinking",
+    "use_subagent",
+    "subagent",
+    "@fetchv2"
+  ],
+  "resources": [
+    "file://~/.kiro/skills/aws-deep-research/SKILL.md"
+  ],
+  "hooks": {},
+  "toolsSettings": {},
+  "useLegacyMcpJson": false
+}

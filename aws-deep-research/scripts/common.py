@@ -1,0 +1,203 @@
+"""
+Shared utilities for web-search-scrape scripts.
+
+Provides common functions used by brave_search.py and tavily_search.py.
+Not intended to be run directly.
+"""
+
+import hashlib
+import re
+import subprocess
+from datetime import UTC, datetime
+from pathlib import Path
+from urllib.parse import urlparse
+
+from rich.console import Console
+from rich.panel import Panel
+
+# Type aliases
+type URLList = list[str]
+
+console = Console()
+
+
+# ---------------------------------------------------------------------------
+# Domain blocklist
+# ---------------------------------------------------------------------------
+
+_BLOCKLIST_PATH = Path(__file__).resolve().parent / "blocklist.txt"
+_BLOCKLIST_CACHE: tuple[frozenset[str], float] | None = None
+
+
+def load_blocked_domains(path: Path | None = None) -> frozenset[str]:
+    """Read ``blocklist.txt`` and return the set of blocked domains (lowercase).
+
+    Caches on mtime so repeated calls within a session don't re-read the file.
+    Returns an empty frozenset if the file does not exist.
+    """
+    global _BLOCKLIST_CACHE
+    p = path or _BLOCKLIST_PATH
+    try:
+        mtime = p.stat().st_mtime
+    except FileNotFoundError:
+        return frozenset()
+    if _BLOCKLIST_CACHE is not None and _BLOCKLIST_CACHE[1] == mtime:
+        return _BLOCKLIST_CACHE[0]
+    domains: set[str] = set()
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip().lower()
+        if line:
+            domains.add(line)
+    blocked = frozenset(domains)
+    _BLOCKLIST_CACHE = (blocked, mtime)
+    return blocked
+
+
+def is_blocked_url(url: str, blocked: frozenset[str] | None = None) -> bool:
+    """True if the URL's host matches any blocked-domain suffix."""
+    if blocked is None:
+        blocked = load_blocked_domains()
+    if not blocked:
+        return False
+    try:
+        host = (urlparse(url).hostname or "").lower()
+    except Exception:
+        return False
+    if not host:
+        return False
+    # Suffix match: block "example.com" also blocks "sub.example.com"
+    for d in blocked:
+        if host == d or host.endswith("." + d):
+            return True
+    return False
+
+
+def filter_blocked_urls(urls: URLList, blocked: frozenset[str] | None = None) -> tuple[URLList, URLList]:
+    """Return ``(kept, dropped)`` URL lists.
+
+    ``dropped`` is surfaced so callers can log/report what was filtered.
+    """
+    if blocked is None:
+        blocked = load_blocked_domains()
+    if not blocked:
+        return list(urls), []
+    kept: URLList = []
+    dropped: URLList = []
+    for u in urls:
+        if is_blocked_url(u, blocked):
+            dropped.append(u)
+        else:
+            kept.append(u)
+    return kept, dropped
+
+
+# Max folder name length. Leaves headroom under the 255-char path limit
+# enforced by OneDrive / iCloud / Windows NTFS / many sync clients, given
+# that these folders sit several levels deep (e.g.
+# output/research/web-search/brave/<this>/<domain>/<file>.md).
+_MAX_FOLDER_NAME_LEN = 60
+
+
+def sanitize_folder_name(query: str, max_len: int = _MAX_FOLDER_NAME_LEN) -> str:
+    """Convert query string to a safe, length-bounded folder name.
+
+    Strips non-alphanumerics and lowercases. If the result exceeds
+    ``max_len`` chars, truncates and appends an 8-char SHA1 digest of
+    the original query so near-duplicate queries don't collide.
+
+    Returns ``search_results`` for empty/all-punctuation inputs.
+    """
+    sanitized = re.sub(r"[^a-zA-Z0-9]", "", query).lower()
+    if not sanitized:
+        return "search_results"
+    if len(sanitized) <= max_len:
+        return sanitized
+    # Truncate and append short hash for uniqueness.
+    # Reserve 9 chars at the end: "_" + 8 hex digits.
+    digest = hashlib.sha1(query.encode("utf-8")).hexdigest()[:8]
+    keep = max_len - 9
+    return f"{sanitized[:keep]}_{digest}"
+
+
+def save_urls_to_file(urls: URLList, output_dir: Path) -> Path:
+    """Save extracted URLs to a text file."""
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    filepath = output_dir / f"urls_{timestamp}.txt"
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.writelines(f"{url}\n" for url in urls)
+
+    console.print(f"[green]✓ Saved {len(urls)} URLs to:[/green] {filepath}")
+    return filepath
+
+
+def run_scraper(
+    urls: URLList,
+    output_dir: Path,
+    *,
+    yes: bool = False,
+    json_output: bool = False,
+) -> None:
+    """Invoke trafilatura_scraper.py with the extracted URLs."""
+    if not urls:
+        console.print("[yellow]No URLs to scrape[/yellow]")
+        return
+
+    script_dir = Path(__file__).parent
+    scraper_path = script_dir / "trafilatura_scraper.py"
+
+    if not scraper_path.exists():
+        console.print(f"[red]Scraper not found at: {scraper_path}[/red]")
+        return
+
+    console.print()
+    console.print(
+        Panel(
+            f"[bold]Starting content extraction[/bold]\n"
+            f"URLs to process: {len(urls)}\n"
+            f"Output directory: {output_dir}",
+            title="Scraper Integration",
+            border_style="cyan",
+        ),
+    )
+
+    cmd = [
+        "uv",
+        "run",
+        str(scraper_path),
+        "--url",
+        *urls,
+        "--output-dir",
+        str(output_dir),
+    ]
+
+    if yes:
+        cmd.append("--yes")
+
+    if json_output:
+        cmd.append("--json")
+
+    scraper_timeout = max(120, len(urls) * 120)
+
+    try:
+        result = subprocess.run(
+            cmd,
+            check=False,
+            capture_output=False,
+            timeout=scraper_timeout,
+        )
+
+        if result.returncode != 0:
+            console.print(
+                f"[yellow]Scraper exited with code {result.returncode}[/yellow]",
+            )
+
+    except subprocess.TimeoutExpired:
+        console.print(
+            f"[red]Scraper timed out after {scraper_timeout}s. "
+            f"Some URLs may not have been processed.[/red]",
+        )
+    except subprocess.SubprocessError as e:
+        console.print(f"[red]Failed to run scraper: {e}[/red]")
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Scraping interrupted by user[/yellow]")

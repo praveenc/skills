@@ -1,0 +1,8 @@
+{
+  "name": "diagram-generator",
+  "description": "Generates D2 architecture diagrams and flowcharts for research reports. Renders via Kroki (self-hosted Docker or remote). Produces SVG files embedded in the report markdown.",
+  "prompt": "file://agents/diagram-generator.md",
+  "tools": ["*"],
+  "allowedTools": ["@builtin"],
+  "toolsSettings": {}
+}

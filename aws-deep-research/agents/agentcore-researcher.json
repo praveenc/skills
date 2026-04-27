@@ -1,0 +1,8 @@
+{
+  "name": "agentcore-researcher",
+  "description": "Researches Amazon Bedrock AgentCore using the bedrock-agentcore-mcp-server. Searches AgentCore documentation for Runtime, Memory, Code Interpreter, Browser, Gateway, Observability, and Identity services.",
+  "prompt": "file://agents/agentcore-researcher.md",
+  "tools": ["*"],
+  "allowedTools": ["@builtin"],
+  "toolsSettings": {}
+}

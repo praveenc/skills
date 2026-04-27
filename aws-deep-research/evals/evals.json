@@ -1,0 +1,103 @@
+{
+  "skill_name": "aws-deep-research",
+  "description": "Evaluation cases for the aws-deep-research skill. Covers strategy selection, multi-source synthesis, report quality, and edge cases.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "comprehensive-multi-source",
+      "prompt": "deep research on configuring hierarchical indexing in Amazon OpenSearch Serverless — parent-child relationships, nested fields, efficient query mappings",
+      "expected_behavior": [
+        "Selects 'comprehensive' strategy with intents: service-overview, architecture, best-practices",
+        "Dispatches at least 3 subagents in parallel (aws-docs-researcher, web-researcher, and one of blog-feed/github)",
+        "Produces report.md with Executive Summary, Detailed Findings, Recommendations, References sections",
+        "All references use [N] [Title](url) clickable markdown format",
+        "Report contains concrete mapping examples (JSON code blocks)",
+        "Report is between 8,000–15,000 chars"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "feed-only-latest-posts",
+      "prompt": "show me the top 5 latest AWS security blog posts",
+      "expected_behavior": [
+        "Selects 'feed-only' strategy",
+        "Dispatches only blog-feed-researcher (no decomposition step)",
+        "Maps to 'security' blog category feed URL",
+        "Output lists 5 blog posts with titles, dates, and URLs",
+        "Does NOT dispatch aws-docs-researcher or web-researcher"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "pricing-focused",
+      "prompt": "how much does Amazon Aurora Serverless v2 cost compared to provisioned Aurora? Include ACU pricing, storage, I/O costs across regions",
+      "expected_behavior": [
+        "Selects 'pricing-focused' strategy with intent: pricing",
+        "Dispatches aws-pricing-researcher and aws-docs-researcher",
+        "Report includes pricing tables with specific dollar amounts",
+        "Report compares Serverless v2 vs provisioned pricing dimensions",
+        "Citations include pricing query dates"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "docs-only-single-service",
+      "prompt": "what is the maximum number of knowledge bases you can create per account in Amazon Bedrock?",
+      "expected_behavior": [
+        "Selects 'docs-only' strategy",
+        "Dispatches only aws-docs-researcher with 2-3 focused subqueries",
+        "Report answers the specific quota question with a concrete number",
+        "Report cites AWS documentation URL for the quota/limit",
+        "Does NOT dispatch web-researcher or blog-feed-researcher"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "comprehensive-with-code-examples",
+      "prompt": "research how to build a custom DevOps agent using Amazon Bedrock Agent Core with tool definitions, custom workflows, and deployment patterns",
+      "expected_behavior": [
+        "Selects 'comprehensive' strategy with intents: architecture, code-examples",
+        "Dispatches github-researcher in addition to aws-docs-researcher",
+        "Report includes code examples or references to sample repositories",
+        "Report covers Agent Core tool definitions and workflow configuration",
+        "At least 10 citations from diverse sources"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "missing-api-keys-graceful",
+      "prompt": "compare AWS Lambda cold start times across runtimes — Node.js, Python, Java, .NET — with community benchmarks",
+      "expected_behavior": [
+        "Selects 'comprehensive' strategy with intents: comparison, best-practices",
+        "If web search keys are missing, informs user and asks to proceed",
+        "If user proceeds without web search, still produces a report from AWS docs and blogs",
+        "Report notes the gap in Gaps & Limitations section",
+        "Does not fail or error — degrades gracefully"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "ambiguous-non-aws-topic",
+      "prompt": "what are the best vector databases for production use?",
+      "expected_behavior": [
+        "Recognizes this as AWS-adjacent (cloud infrastructure topic)",
+        "Activates the skill and frames research with AWS context (OpenSearch, Aurora pgvector, etc.)",
+        "Dispatches web-researcher for third-party comparisons (Pinecone, Weaviate, etc.)",
+        "Report covers both AWS-native and third-party options",
+        "If skill does NOT activate, that is also acceptable — the description says 'AWS-related topic'"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "output-discipline-context-budget",
+      "prompt": "deep research on Amazon S3 Express One Zone vs standard S3 — performance, pricing, use cases",
+      "expected_behavior": [
+        "All subagent return text is minimal (one-line '✅ Wrote N chars to <path>')",
+        "Synthesizer returns two-line response only",
+        "Parent does NOT read raw research files — only report.md",
+        "Total subagent return text to parent is under 500 chars combined",
+        "Report is coherent despite parent never seeing raw research data"
+      ]
+    }
+  ]
+}

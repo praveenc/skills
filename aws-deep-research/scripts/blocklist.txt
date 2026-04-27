@@ -1,0 +1,19 @@
+# Domain blocklist for aws-deep-research
+# One domain per line. Blank lines and lines starting with # are ignored.
+# Matching is done by suffix: "example.com" also blocks "sub.example.com".
+#
+# These domains are filtered out of Brave/Tavily results BEFORE URLs are
+# returned for fetchv2 batch fetching, and also skipped when listed in
+# urls_*.txt files.
+#
+# Reasons a domain ends up here:
+#   SEC   — Amazon Security / corporate policy blocks the domain
+#   SPAM  — low-signal aggregator, scraped-content mill, or SEO farm
+#   PAY   — hard paywall that adds noise without content
+#   DEAD  — persistently broken / timing out
+
+# --- SEC: blocked by Amazon Security (confirmed 2026-04-26) ---
+winbuzzer.com
+
+# --- SPAM: aggregators / content mills frequently surfaced by Brave ---
+# (add entries here as we observe them; keep comment trail)

@@ -1,0 +1,8 @@
+{
+  "name": "github-researcher",
+  "description": "Researches relevant GitHub repositories using the github_search.py MCP client script. Searches AWS-related organizations for sample code, reference implementations, and solution patterns.",
+  "prompt": "file://agents/github-researcher.md",
+  "tools": ["*"],
+  "allowedTools": ["@builtin"],
+  "toolsSettings": {}
+}

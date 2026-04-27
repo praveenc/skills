@@ -1,0 +1,8 @@
+{
+  "name": "web-content-researcher",
+  "description": "Searches the web and AWS blog feeds for supplementary research. Uses Brave/Tavily for web search and sitemap_feed_extractor for blog feeds. Covers third-party comparisons, community opinions, benchmarks, tutorials, and recent blog posts.",
+  "prompt": "file://agents/web-content-researcher.md",
+  "tools": ["*"],
+  "allowedTools": ["@builtin"],
+  "toolsSettings": {}
+}

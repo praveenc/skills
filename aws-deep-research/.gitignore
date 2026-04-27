@@ -1,0 +1,18 @@
+# Research artifacts produced by the skill at runtime (Brave/Tavily responses,
+# scraped markdown, index files). Never commit these — they belong to a
+# specific user's research session, not the skill itself.
+output/
+
+# API keys & machine-local config
+scripts/.env
+
+# Python cache from script runs
+scripts/__pycache__/
+*.pyc
+
+# macOS metadata
+.DS_Store
+
+# Per-user work directory if someone points WORK_DIR at the skill tree
+work/
+downloads/

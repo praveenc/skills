@@ -1,0 +1,16 @@
+{
+  "name": "aws-mcp-researcher",
+  "description": "Researches AWS documentation and pricing using MCP client scripts. Searches across AWS docs, blog posts, What's New, Well-Architected guidance, API references, and real-time pricing data. Returns structured findings with source URLs.",
+  "prompt": "file://agents/aws-mcp-researcher.md",
+  "mcpServers": {
+    "fetchv2": {
+      "command": "uvx",
+      "args": ["fetchv2-mcp-server@latest"],
+      "disabled": false,
+      "autoApprove": ["fetch", "fetch_batch", "discover_links", "fetch_llms_txt"]
+    }
+  },
+  "tools": ["*"],
+  "allowedTools": ["@builtin", "@fetchv2"],
+  "toolsSettings": {}
+}

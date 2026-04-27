@@ -1,0 +1,8 @@
+{
+  "name": "synthesizer",
+  "description": "Reads all research output files from a deep research session and synthesizes them into a single, cohesive report with inline citations. Use after all researcher subagents have completed and written their findings to disk.",
+  "prompt": "file://agents/synthesizer.md",
+  "tools": ["*"],
+  "allowedTools": ["@builtin"],
+  "toolsSettings": {}
+}
