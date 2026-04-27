@@ -33,6 +33,28 @@ industry-standard SKILL.md format).
   [aws-deep-research/evals/palmyra-vs-claude/SPIKE_SUMMARY.md](./aws-deep-research/evals/palmyra-vs-claude/SPIKE_SUMMARY.md)
   for the synthesizer eval.
 
+#### How aws-deep-research works
+
+<p align="center">
+  <img src="./aws-deep-research/docs/workflow.svg"
+       alt="aws-deep-research workflow: query → research contract → facet decomposition → parallel subagent dispatch → findings files → size-gate → synthesis → report"
+       width="720">
+</p>
+
+<p align="center"><sub>
+  <a href="./aws-deep-research/docs/workflow.svg">Open full-size SVG</a> &middot;
+  <a href="./aws-deep-research/docs/workflow.d2">View D2 source</a>
+</sub></p>
+
+The diagram captures the eight-step flow enforced by `SKILL.md`:
+**research contract** grounds every claim, **facet-labeled decomposition**
+(2–3 subqueries per source, printed to the user before any API credit is
+spent) drives search, **domain blocklist** filters URLs pre-fetch, up to
+**4 subagents dispatch in parallel** writing findings to disk (never into
+the parent's context), a **size-gate** catches silent failures, and the
+**synthesizer** re-reads the contract to ground all citations in the final
+report.
+
 ## Installation
 
 ### Claude Code (native support via `skills` CLI)

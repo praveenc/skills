@@ -1,0 +1,140 @@
+# aws-deep-research workflow diagram
+# Rendered via Kroki -> SVG (same pipeline the skill uses internally).
+# Regenerate after edits:
+#   curl -X POST https://kroki.io/d2/svg --data-binary @workflow.d2 > workflow.svg
+
+direction: down
+
+title: "aws-deep-research — Workflow\ncontract-first · facet-decomposed · subagent-disciplined · fail-loudly" {
+  near: top-center
+  style: {font-size: 20; bold: true}
+}
+
+# ───────────────────────── Phase 1: Input & Grounding ─────────────────────────
+
+user: "User query\n(natural language)" {
+  shape: document
+  style: {fill: "#fef3c7"; stroke: "#f59e0b"; stroke-width: 2; font-size: 16}
+}
+
+contract: "📋 Research Contract\n• Include scope\n• Exclude list\n• Temporal bounds\n• Factual anchors" {
+  shape: cylinder
+  style: {fill: "#dbeafe"; stroke: "#2563eb"; stroke-width: 2; font-size: 14}
+}
+
+slug: "Slug\n4–7 tokens · 30–60 chars\nkebab-case" {
+  shape: rectangle
+  style: {fill: "#e0e7ff"; stroke: "#4f46e5"; stroke-width: 2; font-size: 13}
+}
+
+# ───────────────────────── Phase 2: Decomposition ─────────────────────────
+
+decompose: "🔀 Query Decomposition\n2–3 facet-labeled subqueries" {
+  style: {fill: "#ede9fe"; stroke: "#7c3aed"; stroke-width: 2; font-size: 15; bold: true}
+}
+
+facets: "Facet pairs (pick 2–3):\n• reference · tutorial\n• official · community\n• capabilities · pricing\n• build · critique\n• what-is · how-to-use-it\n• primary-source · third-party" {
+  shape: rectangle
+  style: {fill: "#faf5ff"; stroke: "#a855f7"; stroke-width: 1; stroke-dash: 3; font-size: 12}
+}
+
+transparency: "Transparency rule\n(printed to user first)\n\nDispatching web-content-researcher with:\n  [1] 'AWS Bedrock Guardrails docs'  (reference)\n  [2] 'Bedrock Guardrails review prod' (community)\n\n↑ user can correct before credits spent" {
+  shape: rectangle
+  style: {fill: "#fff7ed"; stroke: "#ea580c"; stroke-width: 2; font-size: 11}
+}
+
+# ───────────────────────── Phase 3: Dispatch Safety Net ─────────────────────────
+
+blocklist: "🚫 Domain blocklist\nsuffix-match\nSEC · SPAM · PAY · DEAD tags" {
+  shape: cylinder
+  style: {fill: "#fee2e2"; stroke: "#dc2626"; stroke-width: 2; font-size: 12}
+}
+
+# ───────────────────────── Phase 4: Parallel Dispatch ─────────────────────────
+
+dispatch: "⚡ Parallel Dispatch\n≤ 4 subagents per round" {
+  shape: hexagon
+  style: {fill: "#fde68a"; stroke: "#d97706"; stroke-width: 2; font-size: 15; bold: true}
+}
+
+subagents: "Research subagents" {
+  style: {fill: "#f9fafb"; stroke: "#9ca3af"; stroke-width: 1; stroke-dash: 3; font-size: 13}
+
+  aws_mcp: "aws-mcp-researcher\n\n• AWS Knowledge MCP\n• AWS Pricing MCP\n• Bedrock AgentCore" {
+    style: {fill: "#fef9c3"; stroke: "#ca8a04"; stroke-width: 2; font-size: 12}
+  }
+  web: "web-content-researcher\n\n• Brave + Tavily\n• fetchv2_fetch_batch\n• truncation recovery\n  (8K default → 20K primary)\n• AWS blog feeds" {
+    style: {fill: "#cffafe"; stroke: "#0891b2"; stroke-width: 2; font-size: 12}
+  }
+  github: "github-researcher\n\n• Repo search\n• README fetch\n• Code examples" {
+    style: {fill: "#e0e7ff"; stroke: "#4338ca"; stroke-width: 2; font-size: 12}
+  }
+  agentcore: "agentcore-researcher\n\n• Bedrock AgentCore\n  docs + samples" {
+    style: {fill: "#fce7f3"; stroke: "#be185d"; stroke-width: 2; font-size: 12}
+  }
+}
+
+# ───────────────────────── Phase 5: Findings on disk ─────────────────────────
+
+findings: "💾 Findings files (on disk)\nWORK_DIR/<slug>/\n\n• aws-docs.md\n• web-content.md\n• github-repos.md\n• agentcore.md\n\n(parent NEVER reads these)" {
+  shape: cylinder
+  style: {fill: "#d1fae5"; stroke: "#059669"; stroke-width: 2; font-size: 12}
+}
+
+# ───────────────────────── Phase 6: Size-gate ─────────────────────────
+
+size_gate: "🧪 Size-gate check\n\n< 500 bytes = WEAK\nmissing     = MISSING\nelse        = OK\n\nStatus threaded to synthesizer\n→ Gaps & Limitations section" {
+  shape: rectangle
+  style: {fill: "#fef9c3"; stroke: "#ca8a04"; stroke-width: 2; font-size: 12}
+}
+
+# ───────────────────────── Phase 7: Synthesis ─────────────────────────
+
+synth: "🧠 Synthesizer\nClaude Sonnet 4.6\n\nblind-eval winner over Palmyra X5\n(2 rounds · see evals/)" {
+  shape: parallelogram
+  style: {fill: "#ddd6fe"; stroke: "#6d28d9"; stroke-width: 2; font-size: 13; bold: true}
+}
+
+# ───────────────────────── Phase 8: Output ─────────────────────────
+
+report: "📄 Report\n~/.aws-deep-research/outputs/\n<slug>-report.md\n\n• Executive summary\n• 5–8 sections\n• Inline citations\n• Gaps & Limitations" {
+  shape: document
+  style: {fill: "#dcfce7"; stroke: "#16a34a"; stroke-width: 3; font-size: 13; bold: true}
+}
+
+diagram_opt: "Optional:\ndiagram-generator\n(if architecture intent\nwith 3+ components)" {
+  shape: oval
+  style: {fill: "#fae8ff"; stroke: "#a21caf"; stroke-width: 2; stroke-dash: 3; font-size: 11}
+}
+
+# ───────────────────────── Connections ─────────────────────────
+
+user -> contract: "Step 1:\nextract scope" {style.font-size: 11}
+contract -> slug: "Step 2" {style.font-size: 11}
+slug -> decompose: "Step 3" {style.font-size: 11}
+
+decompose -> facets: "pick from" {style: {stroke-dash: 3; font-size: 11}}
+decompose -> transparency: "print first" {style: {stroke-dash: 3; stroke: "#ea580c"; font-size: 11}}
+
+decompose -> dispatch: "Step 4" {style.font-size: 11}
+
+blocklist -> dispatch: "filter URLs" {style: {stroke-dash: 3; stroke: "#dc2626"; font-size: 11}}
+
+dispatch -> subagents.aws_mcp
+dispatch -> subagents.web
+dispatch -> subagents.github
+dispatch -> subagents.agentcore
+
+subagents.aws_mcp -> findings
+subagents.web -> findings
+subagents.github -> findings
+subagents.agentcore -> findings
+
+findings -> size_gate: "Step 5" {style.font-size: 11}
+size_gate -> synth: "Step 6:\npass + gap notes" {style.font-size: 11}
+
+contract -> synth: "re-read to\nground claims" {style: {stroke-dash: 5; stroke: "#2563eb"; stroke-width: 2; font-size: 11}}
+
+synth -> report: "Step 7" {style.font-size: 11}
+report -> diagram_opt {style: {stroke-dash: 3; font-size: 11}}
+diagram_opt -> report: "embed" {style: {stroke-dash: 3; font-size: 11}}
