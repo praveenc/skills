@@ -1,7 +1,13 @@
 # Praveen's Agent Skills
 
-Production-grade skills for AI coding agents — tested, documented, and
-versioned. Built for [pi](https://github.com/mariozechner/pi-coding-agent),
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Skills.sh](https://img.shields.io/badge/skills.sh-compatible-brightgreen)](https://skills.sh)
+[![SKILL.md](https://img.shields.io/badge/format-SKILL.md-purple)](https://skills.sh/docs)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
+
+> Production-grade skills for AI coding agents — tested, documented, and versioned.
+
+Built for [pi](https://github.com/mariozechner/pi-coding-agent),
 [Claude Code](https://docs.claude.com/en/docs/claude-code), and
 [Kiro CLI](https://kiro.dev) (with others likely compatible via the
 industry-standard SKILL.md format).
@@ -147,11 +153,10 @@ Don't commit: `.env`, `output/`, `work/`, `meta/`, `__pycache__/`.
 
 ## License
 
-[MIT](./LICENSE) — use, fork, modify freely.
+[MIT](./LICENSE) — Copyright (c) 2026 Praveen Chamarthi
 
-## Credits
+---
 
-Research inspiration from [mattpocock/skills](https://github.com/mattpocock/skills),
-[anthropics/skills](https://github.com/anthropics/skills), and
-[MiniMax-AI/skills](https://github.com/MiniMax-AI/skills). The `npx skills`
-CLI is [vercel-labs/skills](https://github.com/vercel-labs/skills).
+<div align="center">
+  <sub>Built for the AI community ❤️</sub>
+</div>
