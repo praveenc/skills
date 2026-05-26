@@ -5,7 +5,7 @@
 [![SKILL.md](https://img.shields.io/badge/format-SKILL.md-purple)](https://skills.sh/docs)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
 
-> Production-grade skills for AI coding agents — tested, documented, and versioned.
+> Production-grade skills for AI coding agents. Tested, documented, and versioned.
 
 Built for [pi](https://github.com/mariozechner/pi-coding-agent),
 [Claude Code](https://docs.claude.com/en/docs/claude-code), and
@@ -14,9 +14,9 @@ industry-standard SKILL.md format).
 
 ## Skills
 
-### Research & Analysis
+### :mag: Research & Analysis
 
-- **[aws-deep-research](./aws-deep-research/)** — Multi-source, parallelized
+- **[aws-deep-research](./aws-deep-research/)** - Multi-source, parallelized
   deep research with facet-based query decomposition, subagent dispatch, and
   synthesized citations. Optimized for AWS topics but works equally well on
   non-AWS / generic research queries. Enforces a contract-first research
@@ -29,12 +29,12 @@ industry-standard SKILL.md format).
   See [aws-deep-research/SKILL.md](./aws-deep-research/SKILL.md) for the
   full workflow documentation.
 
-### Coding Discipline
+### :shield: Coding Discipline
 
-- **[agent-code-discipline](./agent-code-discipline/)** — Enforce four
+- **[agent-code-discipline](./agent-code-discipline/)** - Enforce four
   coding-agent principles distilled from Andrej Karpathy's observations:
   *think before coding*, *simplicity first*, *surgical changes*, and
-  *goal-driven execution*. Reduces the most common LLM failure modes —
+  *goal-driven execution*. Reduces the most common LLM failure modes:
   silent assumptions, premature abstraction, scope creep, and unfocused
   execution. Ships with domain-specific reference examples (generic Python,
   AWS CDK, AWS Bedrock, multi-service compositions).
@@ -58,7 +58,7 @@ npx skills add praveenc/skills/aws-deep-research -a claude-code -g
 npx skills add praveenc/skills/aws-deep-research -a claude-code
 ```
 
-### pi (manual install — `skills` CLI does not yet auto-target pi)
+### pi (manual install, `skills` CLI does not yet auto-target pi)
 
 ```bash
 # One-line install to pi's skills directory
@@ -101,7 +101,7 @@ $EDITOR ~/.claude/skills/aws-deep-research/scripts/.env
 ```
 
 **aws-deep-research** uses these keys (all optional, but the skill
-gracefully degrades — e.g. without `BRAVE_SEARCH_API_KEY` it falls back
+gracefully degrades, e.g. without `BRAVE_SEARCH_API_KEY` it falls back
 to Tavily; without AWS credentials it skips the AWS docs/pricing
 MCP calls):
 
@@ -110,7 +110,7 @@ MCP calls):
 | `BRAVE_SEARCH_API_KEY` | Web search | 2,000 queries/month |
 | `TAVILY_API_KEY` | Alternate web search | 1,000 queries/month |
 | `GITHUB_TOKEN` | Higher GitHub API rate limits | 5,000/hr with token vs 60/hr without |
-| AWS credentials (via `~/.aws/config` or env) | AWS docs + pricing + Bedrock AgentCore MCP | — |
+| AWS credentials (via `~/.aws/config` or env) | AWS docs + pricing + Bedrock AgentCore MCP | - |
 
 The skill writes research artifacts to `~/.aws-deep-research/work/<slug>/`
 and final reports to `~/.aws-deep-research/outputs/`. Override either via
@@ -121,14 +121,14 @@ and final reports to `~/.aws-deep-research/outputs/`. Override either via
 | Skill | pi | Claude Code | Kiro CLI | Cursor | Notes |
 |---|:-:|:-:|:-:|:-:|---|
 | aws-deep-research | ✅ | ✅ | ✅ | ✅ | Kiro CLI needs `setup/register.sh` post-install |
-| agent-code-discipline | ✅ | ✅ | ✅ | ✅ | Behavioral guidelines — no API keys needed |
+| agent-code-discipline | ✅ | ✅ | ✅ | ✅ | Behavioral guidelines, no API keys needed |
 
 ## Versioning
 
 Each skill ships with its own `SKILL.md` `metadata.version` field and a
 `meta/CHANGELOG.md` in the source tree (excluded from deployed copies).
-Breaking changes bump the minor (e.g. 6.x → 7.0); additive improvements
-bump the patch (6.9 → 6.10); bug fixes bump the patch.
+Breaking changes bump the minor (e.g. 6.x to 7.0); additive improvements
+bump the patch (6.9 to 6.10); bug fixes bump the patch.
 
 ## Philosophy
 
@@ -143,8 +143,8 @@ These skills aim to be:
   API keys are treated as bugs. You should always know where artifacts
   are going and whether a needed credential is missing.
 - **Facet-decomposed**: one natural-language question decomposes into
-  2–3 focused keyword queries with labeled facets (reference·tutorial,
-  official·community, capabilities·pricing, etc.) — printed to the
+  2-3 focused keyword queries with labeled facets (reference/tutorial,
+  official/community, capabilities/pricing, etc.), printed to the
   user before any API credit is spent.
 - **Blind-evaluated where it matters**: synthesizer backend choice
   (Sonnet 4.6 vs Palmyra X5) was decided via two blind-read rounds
@@ -161,13 +161,13 @@ PRs welcome. For a new skill, follow the
 - `references/` for on-demand knowledge loaded by the skill
 - `scripts/` for executable tools, with a `.env.example` if keys are needed
 - `setup/` for Kiro CLI or other platform-specific bootstrap (optional)
-- `meta/CHANGELOG.md` — gitignored from shipped copies but retained in source
+- `meta/CHANGELOG.md` - gitignored from shipped copies but retained in source
 
 Don't commit: `.env`, `output/`, `work/`, `meta/`, `__pycache__/`.
 
 ## License
 
-[MIT](./LICENSE) — Copyright (c) 2026 Praveen Chamarthi
+[MIT](./LICENSE) - Copyright (c) 2026 Praveen Chamarthi
 
 ---
 
