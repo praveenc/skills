@@ -47,29 +47,16 @@ industry-standard SKILL.md format).
 
 ## Installation
 
-### Claude Code (native support via `skills` CLI)
+### Using the skills CLI (recommended)
 
 ```bash
-# Install globally (available in every project)
+# Interactive (auto-detects installed agents)
+npx skills add https://github.com/praveenc/skills --skill aws-deep-research
+
+# Target a specific agent globally
+npx skills add https://github.com/praveenc/skills --skill aws-deep-research -a pi -g
 npx skills add https://github.com/praveenc/skills --skill aws-deep-research -a claude-code -g
-
-# Or install into the current project only
-npx skills add https://github.com/praveenc/skills --skill aws-deep-research -a claude-code
 ```
-
-### pi (manual install, `skills` CLI does not yet auto-target pi)
-
-```bash
-# One-line install to pi's skills directory
-git clone https://github.com/praveenc/skills.git /tmp/praveenc-skills && \
-  rsync -a --delete --exclude='meta/' --exclude='output/' --exclude='work/' \
-    /tmp/praveenc-skills/aws-deep-research/ \
-    ~/.pi/agent/skills/aws-deep-research/
-```
-
-Then populate `~/.pi/agent/skills/aws-deep-research/scripts/.env` from
-the provided `.env.example` (see
-[Configuration](#configuration-required-for-full-functionality) below).
 
 ### Kiro CLI (requires the bundled `register.sh`)
 
