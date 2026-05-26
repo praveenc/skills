@@ -4,12 +4,12 @@
   "groupings": [
     {
       "title": "Research",
-      "description": "Deep research and analysis skills.",
+      "description": "Deep research and analysis skills for AWS and general topics.",
       "skills": ["aws-deep-research"]
     },
     {
       "title": "Coding",
-      "description": "Code quality and discipline.",
+      "description": "Code quality and discipline (Karpathy).",
       "skills": ["agent-code-discipline"]
     }
   ]
