@@ -3,7 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![skills.sh](https://skills.sh/b/praveenc/skills)](https://skills.sh/praveenc/skills)
 [![SKILL.md](https://img.shields.io/badge/format-SKILL.md-purple)](https://skills.sh/docs)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
 
 > Production-grade skills for AI coding agents. Tested, documented, and versioned.
 
