@@ -2,6 +2,15 @@
 
 Real-world code examples demonstrating the four principles. Each example shows what LLMs commonly do wrong and how to fix it.
 
+## Table of Contents
+
+1. [Think Before Coding](#1-think-before-coding)
+2. [Simplicity First](#2-simplicity-first)
+3. [Surgical Changes](#3-surgical-changes)
+4. [Goal-Driven Execution](#4-goal-driven-execution)
+5. [Anti-Patterns Summary](#anti-patterns-summary)
+6. [Key Insight](#key-insight)
+
 ---
 
 ## 1. Think Before Coding
