@@ -25,7 +25,7 @@ In short: same source inspiration, but this skill is **deeper** (anti-patterns w
 ## Install
 
 ```bash
-npx skills add praveenc/skills/agent-code-discipline
+npx skills add https://github.com/praveenc/skills --skill agent-code-discipline
 ```
 
 ## Usage

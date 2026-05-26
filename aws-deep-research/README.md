@@ -19,7 +19,7 @@ GitHub with the same facet-decomposition and contract-first discipline.
 ## Install
 
 ```bash
-npx skills add praveenc/skills/aws-deep-research
+npx skills add https://github.com/praveenc/skills --skill aws-deep-research
 ```
 
 ## How it works

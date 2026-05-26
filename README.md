@@ -23,7 +23,7 @@ industry-standard SKILL.md format).
   workflow with blind-evaluated synthesis quality.
 
   ```bash
-  npx skills add praveenc/skills/aws-deep-research
+  npx skills add https://github.com/praveenc/skills --skill aws-deep-research
   ```
 
   See [aws-deep-research/SKILL.md](./aws-deep-research/SKILL.md) for the
@@ -40,7 +40,7 @@ industry-standard SKILL.md format).
   AWS CDK, AWS Bedrock, multi-service compositions).
 
   ```bash
-  npx skills add praveenc/skills/agent-code-discipline
+  npx skills add https://github.com/praveenc/skills --skill agent-code-discipline
   ```
 
   See [agent-code-discipline/SKILL.md](./agent-code-discipline/SKILL.md)
@@ -52,10 +52,10 @@ industry-standard SKILL.md format).
 
 ```bash
 # Install globally (available in every project)
-npx skills add praveenc/skills/aws-deep-research -a claude-code -g
+npx skills add https://github.com/praveenc/skills --skill aws-deep-research -a claude-code -g
 
 # Or install into the current project only
-npx skills add praveenc/skills/aws-deep-research -a claude-code
+npx skills add https://github.com/praveenc/skills --skill aws-deep-research -a claude-code
 ```
 
 ### pi (manual install, `skills` CLI does not yet auto-target pi)
