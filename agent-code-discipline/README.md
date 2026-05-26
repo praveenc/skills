@@ -66,4 +66,4 @@ This skill activates on: coding discipline, simplicity, overengineering, scope c
 
 ## Origin
 
-Based on [Andrej Karpathy's observations](https://x.com/karpathy/status/1886192184808149383) on Claude Code (early 2025) and the [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) repo.
+Based on [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on Claude Code (Jan 2026) and the [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) repo.
