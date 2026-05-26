@@ -1,10 +1,11 @@
 # Top-level gitignore for the skills repo.
 # Each skill also has its own .gitignore for skill-specific artifacts.
 
-# ─── Runtime artifacts (research sessions, downloads, scraped content) ─────
+# ─── Runtime artifacts (research sessions, downloads, scraped content, audit reports) ─────
 output/
 work/
 downloads/
+meta/
 
 # ─── Secrets ─────────────────────────────────────────────────────────────
 **/.env
