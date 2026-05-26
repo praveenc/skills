@@ -4,7 +4,7 @@ Behavioral guidelines for LLM coding agents that reduce overcomplication, silent
 
 ## Why this skill?
 
-The popular [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) repo (4k+ stars) ships a single flat `CLAUDE.md` with the four principles in ~60 lines. It's a great starting point. This skill goes further:
+The popular [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) repo (152k+ stars) ships a single flat `CLAUDE.md` with the four principles in ~60 lines. It's a great starting point. This skill goes further:
 
 | | multica-ai | agent-code-discipline |
 |---|---|---|
