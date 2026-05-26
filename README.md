@@ -16,74 +16,35 @@ industry-standard SKILL.md format).
 
 ### Research & Analysis
 
-- **aws-deep-research** — Multi-source, parallelized deep research with
-  facet-based query decomposition, subagent dispatch, and synthesized
-  citations. **Optimized for AWS topics** (dispatches specialist subagents
-  against AWS Knowledge MCP, AWS Pricing MCP, Bedrock AgentCore docs,
-  AWS blog feeds, GitHub, and the open web) **but works equally well on
-  non-AWS / generic research queries** — library internals, software
-  architecture patterns, methodology deep-dives, cross-vendor
-  comparisons, and primary-source research (papers, gists, blog posts).
-  The skill auto-classifies each query as `aws` or `generic` in Step 1
-  and routes to appropriate sources; non-AWS queries fall through to web
-  search + GitHub with the same facet-decomposition and contract-first
-  discipline.
-
-  Enforces a contract-first research workflow and ships a
-  blind-evaluation harness (Palmyra X5 vs Claude Sonnet 4.6 as the
-  synthesizer backend) as evidence of the synthesis-quality claims —
-  including one eval round on a purely non-AWS topic
-  (Karpathy's LLM knowledge-base pattern + Obsidian workflow).
+- **[aws-deep-research](./aws-deep-research/)** — Multi-source, parallelized
+  deep research with facet-based query decomposition, subagent dispatch, and
+  synthesized citations. Optimized for AWS topics but works equally well on
+  non-AWS / generic research queries. Enforces a contract-first research
+  workflow with blind-evaluated synthesis quality.
 
   ```bash
   npx skills add praveenc/skills/aws-deep-research
   ```
 
-  **Example queries that work well**:
-
-  ```
-  # AWS-centric
-  ▸ How does Bedrock AgentCore compare to Strands Agents SDK?
-  ▸ Cost-optimize a serverless RAG pipeline on Bedrock + OpenSearch
-  ▸ Review best practices for Bedrock Guardrails in production
-
-  # Cross-vendor / comparative
-  ▸ Disaggregated inference: NVIDIA Rubin CPX vs Groq LPU vs AWS Trainium
-  ▸ Compare AWS Bedrock vs Azure OpenAI vs Vertex AI for enterprise RAG
-
-  # Non-AWS / generic
-  ▸ What is Karpathy's LLM knowledge-base pattern and how do I adapt
-    an Obsidian vault?
-  ▸ Circuit breaker pattern in distributed systems — production lessons
-  ▸ Context engineering for agents: write, select, compress, isolate
-  ```
-
   See [aws-deep-research/SKILL.md](./aws-deep-research/SKILL.md) for the
-  full workflow documentation, and
-  [aws-deep-research/evals/palmyra-vs-claude/SPIKE_SUMMARY.md](./aws-deep-research/evals/palmyra-vs-claude/SPIKE_SUMMARY.md)
-  for the synthesizer eval.
+  full workflow documentation.
 
-#### How aws-deep-research works
+### Coding Discipline
 
-<p align="center">
-  <img src="./aws-deep-research/docs/workflow.svg"
-       alt="aws-deep-research workflow: query → research contract → facet decomposition → parallel subagent dispatch → findings files → size-gate → synthesis → report"
-       width="720">
-</p>
+- **[agent-code-discipline](./agent-code-discipline/)** — Enforce four
+  coding-agent principles distilled from Andrej Karpathy's observations:
+  *think before coding*, *simplicity first*, *surgical changes*, and
+  *goal-driven execution*. Reduces the most common LLM failure modes —
+  silent assumptions, premature abstraction, scope creep, and unfocused
+  execution. Ships with domain-specific reference examples (generic Python,
+  AWS CDK, AWS Bedrock, multi-service compositions).
 
-<p align="center"><sub>
-  <a href="./aws-deep-research/docs/workflow.svg">Open full-size SVG</a> &middot;
-  <a href="./aws-deep-research/docs/workflow.d2">View D2 source</a>
-</sub></p>
+  ```bash
+  npx skills add praveenc/skills/agent-code-discipline
+  ```
 
-The diagram captures the eight-step flow enforced by `SKILL.md`:
-**research contract** grounds every claim, **facet-labeled decomposition**
-(2–3 subqueries per source, printed to the user before any API credit is
-spent) drives search, **domain blocklist** filters URLs pre-fetch, up to
-**4 subagents dispatch in parallel** writing findings to disk (never into
-the parent's context), a **size-gate** catches silent failures, and the
-**synthesizer** re-reads the contract to ground all citations in the final
-report.
+  See [agent-code-discipline/SKILL.md](./agent-code-discipline/SKILL.md)
+  for the full principles and usage.
 
 ## Installation
 
@@ -160,6 +121,7 @@ and final reports to `~/.aws-deep-research/outputs/`. Override either via
 | Skill | pi | Claude Code | Kiro CLI | Cursor | Notes |
 |---|:-:|:-:|:-:|:-:|---|
 | aws-deep-research | ✅ | ✅ | ✅ | ✅ | Kiro CLI needs `setup/register.sh` post-install |
+| agent-code-discipline | ✅ | ✅ | ✅ | ✅ | Behavioral guidelines — no API keys needed |
 
 ## Versioning
 
