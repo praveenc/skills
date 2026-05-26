@@ -1,5 +1,7 @@
 # :shield: agent-code-discipline
 
+[![skills.sh](https://skills.sh/b/praveenc/skills)](https://skills.sh/praveenc/skills)
+
 Behavioral guidelines for LLM coding agents that reduce overcomplication, silent assumptions, scope creep, and unfocused execution. Distilled from Andrej Karpathy's observations on agent-assisted coding workflows.
 
 ## Why this skill?

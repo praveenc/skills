@@ -1,6 +1,9 @@
 ---
 name: agent-code-discipline
 description: "Enforce four coding-agent principles: think before coding, simplicity first, surgical changes, goal-driven execution. Apply when generating or editing code to reduce overcomplication, silent assumptions, and scope creep."
+metadata:
+  version: "1.0"
+  author: praveenc
 triggers:
   - coding discipline
   - simplicity

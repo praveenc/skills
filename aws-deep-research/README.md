@@ -1,5 +1,7 @@
 # :mag: aws-deep-research
 
+[![skills.sh](https://skills.sh/b/praveenc/skills)](https://skills.sh/praveenc/skills)
+
 Multi-source, parallelized deep research with facet-based query decomposition,
 subagent dispatch, and synthesized citations.
 

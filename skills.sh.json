@@ -1,0 +1,16 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Research",
+      "description": "Deep research and analysis skills.",
+      "skills": ["aws-deep-research"]
+    },
+    {
+      "title": "Coding",
+      "description": "Code quality and discipline.",
+      "skills": ["agent-code-discipline"]
+    }
+  ]
+}
