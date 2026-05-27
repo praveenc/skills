@@ -28,6 +28,25 @@ industry-standard SKILL.md format).
   See [aws-deep-research/SKILL.md](./aws-deep-research/SKILL.md) for the
   full workflow documentation.
 
+### :bar_chart: Visualization
+
+- **[research-report-visuals](./research-report-visuals/)** - Transform
+  markdown research reports into interactive, single-file HTML visual
+  narratives. Analyzes report type, extracts narrative arc, chooses an
+  appropriate visual mode (narrative-scroll, verdict-split, platform-cards,
+  timeline, problem-solution), and produces a self-contained HTML file the
+  reader can absorb in 60 seconds. Library-agnostic (Highcharts for
+  quantitative data, SVG/CSS for architecture and narrative). Ships with
+  opinionated typography, color systems, and a visual signature framework
+  that prevents generic template output.
+
+  ```bash
+  npx skills add https://github.com/praveenc/skills --skill research-report-visuals
+  ```
+
+  See [research-report-visuals/SKILL.md](./research-report-visuals/SKILL.md)
+  for the full workflow documentation.
+
 ### :shield: Coding Discipline
 
 - **[agent-code-discipline](./agent-code-discipline/)** - Enforce four
@@ -107,6 +126,7 @@ and final reports to `~/.aws-deep-research/outputs/`. Override either via
 | Skill | pi | Claude Code | Kiro CLI | Cursor | Notes |
 |---|:-:|:-:|:-:|:-:|---|
 | aws-deep-research | ✅ | ✅ | ✅ | ✅ | Kiro CLI needs `setup/register.sh` post-install |
+| research-report-visuals | ✅ | ✅ | ✅ | ✅ | No API keys needed, pure prompt-driven |
 | agent-code-discipline | ✅ | ✅ | ✅ | ✅ | Behavioral guidelines, no API keys needed |
 
 ## Versioning

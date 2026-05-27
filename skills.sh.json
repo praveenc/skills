@@ -7,6 +7,11 @@
       "skills": ["aws-deep-research"]
     },
     {
+      "title": "Visualization",
+      "description": "Transform research reports into interactive visual narratives.",
+      "skills": ["research-report-visuals"]
+    },
+    {
       "title": "Coding",
       "description": "Code quality and discipline (Karpathy).",
       "skills": ["agent-code-discipline"]
