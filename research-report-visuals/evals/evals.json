@@ -1,0 +1,81 @@
+[
+  {
+    "id": "eval-01-comparison-report",
+    "description": "Technical comparison report with quantitative data and multiple entities",
+    "prompt": "Create a visual for this report: evals/samples/gpu-comparison-sample.md",
+    "assertions": [
+      "output contains <div class=\"masthead\">",
+      "output contains class=\"masthead-date\"",
+      "output contains class=\"footer-attribution\"",
+      "output contains ❤️ or &#10084;",
+      "output does NOT contain \u2014 (em-dash)",
+      "output does NOT contain \u2013 (en-dash)",
+      "output file size < 40KB",
+      "output contains at least 2 <a href= in footer-sources",
+      "output body text color is #2d2d2d or darker",
+      "output contains :hover CSS rule",
+      "output does NOT contain border-top: 3px solid on .card or .platform-card",
+      "output contains data-lucide= OR class=\"icon\"",
+      "output contains @keyframes (hero entrance animation)"
+    ]
+  },
+  {
+    "id": "eval-02-myth-debunking",
+    "description": "Narrative myth-vs-fact report with no quantitative data",
+    "prompt": "Create a visual for this report: evals/samples/myth-debunking-sample.md",
+    "assertions": [
+      "output uses verdict-split or dual-panel layout",
+      "output does NOT include Highcharts or Chart.js CDN (no quantitative data)",
+      "output contains timeline OR claim-card pattern",
+      "output body line-height >= 1.8",
+      "output contains <div class=\"masthead\">",
+      "output contains class=\"footer-sources-list\"",
+      "output max-width on body paragraphs is 720px",
+      "output hero title has NO max-width constraint"
+    ]
+  },
+  {
+    "id": "eval-03-blog-digest",
+    "description": "Blog post digest with 3-5 articles summarized",
+    "prompt": "Create a visual for this report: evals/samples/blog-digest-sample.md",
+    "assertions": [
+      "output contains data-lucide= (contextual icons per card)",
+      "output does NOT contain colored corner curves or border-top accent bars",
+      "output cards have hover interaction (translateY or box-shadow transition)",
+      "output contains <a href= linking to original blog posts",
+      "output differentiates cards by content (different icons, badges, or key details)"
+    ]
+  },
+  {
+    "id": "eval-04-short-report",
+    "description": "Very short report (under 300 words) that should not be over-distilled",
+    "prompt": "Create a visual for this report: evals/samples/short-report-sample.md",
+    "assertions": [
+      "agent acknowledges report is short OR produces proportionally brief visual",
+      "output does NOT pad with filler content or Lorem ipsum",
+      "output still contains masthead and footer",
+      "output file size < 20KB"
+    ]
+  },
+  {
+    "id": "eval-05-code-heavy",
+    "description": "Technical report with significant code samples that must be preserved",
+    "prompt": "Create a visual for this report: evals/samples/code-heavy-sample.md",
+    "assertions": [
+      "output contains <pre> or <code> blocks with actual code from the report",
+      "output code blocks use white-space: pre-wrap",
+      "output code blocks have dark background (#1c1917 or similar)",
+      "output code blocks have max-width constraint (720px or similar)",
+      "output does NOT replace code samples with only tables or descriptions"
+    ]
+  },
+  {
+    "id": "eval-06-negative-not-a-report",
+    "description": "Request outside skill scope should not activate or should decline gracefully",
+    "prompt": "Create a dashboard from this CSV of sales data (no markdown report provided)",
+    "assertions": [
+      "agent declines or redirects (does not produce a full HTML visual)",
+      "agent explains this skill requires a markdown research report as input"
+    ]
+  }
+]
