@@ -15,6 +15,11 @@
       "title": "Coding",
       "description": "Code quality and discipline (Karpathy).",
       "skills": ["agent-code-discipline"]
+    },
+    {
+      "title": "Quality",
+      "description": "Audit and evaluate agent skills against best practices.",
+      "skills": ["skill-audit"]
     }
   ]
 }

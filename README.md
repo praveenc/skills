@@ -64,6 +64,19 @@ industry-standard SKILL.md format).
   See [agent-code-discipline/SKILL.md](./agent-code-discipline/SKILL.md)
   for the full principles and usage.
 
+### :clipboard: Quality & Compliance
+
+- **[skill-audit](./skill-audit/)** - Audit an agent skill directory against
+  published skill-authoring best practices. Produces a scorecard with
+  prioritized findings report. Includes a scoring rubric reference and
+  preflight validation script.
+
+  ```bash
+  npx skills add https://github.com/praveenc/skills --skill skill-audit
+  ```
+
+  See [skill-audit/SKILL.md](./skill-audit/SKILL.md) for usage.
+
 ## Installation
 
 ### Using the skills CLI (recommended)
@@ -128,6 +141,7 @@ and final reports to `~/.aws-deep-research/outputs/`. Override either via
 | aws-deep-research | ✅ | ✅ | ✅ | ✅ | Kiro CLI needs `setup/register.sh` post-install |
 | research-report-visuals | ✅ | ✅ | ✅ | ✅ | No API keys needed, pure prompt-driven |
 | agent-code-discipline | ✅ | ✅ | ✅ | ✅ | Behavioral guidelines, no API keys needed |
+| skill-audit | ✅ | ✅ | ✅ | ✅ | Includes preflight shell script |
 
 ## Versioning
 
