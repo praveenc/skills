@@ -4,6 +4,14 @@ The Research Contract is a lightweight artifact extracted from the query in
 Step 1e. It captures hard facts, entity constraints, and version requirements
 that every subagent must respect when gathering and reporting data.
 
+## Contents
+
+- [Purpose](#purpose)
+- [Contract Format](#contract-format)
+- [Examples](#examples)
+- [When to Ask the User to Validate](#when-to-ask-the-user-to-validate)
+- [How Subagents Use the Contract](#how-subagents-use-the-contract)
+
 ## Purpose
 
 Web sources frequently mix data across versions, services, and time periods.
