@@ -82,6 +82,10 @@ for direct URL lookup — faster and more precise than broad search.
 - Include the region for all pricing data
 - Do NOT fabricate results — only report what the scripts found
 - If AWS credentials are missing, note it and exit gracefully
+- **Evidence-tag every finding** per the Evidence Tagging section of
+  `contract-compliance-rules.md`. AWS docs / What's New / API reference are
+  `{official·<date>}`; a launch blog's performance numbers are
+  `{vendor-claim·<date>}`. Pricing carries the query date.
 
 ## Output
 
