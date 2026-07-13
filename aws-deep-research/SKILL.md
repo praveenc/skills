@@ -22,7 +22,7 @@ compatibility: >
   and pricing, Docker-hosted Kroki for diagram rendering.
 metadata:
   author: praveenc
-  version: "6.11"
+  version: "6.12"
 ---
 
 # AWS Deep Researcher
