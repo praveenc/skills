@@ -3,6 +3,19 @@
 Rules for determining which sources to query and how many API credits to spend
 based on intent classification and query complexity.
 
+## Contents
+
+- [Core Principle](#core-principle)
+- [Source Selection Matrix](#source-selection-matrix)
+- [Blog Feed Selection](#blog-feed-selection)
+- [Query Complexity Tiers](#query-complexity-tiers)
+- [Web Search Decision Rules](#web-search-decision-rules)
+- [Brave vs Tavily Decision](#brave-vs-tavily-decision)
+- [Site-Scoped Community Search](#site-scoped-community-search)
+- [GitHub Search Decision](#github-search-decision)
+- [Budget Tracking](#budget-tracking)
+- [Query Decomposition (default for all topics)](#query-decomposition-default-for-all-topics)
+
 ## Core Principle
 
 **MCP servers first, web search only when needed.**

@@ -1,9 +1,42 @@
 #!/usr/bin/env bash
 # Validates API keys and credentials needed for research subagents.
-# Usage: bash scripts/check_api_keys.sh [SKILL_DIR]
 # Output: one status line per service (parseable by the agent)
 
 set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+check_api_keys.sh — validate credentials for the research subagents
+
+USAGE:
+  check_api_keys.sh [SKILL_DIR]
+
+ARGUMENTS:
+  SKILL_DIR   skill root whose scripts/.env holds the keys (default: ".")
+
+OPTIONS:
+  -h, --help  show this help and exit
+
+OUTPUT:
+  One "SERVICE=STATUS" line per service on stdout, e.g.:
+    AWS=VALID (arn:aws:sts::...)   |  AWS=INVALID
+    TAVILY=CONFIGURED              |  TAVILY=MISSING
+    BRAVE=CONFIGURED               |  BRAVE=MISSING
+    GITHUB=<http-status>           |  GITHUB=MISSING
+    KROKI=LOCAL|REMOTE|UNAVAILABLE
+
+EXAMPLES:
+  check_api_keys.sh                 # keys from ./scripts/.env
+  check_api_keys.sh "$SKILL_DIR"    # keys from a resolved skill dir
+
+EXIT CODES:
+  0  always (per-service status is reported on stdout, not via exit code)
+EOF
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+esac
 
 SKILL_DIR="${1:-.}"
 

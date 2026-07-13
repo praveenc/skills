@@ -3,6 +3,13 @@
 Maps AWS services and topics to their corresponding blog RSS feed URLs.
 Used by the skill to determine which blog feeds to search based on query content.
 
+## Contents
+
+- [Feed URLs](#feed-urls)
+- [Service-to-Category Mapping](#service-to-category-mapping)
+- [Common Miscategorizations](#common-miscategorizations)
+- [Usage with sitemap_feed_extractor.py](#usage-with-sitemap_feed_extractorpy)
+
 ## Feed URLs
 
 | Category | Feed URL |

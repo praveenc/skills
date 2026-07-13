@@ -98,6 +98,19 @@
         "Total subagent return text to parent is under 500 chars combined",
         "Report is coherent despite parent never seeing raw research data"
       ]
+    },
+    {
+      "id": 9,
+      "name": "portable-subagent-dispatch",
+      "prompt": "(dispatch-layer eval) run a comprehensive research query under different harnesses and confirm the dispatch mechanism is selected correctly",
+      "expected_behavior": [
+        "Detects the running harness before dispatching (env fingerprint; asks the user if ambiguous or absent)",
+        "On pi or Claude Code: dispatches researchers as headless child processes via scripts/dispatch.sh (never shells out to kiro-cli, never reaches for an MCP *_Delegate tool)",
+        "On Kiro: dispatches in-session via the native subagent tool (v2 use_subagent/InvokeSubagents with agent_name omitted, or v3 natural-language DAG); does NOT spawn a subprocess",
+        "Echoes the chosen harness + backend + exact command before dispatching",
+        "Prints the bold per-round process disclaimer before a process-fan-out round",
+        "Deterministic surface is covered by scripts/test_dispatch.py (25 tests): command construction per CLI, harness detection incl. the ambiguous multi-fingerprint case, guard exits (kiro=in-session, untested=best-effort), and --help. Run: uv run --python 3.13 --with pytest pytest scripts/test_dispatch.py -q"
+      ]
     }
   ]
 }

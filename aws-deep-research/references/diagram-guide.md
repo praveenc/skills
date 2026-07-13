@@ -3,6 +3,15 @@
 Reference for the `diagram-generator` subagent. Contains D2 syntax primer,
 heuristic rules, color palette, and example patterns.
 
+## Contents
+
+- [When to Generate a Diagram](#when-to-generate-a-diagram)
+- [D2 Syntax Primer](#d2-syntax-primer)
+- [Color Palette](#color-palette)
+- [Example Patterns](#example-patterns)
+- [Rendering](#rendering)
+- [Naming Convention](#naming-convention)
+
 ## When to Generate a Diagram
 
 **Generate when the report describes:**
