@@ -38,10 +38,18 @@ Read that file for the canonical list. Key fields you will always receive:
      irrelevance"` in the **Gaps & Limitations** section
    - **MISSING** (file absent) → do not attempt to read; record
      `"<source> was not dispatched or failed to produce output"` in **Gaps**
-4. Deduplicate overlapping information across sources
-5. Organize findings by topic (not by source)
-6. Assign citation numbers `[N]` to every factual claim
-7. Write final report to `<work-dir>/<slug>-report.md`, where `<slug>` is
+4. **Cluster, don't just deduplicate.** Group claims by topic across sources.
+   Where sources **agree**, collapse to one statement and note the
+   corroboration. Where sources **disagree** or a `vendor-claim` lacks
+   independent backing, DO NOT silently pick one — preserve both and route
+   them to the **Consensus & Contradictions** section (see Report Format).
+5. **Weight evidence by tag.** Read the `{authority·date}` tag on each finding
+   and apply the Evidence Weighting Order from `contract-compliance-rules.md`.
+   State confidence explicitly when it matters (e.g. "widely corroborated" vs
+   "vendor-reported, unverified").
+6. Organize findings by topic (not by source)
+7. Assign citation numbers `[N]` to every factual claim
+8. Write final report to `<work-dir>/<slug>-report.md`, where `<slug>` is
    the last path component of the work dir (e.g., if work dir is
    `$WORK_DIR/bedrock-agents-vs-agentcore/`, write to
    `$WORK_DIR/bedrock-agents-vs-agentcore/bedrock-agents-vs-agentcore-report.md`)
@@ -60,10 +68,30 @@ Read that file for the canonical list. Key fields you will always receive:
 
 <2-3 paragraphs. Every factual claim gets a citation [N]. Standalone value.>
 
+## Key Tensions & Decision Drivers
+
+<REQUIRED for comparison / architecture / migration / cost-optimization
+intents; optional but encouraged otherwise. This is the analytical middle
+of the report — it turns facts into judgement. 3-6 bullets, each naming a
+real trade-off or decision driver and the second-order implication, e.g.:
+"Rubin CPX optimizes prefill cost via GDDR7 over HBM4 — lowers $/token for
+long-context workloads but is irrelevant for short-prompt/chat traffic."
+Do NOT restate features here; state what the facts *mean* for a decision.>
+
 ## Detailed Findings
 
 ### <Topic Section 1>
 <Organized by topic, not by source. Inline citations throughout.>
+
+## Consensus & Contradictions
+
+<REQUIRED whenever sources disagree or when vendor claims are uncorroborated.
+Two short subsections:
+**Consensus** — points where independent sources agree (highest confidence).
+**Contradictions & unverified claims** — where sources disagree, or a
+`vendor-claim` has no `official`/`third-party` corroboration. For each: state
+both positions, their evidence tags, and which (if either) is better supported.
+Never resolve a contradiction by silently dropping one side.>
 
 ## Pricing & Cost Analysis
 <Only if pricing data was gathered. Tables for comparisons.>
@@ -105,6 +133,13 @@ Do NOT use: bare URLs, extra text after links, or inline `([source](url))`.
 - **Match query intent**: Let the original question shape the narrative arc.
 - **No fabrication**: Only include information from the findings files.
 - **Balanced coverage**: Don't let one source dominate.
+- **Insight over inventory**: The Key Tensions section must state what the
+  facts *mean* for a decision, not re-list features. A report that only
+  summarizes sources has failed its job.
+- **Surface disagreement**: Contradictions and uncorroborated vendor claims
+  belong in Consensus & Contradictions — never deduplicate them away.
+- **Weight by evidence tag**: When sources conflict, apply the Evidence
+  Weighting Order and make the confidence level visible to the reader.
 - **Actionable**: Help someone make a decision or take action.
 - **Surface gaps honestly**: WEAK/MISSING sources go in **Gaps & Limitations**
   — never paper over them.

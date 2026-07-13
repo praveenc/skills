@@ -31,7 +31,14 @@ from typing import Any
 from urllib.parse import urlencode
 
 import requests
-from common import filter_blocked_urls, run_scraper, sanitize_folder_name, save_urls_to_file
+from common import (
+    budget_status,
+    filter_blocked_urls,
+    record_search,
+    run_scraper,
+    sanitize_folder_name,
+    save_urls_to_file,
+)
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
@@ -546,9 +553,18 @@ Freshness options:
     # Perform the search
     results, rate_tracker = perform_search(api_key, search_url, rate_tracker)
 
+    # Record this successful search against the persistent monthly budget.
+    record_search("brave")
+    budget = budget_status("brave")
+
     # Display rate limit status
     console.print()
     console.print(rate_tracker.display_summary())
+    if budget["over_80"]:
+        console.print(
+            f"[yellow]⚠ Brave budget at {budget['pct_used']}% "
+            f"({budget['used']}/{budget['cap']}) this month — prefer MCP-only.[/yellow]"
+        )
 
     # Check for empty results
     if not results:
@@ -605,6 +621,7 @@ Freshness options:
             "quota_limit": rate_tracker.monthly_limit
             if rate_tracker.monthly_limit != float("inf")
             else None,
+            "budget": budget,
         }
         print(json_mod.dumps(summary, indent=2))
     else:

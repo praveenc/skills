@@ -6,6 +6,8 @@ Not intended to be run directly.
 """
 
 import hashlib
+import json
+import os
 import re
 import subprocess
 from datetime import UTC, datetime
@@ -201,3 +203,105 @@ def run_scraper(
         console.print(f"[red]Failed to run scraper: {e}[/red]")
     except KeyboardInterrupt:
         console.print("\n[yellow]Scraping interrupted by user[/yellow]")
+
+
+# ---------------------------------------------------------------------------
+# Web-search budget tracking (persistent, per calendar month)
+# ---------------------------------------------------------------------------
+#
+# The skill's search-strategy rules say usage "should be tracked" against
+# monthly free-tier caps, but nothing persisted it - so the >80% "switch to
+# MCP-only" rule relied on the model remembering. This module makes the count
+# real: every successful search increments a counter in a small JSON file,
+# keyed by engine and calendar month (UTC). Old months are pruned on write.
+
+# Free-tier monthly caps (documented in SKILL.md / search-strategy.md).
+BUDGET_CAPS: dict[str, int] = {"brave": 2000, "tavily": 1000}
+
+
+def _budget_file() -> Path:
+    """Location of the persisted budget counter.
+
+    Sits next to the research work root so it survives across sessions.
+    Honors RESEARCH_WORK_DIR (the work root); the budget file lives one
+    level up from ``.../work`` at ``~/.aws-deep-research/budget.json`` by
+    default, or ``$RESEARCH_WORK_DIR/../budget.json`` when overridden.
+    """
+    override = os.getenv("RESEARCH_WORK_DIR")
+    if override:
+        base = Path(override).expanduser().resolve().parent
+    else:
+        base = Path.home() / ".aws-deep-research"
+    return base / "budget.json"
+
+
+def _current_month() -> str:
+    return datetime.now(UTC).strftime("%Y-%m")
+
+
+def _load_budget(path: Path) -> dict[str, dict[str, int]]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return data
+
+
+def record_search(engine: str, count: int = 1, path: Path | None = None) -> int:
+    """Increment this month's counter for ``engine``; return the new total.
+
+    Prunes counters for any month other than the current one so the file
+    stays small. Best-effort: a write failure never breaks a search.
+    """
+    engine = engine.lower()
+    p = path or _budget_file()
+    month = _current_month()
+    data = _load_budget(p)
+    engine_counts = data.get(engine)
+    prior = 0
+    if isinstance(engine_counts, dict):
+        prior = int(engine_counts.get(month, 0))
+    # Prune stale months: keep only the current month per engine.
+    new_engine_counts = {month: prior + count}
+    data[engine] = new_engine_counts
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+    except OSError:
+        pass
+    return new_engine_counts[month]
+
+
+def get_usage(engine: str, path: Path | None = None) -> int:
+    """Return this month's recorded search count for ``engine`` (0 if none)."""
+    engine = engine.lower()
+    data = _load_budget(path or _budget_file())
+    engine_counts = data.get(engine, {})
+    if not isinstance(engine_counts, dict):
+        return 0
+    return int(engine_counts.get(_current_month(), 0))
+
+
+def budget_status(engine: str, cap: int | None = None, path: Path | None = None) -> dict:
+    """Return usage summary for ``engine`` this month.
+
+    Keys: ``engine``, ``month``, ``used``, ``cap``, ``remaining``,
+    ``pct_used`` (0-100, rounded to 1 dp), ``over_80`` (bool - the trip-wire
+    for the skill's "switch to MCP-only" rule).
+    """
+    engine = engine.lower()
+    used = get_usage(engine, path)
+    cap = cap if cap is not None else BUDGET_CAPS.get(engine, 0)
+    remaining = max(cap - used, 0) if cap else None
+    pct = round(100 * used / cap, 1) if cap else 0.0
+    return {
+        "engine": engine,
+        "month": _current_month(),
+        "used": used,
+        "cap": cap or None,
+        "remaining": remaining,
+        "pct_used": pct,
+        "over_80": bool(cap) and pct >= 80.0,
+    }

@@ -185,13 +185,24 @@ Skip GitHub search when:
 
 ## Budget Tracking
 
-The skill should track cumulative web search usage across a session:
+Web-search usage is now **persisted** across sessions, not just "tracked in
+your head." Both `brave_search.py` and `tavily_search.py` call
+`common.record_search()` after every successful request, incrementing a
+per-engine, per-calendar-month counter in `~/.aws-deep-research/budget.json`
+(or `$RESEARCH_WORK_DIR/../budget.json` when overridden). Tavily records its
+actual credit cost (basic = 1, advanced = 2); Brave records 1 per search.
 
-- Brave: count searches against 2,000/month
-- Tavily: count credits against 1,000/month
+- Brave: counted against 2,000/month
+- Tavily: counted against 1,000/month (by credits)
 
-If approaching limits (>80% used), switch to MCP-only mode and note the
-limitation in the report.
+When a script's `--json` output shows `"budget": {"over_80": true}` (or prints
+the `⚠ ... budget at N%` warning), the engine has crossed 80% of its monthly
+cap. **Switch to MCP-only mode for the rest of the session** and note the
+limitation in the report. The trip-wire is real state, so it fires even if
+this is the first search of the session on a nearly-exhausted key.
+
+The monthly counter self-prunes: recording a search in a new month drops the
+prior month's entry, so the file never grows unbounded.
 
 ## Query Decomposition (default for all topics)
 
@@ -218,6 +229,28 @@ equally; there is no "non-AWS only" exception.
 Pick **the facet pair that genuinely splits the question**, not an arbitrary
 one. If no pair fits, craft one that does — the facet is the value, not the
 label.
+
+### Query-adaptive facets (prefer over the catalog)
+
+The table above is a **fallback catalog**, not a menu to pick from first.
+Before reaching for it, generate facets tuned to the specific question:
+
+1. Read the actual query and its research contract. Identify the 2–3
+   dimensions along which a good answer would genuinely differ (e.g. for
+   *"is Aurora Serverless v2 cheaper than provisioned for spiky traffic?"*
+   the real axes are **steady-state cost** vs **burst/idle cost**, not a
+   generic reference/tutorial split).
+2. Write subqueries that target those specific dimensions, using the query's
+   own entities and constraints as search terms.
+3. **Then** map each hand-crafted facet to the closest catalog label for the
+   transparency printout — the label is just a name; the tuned subquery is
+   the value.
+4. Only fall back to a catalog pair verbatim when the query is generic enough
+   that a catalog pair already splits it well (e.g. a plain service overview).
+
+The test: read your two subqueries and ask "would these two searches return
+meaningfully different, both-needed results for *this* question?" If they'd
+return near-duplicate results, the split is wrong — re-facet.
 
 ### Transparency rule (MANDATORY)
 

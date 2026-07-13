@@ -61,6 +61,11 @@ search (use sparingly), `--json` for JSON output.
 - Prefer repos with README files and clear documentation
 - Note the license of any repo referenced
 - Do NOT fabricate repository information
+- **Evidence-tag every finding** per the Evidence Tagging section of
+  `contract-compliance-rules.md`. An org's own repo/README is
+  `{official·<date>}` (use the last-commit/updated date); a third-party or
+  community sample repo is `{community·<date>}`. Stars/activity are signal,
+  not authority.
 
 ## Output
 

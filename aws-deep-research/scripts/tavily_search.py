@@ -35,7 +35,14 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-from common import filter_blocked_urls, run_scraper, sanitize_folder_name, save_urls_to_file
+from common import (
+    budget_status,
+    filter_blocked_urls,
+    record_search,
+    run_scraper,
+    sanitize_folder_name,
+    save_urls_to_file,
+)
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
@@ -715,9 +722,18 @@ Credit Usage:
         usage_tracker=usage_tracker,
     )
 
+    # Record credits used this request against the persistent monthly budget.
+    record_search("tavily", count=estimated_cost)
+    budget = budget_status("tavily")
+
     # Display usage status
     console.print()
     console.print(usage_tracker.display_summary())
+    if budget["over_80"]:
+        console.print(
+            f"[yellow]⚠ Tavily budget at {budget['pct_used']}% "
+            f"({budget['used']}/{budget['cap']}) this month — prefer MCP-only.[/yellow]"
+        )
 
     # Check for empty results
     if not results:
@@ -784,6 +800,7 @@ Credit Usage:
             "credits_used": estimated_cost,
             "key_remaining": usage_tracker.key_remaining,
             "plan_remaining": usage_tracker.plan_remaining,
+            "budget": budget,
         }
         print(json_mod.dumps(summary, indent=2))
     else:

@@ -203,6 +203,12 @@ Steps:
 - Always use `--no-scrape` with Brave (fetchv2 does the scraping now)
 - Cite every source URL — no uncited claims
 - Note publication dates when available
+- **Evidence-tag every finding** per the Evidence Tagging section of
+  `contract-compliance-rules.md`. First-party vendor launch/marketing pages
+  are `{vendor-claim·<date>}`; independent press/benchmarks are
+  `{third-party·<date>}`; dev.to / re:Post / community.aws / forum answers
+  are `{community·<date>}`; official specs/docs are `{official·<date>}`.
+  Use the post's publication date; `undated` if none is discoverable.
 - Max 3 feed URLs per session. Page content extraction: one `fetch_batch`
   call per research round (up to 10 URLs). If more are needed, rank first.
 

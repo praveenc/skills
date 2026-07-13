@@ -21,7 +21,7 @@ compatibility: >
   pricing, Docker-hosted Kroki for diagram rendering.
 metadata:
   author: praveenc
-  version: "6.10"
+  version: "6.11"
 ---
 
 # AWS Deep Researcher
@@ -44,23 +44,27 @@ finished report to present to the user.
 ## Resolve Skill + Work Directories
 
 Run once and reuse `SKILL_DIR` and `WORK_DIR` in all subsequent commands.
-The resolver **self-locates** — whichever install you invoke is the install
-that owns the session. Use the path that matches your harness:
+
+**Use the directory THIS `SKILL.md` was loaded from.** You just read this file
+via an absolute path (e.g. `read /path/to/aws-deep-research/SKILL.md`). The
+skill root is that file's parent directory. Run the resolver from **that same
+directory** so the whole session stays pinned to the install you actually
+loaded — do NOT substitute a `~/.kiro/...` or `~/.pi/...` path from memory:
 
 ```bash
-# pi harness
-eval "$(bash ~/.pi/agent/skills/aws-deep-research/scripts/resolve_skill_dir.sh)"
-
-# Kiro CLI
-eval "$(bash ~/.kiro/skills/aws-deep-research/scripts/resolve_skill_dir.sh)"
-
-# project-local install
-eval "$(bash ./.kiro/skills/aws-deep-research/scripts/resolve_skill_dir.sh)"
+# Replace <SKILL_MD_DIR> with the directory you just read this SKILL.md from.
+eval "$(bash <SKILL_MD_DIR>/scripts/resolve_skill_dir.sh)"
+echo "SKILL_DIR=$SKILL_DIR"   # sanity-check: must match <SKILL_MD_DIR>
 ```
 
-The resolver derives `SKILL_DIR` from its own `BASH_SOURCE` location, so
-there is no preference bias between installs — unlike pre-v6.3 versions
-which would silently route to a kiro install even when invoked from pi.
+The resolver derives `SKILL_DIR` from its own `BASH_SOURCE` location, so as
+long as you invoke it by the path you loaded SKILL.md from, `SKILL_DIR` pins
+to that exact copy — whether it is a `--skill` path, a git worktree, a
+`~/.pi/...` install, or a `~/.kiro/...` install. **Verify the echo matches the
+directory you loaded SKILL.md from before continuing.** If it does not,
+re-run with the correct `<SKILL_MD_DIR>` — a mismatch means every downstream
+script and reference will silently run a different install than the one you
+loaded.
 
 - `SKILL_DIR` — where this skill lives (scripts, agents, references).
 - `WORK_DIR` — **global** research work root (default `~/.aws-deep-research/work`,
@@ -390,7 +394,14 @@ ${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
 - **AWS credentials**: always pass `--profile 001` to `aws_doc_search.py`
   unless the user specifies otherwise.
 - **Web search budget**: Brave 2K/month, Tavily 1K/month. Never use both for
-  the same subquery. MCP servers are free — prefer them.
+  the same subquery. MCP servers are free — prefer them. Usage is persisted
+  in `~/.aws-deep-research/budget.json`; when a search script's `--json`
+  output shows `"budget": {"over_80": true}`, switch to MCP-only and note it
+  in the report's Gaps section.
+- **Evidence tags**: every finding carries a `{authority·date}` tag
+  (`official` / `vendor-claim` / `third-party` / `community`). The synthesizer
+  uses these to weight conflicting sources, so an untagged finding is treated
+  as lowest-confidence. See `references/contract-compliance-rules.md`.
 
 ## Scripts Reference
 
