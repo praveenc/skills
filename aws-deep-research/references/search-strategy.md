@@ -219,6 +219,28 @@ Pick **the facet pair that genuinely splits the question**, not an arbitrary
 one. If no pair fits, craft one that does — the facet is the value, not the
 label.
 
+### Query-adaptive facets (prefer over the catalog)
+
+The table above is a **fallback catalog**, not a menu to pick from first.
+Before reaching for it, generate facets tuned to the specific question:
+
+1. Read the actual query and its research contract. Identify the 2–3
+   dimensions along which a good answer would genuinely differ (e.g. for
+   *"is Aurora Serverless v2 cheaper than provisioned for spiky traffic?"*
+   the real axes are **steady-state cost** vs **burst/idle cost**, not a
+   generic reference/tutorial split).
+2. Write subqueries that target those specific dimensions, using the query's
+   own entities and constraints as search terms.
+3. **Then** map each hand-crafted facet to the closest catalog label for the
+   transparency printout — the label is just a name; the tuned subquery is
+   the value.
+4. Only fall back to a catalog pair verbatim when the query is generic enough
+   that a catalog pair already splits it well (e.g. a plain service overview).
+
+The test: read your two subqueries and ask "would these two searches return
+meaningfully different, both-needed results for *this* question?" If they'd
+return near-duplicate results, the split is wrong — re-facet.
+
 ### Transparency rule (MANDATORY)
 
 Before each search-source dispatch, the parent MUST print the decomposed
