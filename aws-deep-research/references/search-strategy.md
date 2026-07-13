@@ -185,13 +185,24 @@ Skip GitHub search when:
 
 ## Budget Tracking
 
-The skill should track cumulative web search usage across a session:
+Web-search usage is now **persisted** across sessions, not just "tracked in
+your head." Both `brave_search.py` and `tavily_search.py` call
+`common.record_search()` after every successful request, incrementing a
+per-engine, per-calendar-month counter in `~/.aws-deep-research/budget.json`
+(or `$RESEARCH_WORK_DIR/../budget.json` when overridden). Tavily records its
+actual credit cost (basic = 1, advanced = 2); Brave records 1 per search.
 
-- Brave: count searches against 2,000/month
-- Tavily: count credits against 1,000/month
+- Brave: counted against 2,000/month
+- Tavily: counted against 1,000/month (by credits)
 
-If approaching limits (>80% used), switch to MCP-only mode and note the
-limitation in the report.
+When a script's `--json` output shows `"budget": {"over_80": true}` (or prints
+the `⚠ ... budget at N%` warning), the engine has crossed 80% of its monthly
+cap. **Switch to MCP-only mode for the rest of the session** and note the
+limitation in the report. The trip-wire is real state, so it fires even if
+this is the first search of the session on a nearly-exhausted key.
+
+The monthly counter self-prunes: recording a search in a new month drops the
+prior month's entry, so the file never grows unbounded.
 
 ## Query Decomposition (default for all topics)
 

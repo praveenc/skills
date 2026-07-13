@@ -21,7 +21,7 @@ compatibility: >
   pricing, Docker-hosted Kroki for diagram rendering.
 metadata:
   author: praveenc
-  version: "6.10"
+  version: "6.11"
 ---
 
 # AWS Deep Researcher
@@ -390,7 +390,14 @@ ${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
 - **AWS credentials**: always pass `--profile 001` to `aws_doc_search.py`
   unless the user specifies otherwise.
 - **Web search budget**: Brave 2K/month, Tavily 1K/month. Never use both for
-  the same subquery. MCP servers are free — prefer them.
+  the same subquery. MCP servers are free — prefer them. Usage is persisted
+  in `~/.aws-deep-research/budget.json`; when a search script's `--json`
+  output shows `"budget": {"over_80": true}`, switch to MCP-only and note it
+  in the report's Gaps section.
+- **Evidence tags**: every finding carries a `{authority·date}` tag
+  (`official` / `vendor-claim` / `third-party` / `community`). The synthesizer
+  uses these to weight conflicting sources, so an untagged finding is treated
+  as lowest-confidence. See `references/contract-compliance-rules.md`.
 
 ## Scripts Reference
 
