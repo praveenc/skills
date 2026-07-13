@@ -14,11 +14,12 @@ description: >
   writing AWS code without needing docs, operational AWS CLI commands, or
   questions that can be answered from the current conversation context.
 compatibility: >
-  Compatible with Kiro CLI and the pi coding-agent harness (both need subagent
-  dispatch). Requires uv for Python scripts and the fetchv2 MCP server for
-  batched web content extraction. Optional: Brave/Tavily API keys for web
-  search, GITHUB_TOKEN for GitHub repo search, AWS credentials for docs and
-  pricing, Docker-hosted Kroki for diagram rendering.
+  Compatible with Kiro CLI, the pi coding-agent harness, and Claude Code (all
+  need subagent dispatch; see references/platform-dispatch.md for the
+  per-harness mechanism). Requires uv for Python scripts and the fetchv2 MCP
+  server for batched web content extraction. Optional: Brave/Tavily API keys
+  for web search, GITHUB_TOKEN for GitHub repo search, AWS credentials for docs
+  and pricing, Docker-hosted Kroki for diagram rendering.
 metadata:
   author: praveenc
   version: "6.11"
@@ -260,9 +261,32 @@ mkdir -p "$WORK_DIR/<slug>/downloads"
 All **findings files** go into `$WORK_DIR/<slug>/`. Downloads go to
 `$WORK_DIR/<slug>/downloads/`. **Never write under the invocation CWD.**
 
-**Dispatch all applicable subagents, batching into rounds of ≤4** (Kiro and
-pi harnesses both cap parallel subagents per round). See
-[references/platform-dispatch.md](references/platform-dispatch.md).
+**Dispatch all applicable subagents, batching into rounds of ≤4** (all
+supported harnesses cap parallel subagents per round).
+
+**Determine the harness first, then dispatch accordingly** — there are two
+dispatch worlds and picking the wrong one is the classic failure (a pi-hosted
+model improvising into whatever delegate-shaped tool it finds):
+
+- **Kiro** — dispatch **in-session** via the native subagent tool. Detect the
+  engine first: on **v2** (current default) call `use_subagent` with
+  `InvokeSubagents` and a `subagents[]` array; on **v3** name the agents in
+  natural language. Prefer the **generic path** — hand each subagent the role
+  from `$SKILL_DIR/agents/<name>.md` inline (omit `agent_name`), no
+  registration needed. **Do NOT shell out** and **do NOT use any other
+  delegate-shaped tool.**
+- **pi / Claude Code** — dispatch as **headless child processes** via
+  `scripts/dispatch.sh` (one call per subagent; background several + `wait`
+  for a parallel round). **Do NOT reach for any environment delegate tool.**
+- **Ambiguous or unknown harness** — ask the user one question; if they name
+  an untested harness, offer the process-fan-out path as best effort.
+
+Full procedure, detection fingerprints, the `dispatch.sh` contract, and round
+batching: [references/platform-dispatch.md](references/platform-dispatch.md).
+
+Before any process-fan-out round, print the bold disclaimer: **each subagent
+launches a full, separate CLI process (its own model context + auth round-trip;
+a 4-researcher round = 4 CLI cold starts).** `dispatch.sh` prints this for you.
 
 | Subagent | Findings file | When |
 |---|---|---|
