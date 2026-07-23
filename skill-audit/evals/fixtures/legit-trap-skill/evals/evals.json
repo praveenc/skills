@@ -1,0 +1,59 @@
+{
+  "skill_name": "legit-trap-skill",
+  "version": "1.0.0",
+  "notes": "Modest but genuine eval set. Cases run in isolated fresh sessions (item 6). Positive cases run 3x, pass-rate reported (item 7). Asserts grade the triage-note contents via regex (items 4+5). Validated on pi only - single-harness is a known gap (item 8, flagged not satisfied). No ablation or real-trace yet.",
+  "cases": [
+    {
+      "id": "dependency-drift-classified",
+      "kind": "positive",
+      "prompt": "Triage this CI failure: `npm ERR! peer dep missing: react@18, required by react-dom@18`. Why did the build fail?",
+      "expected_output": "Classifies as dependency, points to the peer-dep line, proposes pinning react to 18.",
+      "assertions": [
+        "Classification is 'dependency'",
+        "Cites the peer-dep line as evidence",
+        "Proposes a version pin, not a broad reinstall"
+      ]
+    },
+    {
+      "id": "compile-first-error-not-cascade",
+      "kind": "positive",
+      "prompt": "Triage: build failed with 40 TS errors, first is `TS2307 cannot find module './config'`. Diagnose.",
+      "expected_output": "Classifies as compile, targets the FIRST error (missing ./config), does not try to fix all 40.",
+      "assertions": [
+        "Classification is 'compile'",
+        "Targets the first error (missing module ./config), not the cascade",
+        "Does not propose fixing all 40 errors individually"
+      ]
+    },
+    {
+      "id": "negative-local-test-failure",
+      "kind": "negative",
+      "prompt": "My test fails locally when I run `npm test` - here's the assertion error. Fix it.",
+      "expected_output": "Skill should NOT trigger: this is a local test failure the user can already see, explicitly excluded in the description. A competent agent just fixes the test.",
+      "assertions": [
+        "Does not run CI-triage classification",
+        "Handles it as an ordinary local test fix"
+      ]
+    },
+    {
+      "id": "negative-prod-incident",
+      "kind": "negative",
+      "prompt": "Production is throwing 500s right now, latency spiked. Help me triage the incident.",
+      "expected_output": "Skill should NOT trigger: this is a prod runtime incident, explicitly routed to incident-response, not a CI build failure.",
+      "assertions": [
+        "Does not run CI-build triage",
+        "Recognizes this as a production incident, out of scope"
+      ]
+    },
+    {
+      "id": "boundary-two-equal-causes",
+      "kind": "boundary",
+      "prompt": "Triage this CI log where a flaky test AND a dependency bump both landed in the same failing commit.",
+      "expected_output": "Two root causes are equally likely; per the workflow, the skill stops and asks rather than guessing.",
+      "assertions": [
+        "Identifies two plausible root causes",
+        "Stops and asks the user rather than committing to one fix"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "skill_name": "skill-audit",
+  "version": "1.1.0",
+  "notes": "Cases run against the fixtures under evals/fixtures/. Fixtures are deterministic so assertions are regex-checkable against the written report. Run each case in an isolated workspace (fresh agent session, cwd = a scratch dir) so the auditor cannot reuse prior-turn context. Reliability-sensitive cases (1, 2) should be run 3-6 times and pass-rate reported. See README.md for the run/ablation/harness protocol.",
+  "cases": [
+    {
+      "id": "clean-skill-all-green-except-evals",
+      "kind": "positive",
+      "prompt": "Audit the skill at evals/fixtures/clean-skill and write the report to disk.",
+      "expected_output": "Auditor runs preflight and scores every dimension 🟢 EXCEPT eval scaffolding: the fixture has valid frontmatter (name matches dir), a small body, concrete gotchas, negative-trigger coverage in the description, and a well-formed non-interactive script. Its only real gap is a missing evals/ directory, correctly scored 🔴. Because the report uses worst-of, overall is 🔴 driven solely by dim 9 — which is the intended lesson: even a pristine skill is unshippable without evals. The auditor must NOT invent other 🔴s.",
+      "assertions": [
+        "Runs scripts/preflight.sh against evals/fixtures/clean-skill before judging",
+        "Frontmatter (dim 1) scored 🟢 — name 'clean-skill' matches directory",
+        "Description & triggers (dim 4) scored 🟢 and credits the explicit 'Do NOT use for...' negative-trigger clause",
+        "Script design (dim 8) scored 🟢 or 🟡 — normalize.py is non-interactive, has --help, documented exit codes, stdout=data/stderr=diagnostics",
+        "Eval scaffolding (dim 9) scored 🔴 because the fixture has no evals/ directory",
+        "Every dimension other than 9 is 🟢 (or 🟡 for dim 8) — NO fabricated 🔴s",
+        "Overall verdict is 🔴 by worst-of, attributed explicitly and solely to the missing evals",
+        "Does not write or modify anything inside evals/fixtures/clean-skill"
+      ]
+    },
+    {
+      "id": "flawed-skill-catches-planted-defects",
+      "kind": "positive",
+      "prompt": "Audit the skill at evals/fixtures/flawed-skill. Findings only, do not fix anything.",
+      "expected_output": "Auditor catches every planted defect: name 'helper' does not match dir 'flawed-skill' (dim 1 🔴); vague description 'helps with data tasks...' with no negative triggers (dim 4 🔴); a rigid always-identical 6-step procedure that should be a script (dim 3); Windows backslash paths and voodoo constants --threshold 0.7 --window 42 --mode 3 (dim 10 🔴); multiple no-ops ('write clean code', 'be careful with edge cases', 'test your changes', 'use good judgment') (dim 10); and no evals/ (dim 9 🔴). Overall 🔴. It declines to edit.",
+      "assertions": [
+        "Flags dim 1 🔴: frontmatter name 'helper' does not match directory 'flawed-skill'",
+        "Flags dim 4 🔴: description is vague ('helps with data tasks') with no trigger keywords and no negative-trigger coverage",
+        "Flags dim 3: the fixed 6-step procedure with no branching is a script-extraction candidate",
+        "Flags dim 10: Windows-style backslash paths (C:\\data\\input, output\\)",
+        "Flags dim 10: voodoo constants in the process step (--threshold 0.7 --window 42 --mode 3) with no explanation",
+        "Flags dim 10: no-ops that restate default behavior ('write clean code', 'be careful with edge cases', 'test your changes', 'use good judgment', 'ensure quality')",
+        "Flags dim 9 🔴: no evals/ directory",
+        "Overall verdict is 🔴",
+        "Cites concrete path:line evidence for findings, not vague statements",
+        "Declines to edit the fixture and states the report is for a context-rich agent to fix"
+      ]
+    },
+    {
+      "id": "no-ops-specifically-flagged",
+      "kind": "positive-targeted",
+      "prompt": "Look at evals/fixtures/flawed-skill and tell me specifically which lines are token-wasting no-ops that restate default agent behavior.",
+      "expected_output": "Auditor identifies the no-op lines (the 'You are an AI assistant...' preamble, 'write clean code', 'be careful with edge cases', 'test your changes', and the entire 'Notes' section of generic platitudes) and explains each costs tokens on every invocation with zero behavior change.",
+      "assertions": [
+        "Names at least three specific no-op phrases quoted from the fixture",
+        "Explains no-ops cost tokens on every invocation while changing nothing",
+        "Points to the 'Notes' section ('use good judgment', 'write maintainable code', 'ensure quality') as pure padding"
+      ]
+    },
+    {
+      "id": "negative-not-a-skill-dir",
+      "kind": "negative",
+      "prompt": "Audit ~/some/random/project/src — it's a TypeScript service, review the code quality.",
+      "expected_output": "This is NOT an agent-skill audit. The target has no SKILL.md. The auditor's preflight should fail (exit 1), and the agent should report that the path is not an auditable skill and decline, rather than running the skill-authoring rubric against arbitrary source code.",
+      "assertions": [
+        "Recognizes the target is not an agent skill (no SKILL.md)",
+        "Does NOT produce a 10-dimension skill-authoring scorecard for arbitrary source code",
+        "Reports the preflight failure / not-a-skill condition and stops",
+        "Does not fabricate skill-audit findings for a non-skill directory"
+      ]
+    },
+    {
+      "id": "negative-code-review-request",
+      "kind": "negative",
+      "prompt": "Can you review this pull request and suggest improvements to the error handling?",
+      "expected_output": "This is a general code-review request with no skill directory in scope. The skill-audit skill should NOT trigger; a competent agent handles this as normal code review. If it does engage, it must not emit a skill-authoring scorecard.",
+      "assertions": [
+        "skill-audit does not trigger — no preflight run, no 10-dimension scorecard produced",
+        "Request is handled as ordinary code review, not a skill audit"
+      ]
+    },
+    {
+      "id": "boundary-already-audited-today",
+      "kind": "boundary",
+      "prompt": "Audit evals/fixtures/clean-skill again — I ran it earlier today.",
+      "expected_output": "The default output path meta/AUDIT-<today>.md already exists. Per the skill's own gotcha, running twice on the same day overwrites it. The auditor should proceed and note the overwrite, OR resolve a distinct output path — but must not silently error or refuse.",
+      "assertions": [
+        "Proceeds with the audit rather than erroring on the pre-existing report",
+        "Either overwrites meta/AUDIT-<today>.md (acknowledging it) or writes to a distinct path",
+        "Does not corrupt or append-duplicate into the existing report"
+      ]
+    },
+    {
+      "id": "boundary-empty-scripts-dir",
+      "kind": "boundary",
+      "prompt": "Audit a skill that has a SKILL.md and references/ but no scripts/ and no evals/ directories.",
+      "expected_output": "Script design (dim 8) is marked N/A (no scripts to audit) rather than 🔴. Eval scaffolding (dim 9) is still 🔴 (evals absence is a finding, not N/A). The auditor does not invent script findings where no scripts exist.",
+      "assertions": [
+        "Dim 8 (script design) marked N/A when scripts/ is absent, not 🔴",
+        "Dim 9 (eval scaffolding) marked 🔴 when evals/ is absent — NOT N/A",
+        "No fabricated findings about nonexistent scripts"
+      ]
+    }
+  ]
+}
