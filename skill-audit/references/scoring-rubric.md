@@ -30,19 +30,28 @@ Detailed criteria for each of the 10 audit dimensions. Score each as
 - File references are **one level deep** from SKILL.md (no nested reference chains).
 - Long reference files (>100 lines) have a **TOC** at the top.
 - SKILL.md contains only what's needed for every invocation; specialized detail is deferred.
-- 🟢 Clear triggers, 1-level refs, TOCs on long files.
-- 🟡 References exist but missing TOCs on long files, or triggers are vague.
-- 🔴 Everything crammed into SKILL.md, or multi-level reference chains.
+- Deterministic, always-identical procedures (fixed command sequences with no branching or judgment calls) are extracted into `scripts/` rather than spelled out as prose steps for the model to re-derive and re-type every run. **This only applies to genuinely rote sequences.** Do NOT flag a workflow whose steps depend on what the model observes (branching, classification, "if X then Y"), nor a trivial 2-3 command sequence where a script would add more ceremony than it saves. A judgment-driven workflow correctly stays as prose.
+- 🟢 Clear triggers, 1-level refs, TOCs on long files, no genuinely-rote multi-step procedure left inline.
+- 🟡 References exist but missing TOCs on long files, triggers are vague, or one clearly-rote procedure should be a script but isn't.
+- 🔴 Everything crammed into SKILL.md, multi-level reference chains, or multiple clearly-rote procedures left as prose instead of scripts.
 
 ## 4. Description quality & triggers *(02.desc)*
+
+**Score this dimension first and most carefully.** Trigger failures cause roughly
+half of all real-world skill failures, so a weak description is the single
+highest-severity defect a skill can have - never treat it as a nit.
 
 - Imperative or third-person phrasing (not "I will help you...").
 - Specific **trigger keywords** that name both *what* the skill does and *when* to use it.
 - Covers non-obvious trigger phrasings (synonyms, alternate ways users might ask).
 - Under 1024 chars.
-- 🟢 Clear, specific, covers edge triggers, good length.
-- 🟡 Functional but missing non-obvious triggers or slightly generic.
-- 🔴 Vague ("helps with tasks"), missing trigger words, or over 1024 chars.
+- **Negative-trigger coverage that actually matches the positive triggers.** Presence of a `Does NOT...` clause is *not* enough. Do the coverage analysis:
+  1. List every positive trigger keyword.
+  2. For each, ask "what *unrelated* request would this fire on?" - i.e. its over-trigger vector. The usual offenders are bare single common words (a generic verb or noun used elsewhere in everyday work) and short acronyms that mean something different in another domain.
+  3. Check whether the negative clause (or an `evals/` negative case) actually guards *those specific vectors*. A negative clause that only excludes adjacent in-domain cases while leaving the bare-keyword collisions unguarded does **not** count as coverage.
+- 🟢 Clear, specific, covers edge triggers, good length, AND every over-broad positive trigger is either qualified (scoped with a domain-specific modifier rather than left as a bare common word) or explicitly guarded by a matching negative clause / negative eval case.
+- 🟡 Has a negative clause but it does not cover the over-trigger vectors of one or more bare/generic keywords; OR good positive triggers but no negative-trigger evidence anywhere; OR near the char ceiling (>~90%) leaving no room to add guards.
+- 🔴 Vague ("helps with tasks"), missing trigger words, over 1024 chars, or multiple broad/generic keywords with no matching negative guard anywhere (high over-trigger risk).
 
 ## 5. Gotchas *(01.bp)*
 
@@ -92,18 +101,36 @@ Scoring:
 - 🔴 Scripts are interactive, no error handling, or mixing stdout data with diagnostics.
 - **N/A** if no `scripts/` directory exists.
 
-## 9. Eval scaffolding *(03.eval)*
+## 9. Eval scaffolding & rigor *(03.eval)*
 
-- `evals/evals.json` exists with varied prompts + expected outputs + assertions.
-- At least one negative / boundary case.
-- Prompts are realistic (file paths, context), not generic.
-- Baseline without-skill comparison recommended (🟡 if missing, not 🔴).
-- Iteration workspace (`iteration-N/`) recommended.
-- 🟢 `evals.json` with diverse cases, assertions, negative tests.
-- 🟡 `evals.json` exists but sparse, or missing baseline/iteration workspace.
-- 🔴 No `evals/` directory or no `evals.json`.
+Evals are the default expectation, not a nice-to-have - "don't ship skills without evals."
+Absence of `evals/` is itself a finding, scored 🔴, not skipped or marked N/A.
 
-## 10. Anti-patterns *(01a.claude)*
+The items below split into **core** (the rigor that makes an eval set trustworthy - a 🟢 needs these) and **maturity** (raises confidence and matters for widely-used skills, but a small honest eval set should not be knocked to 🟡 just for lacking them). Judge the eval set against its skill's scope: a tight single-purpose skill with a solid core set is 🟢 even with few maturity items; a broad high-traffic skill is expected to reach into the maturity items too.
+
+**Core (needed for 🟢):**
+
+1. **Presence** - `evals/` exists with a runnable set of cases (JSON/YAML + runner script, or an equivalently concrete documented procedure). Gating: if entirely absent, score 🔴 and stop (still note it as a finding).
+2. **Genuine negative / boundary cases** - the set contains cases where the skill should *not* fire or should stop early, AND those cases guard the skill's *actual* over-trigger vectors (see dimension 4), not just carry a `"kind": "negative"` label on an easy or irrelevant prompt. A negative case that fires on something the skill would never be confused for is not real coverage. Aim for ~30% of the set, but one well-targeted negative beats five decorative ones.
+3. **Outcome-based assertions** - checks grade the final state, output, or API/behavioral correctness, not the exact tool-call path or which file was read first. Agents legitimately reach correct answers via different routes.
+4. **Cheap-first assertions** - regex, exit codes, file diffs, or other deterministic checks are used wherever possible; LLM-as-judge is reserved for cases deterministic checks genuinely cannot capture.
+5. **Isolation** - cases run in a clean/isolated workspace per case, not chained through shared conversation state, so an agent can't "cheat" by reusing context outside the intended skill trigger.
+
+**Maturity (raises the ceiling; expected for broad/high-traffic skills, optional for tight ones):**
+
+6. **Case coverage** - roughly 10-20+ cases for a broad skill, scaling with surface area. A narrow skill may be fully covered by fewer; judge against scope, not an absolute count.
+7. **Trial count** - reliability-sensitive cases are run 3-6 times with a reported pass rate, not single-shot, given agents are non-deterministic.
+8. **Cross-harness / cross-model awareness** - evals note which harness(es) and model(s) they were validated against, or explicitly flag single-harness-only as a known gap.
+9. **Ablation evidence** - an informal with-skill vs. without-skill comparison exists somewhere, demonstrating the skill actually helps.
+10. **Real-trace inclusion** - at least one case sourced from an actual production/user transcript rather than purely synthetic.
+11. **Lifecycle note** - some signal for when to re-run, graduate, or retire the eval.
+
+Scoring:
+- 🟢 `evals/` present and satisfies **all 5 core items**, with maturity items proportionate to the skill's scope (a tight skill needs few; a broad one needs several).
+- 🟡 `evals/` present but misses one or more core items - commonly: only decorative/mislabeled negatives, path-based asserts, no isolation - or is clearly under-scoped for a broad skill (core met but essentially zero maturity items on a wide surface area).
+- 🔴 No `evals/` directory at all, or evals exist but are purely path-based, single-shot, and/or have zero genuine negative cases.
+
+## 10. Anti-patterns & no-ops *(01a.claude)*
 
 Check for the **absence** of these:
 
@@ -114,8 +141,9 @@ Check for the **absence** of these:
 - Inconsistent terminology (same concept called different names).
 - Unclear execute-vs-read intent for bundled scripts.
 - Menu of equal options instead of one sensible default.
+- **No-ops** - instructions that restate default agent behavior without changing it (e.g. "write clean code," "be careful with edge cases," "make sure to test your changes," "use best practices"). These cost tokens on *every* invocation while producing zero behavior change; quote the offending line and name the default behavior it merely restates. **Discriminator:** a directive is NOT a no-op if it changes behavior in a specific, checkable way - even when phrased imperatively. "Group log lines by job id before reading" or "check the final exit line, not the last human-readable one" are real constraints (they redirect what the agent would otherwise do); "be careful with logs" is a no-op. When unsure, ask: would removing this line change what a competent agent does? If yes, keep it; if no, it's a no-op.
 
 Scoring:
-- 🟢 None of the anti-patterns present.
-- 🟡 One minor anti-pattern instance.
-- 🔴 Multiple anti-patterns or one severe instance.
+- 🟢 None of the anti-patterns present, including no-ops.
+- 🟡 One minor anti-pattern instance, or one or two low-cost no-op lines.
+- 🔴 Multiple anti-patterns, one severe instance, or a pattern of no-ops (three or more) padding the file.

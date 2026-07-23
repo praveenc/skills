@@ -62,6 +62,15 @@ Score each dimension **🟢 pass / 🟡 partial / 🔴 fail** with one-sentence
 rationale and concrete file/line evidence. Cite the source doc tag in
 parentheses after each dimension name.
 
+**Score dimension 4 (description & triggers) first and hardest.** Trigger
+failures cause ~50% of real-world skill failures, so this is the highest-severity
+dimension. Do not stop at "a negative clause exists." List each positive trigger
+keyword, identify its over-trigger vector (the unrelated request it would wrongly
+fire on - bare common words and short acronyms that mean something else in
+another domain are the usual offenders), and verify the negative clause or a
+negative eval case actually guards *those* vectors. Presence without matching
+coverage is a 🟡, not a 🟢.
+
 ### Step 3 — Write the report
 
 Write the report to the output file resolved in Step 0. Use this exact structure:
@@ -88,8 +97,8 @@ Write the report to the output file resolved in Step 0. Use this exact structure
 | 6 | Output templates        | 01.bp, 01a    | 🟢/🟡/🔴 | ... |
 | 7 | Validation loops        | 01.bp, 01a    | 🟢/🟡/🔴 | ... |
 | 8 | Script design           | 04.scripts    | 🟢/🟡/🔴 | ... |
-| 9 | Eval scaffolding        | 03.eval       | 🟢/🟡/🔴 | ... |
-| 10 | Anti-patterns          | 01a.claude    | 🟢/🟡/🔴 | ... |
+| 9 | Eval scaffolding & rigor | 03.eval       | 🟢/🟡/🔴 | ... |
+| 10 | Anti-patterns & no-ops | 01a.claude    | 🟢/🟡/🔴 | ... |
 
 **Overall:** 🟢 / 🟡 / 🔴  (worst-of with brief justification)
 
@@ -139,4 +148,7 @@ findings: <total>  (🔴 <n>  🟡 <n>)
 - The preflight script uses forward-slash paths only. Do not pass Windows-style paths.
 - The output file will be **overwritten** if it already exists (e.g. running twice on the same day).
 - Token estimate is `chars / 4` — approximate, not tiktoken-accurate. Fine for ceiling checks.
-- If `references/` or `scripts/` or `evals/` don't exist in the target skill, skip those dimensions or mark N/A — do not error.
+- If `references/` or `scripts/` don't exist in the target skill, skip dimensions 3/8 or mark N/A — do not error.
+- `evals/` is treated differently: its absence is a scored 🔴 for dimension 9, not N/A. Current best practice is "don't ship skills without evals" - a missing evals directory is itself a finding, not something to skip.
+- Dimension 4 requires evidence of negative-trigger coverage (cases where the skill should NOT fire), either in the description's own counter-examples or in `evals/`. Absence of any such evidence caps dimension 4 at 🟡 even when positive triggers are strong.
+- When scoring dimension 10, actively hunt for no-ops - instructions that just restate default agent behavior ("write clean code", "be careful", "test your changes") without changing what the agent actually does. These cost tokens on every invocation for zero behavior change.
