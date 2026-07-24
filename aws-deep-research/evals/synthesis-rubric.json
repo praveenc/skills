@@ -1,6 +1,6 @@
 {
   "skill_name": "aws-deep-research",
-  "description": "Scored rubric for synthesis quality, focused on the insight layer added in v6.11 (evidence weighting, contradiction surfacing, decision-drivers). Each dimension is scored 0-2 by a judge (human or LLM) reading a finished report against its findings files. Total 20. A report scoring < 14 should be regenerated.",
+  "description": "Scored rubric for synthesis quality, focused on the insight layer (evidence weighting, contradiction surfacing, decision-drivers). Each dimension is scored 0-2 by a judge (human or LLM) reading a finished report against its findings files. Total 20. A report scoring < 14 should be regenerated.",
   "version": "1.0",
   "how_to_run": "scripts/eval_synthesis.sh re-synthesizes a retained fixture with the current synthesizer prompt via `pi -p`, then a judge scores the output against this rubric. See that script's header.",
   "dimensions": [

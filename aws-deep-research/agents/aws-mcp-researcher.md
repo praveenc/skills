@@ -16,7 +16,7 @@ pricing data, writing all findings to the assigned findings file.
 ## Task Inputs from Parent
 
 The parent agent passes all task fields per the **shared subagent task-input
-contract**: [\](../references/subagent-task-contract.md).
+contract**: [subagent-task-contract.md](../references/subagent-task-contract.md).
 Read that file for the canonical list. Key fields you will always receive:
 `SKILL_DIR`, `work-dir`, `research-contract`, `original-query`,
 `query-type`, `subqueries` (facet-labeled), `findings-file`.
