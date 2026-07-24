@@ -91,7 +91,14 @@ Agent definitions: `$SKILL_DIR/agents/`. Dispatch details: see
 
 ## Prerequisites
 
-- `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- `uv` installed. Prefer a package manager so the download is verifiable:
+  - macOS: `brew install uv`
+  - pipx: `pipx install uv`
+  - pip: `pip install uv`
+  - Other platforms: follow the official install docs at
+    https://docs.astral.sh/uv/getting-started/installation/ and verify the
+    installer before running it. Do not pipe a remote script straight into a
+    shell.
 - Python 3.13+ (managed by `uv`)
 - Optional: API keys in `$SKILL_DIR/scripts/.env`
 - Optional: AWS credentials (`AWS_PROFILE` or env vars)
