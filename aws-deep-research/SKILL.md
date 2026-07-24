@@ -203,32 +203,15 @@ for format and examples.
 ## Step 2 — Generate Slug (MANDATORY before Step 3)
 
 The slug identifies this research session on disk (`$WORK_DIR/<slug>/`) and
-names the final report file (`<slug>-report.md`). A good slug is descriptive
-enough to be meaningful a month from now when you grep `~/.aws-deep-research/`.
+names the final report file (`<slug>-report.md`). Rules in brief: **4–7 words,
+30–60 chars, kebab-case**, encoding primary service(s) + intent + scope; no
+generic stopwords alone (`aws`, `guide`, `research`).
 
-### Rules
+For the full ruleset, worked examples, and the validator snippet, read
+[references/slug-guide.md](references/slug-guide.md).
 
-- **4–7 words**, joined with hyphens (kebab-case)
-- **30–60 characters total** (enforce both bounds — reject terse AND bloated)
-- **Lowercase letters, digits, hyphens only**; no underscores, no dots
-- Must encode: **primary service(s)** + **intent verb/dimension** + **scope qualifier**
-- No generic stopwords alone (`aws`, `guide`, `info`, `research`, `report`)
-
-### Examples
-
-| Query | ❌ Too terse | ✅ Good slug |
-|---|---|---|
-| How does DynamoDB handle hot partitions? | `dynamodb` | `dynamodb-hot-partitions-troubleshooting-patterns` |
-| Compare AWS Bedrock vs Azure OpenAI for enterprise RAG | `bedrock-azure` | `bedrock-vs-azure-openai-enterprise-rag-comparison` |
-| What's the cost of running Llama-3-70B on Bedrock? | `bedrock-cost` | `bedrock-llama3-70b-inference-pricing-analysis` |
-| Circuit breaker patterns (generic) | `circuit-breaker` | `circuit-breaker-pattern-distributed-systems-resilience` |
-
-### Quick validator
-
-Sanity-check token count (`echo "$slug" | tr '-' '\n' | wc -l`): < 4 tokens or
-< 30 chars → regenerate with more specificity; > 7 tokens or > 60 chars → drop
-stopwords. Then **declare the slug explicitly in your plan** before dispatching,
-e.g. `Slug: bedrock-llama3-70b-inference-pricing-analysis`.
+**Declare the slug explicitly in your plan** before dispatching, e.g.
+`Slug: bedrock-llama3-70b-inference-pricing-analysis`.
 
 ## Step 3 — Decompose (skip for `feed-only`)
 
@@ -418,16 +401,7 @@ ${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
 
 ## Scripts Reference
 
-All scripts: `$SKILL_DIR/scripts/`. Run via `uv run`.
-
-| Script | Used By | Cost |
-|---|---|---|
-| `aws_doc_search.py` | aws-mcp-researcher | Free (AWS creds) |
-| `aws_pricing_search.py` | aws-mcp-researcher | Free (AWS creds) |
-| `agentcore_search.py` | agentcore-researcher | Free |
-| `github_search.py` | github-researcher | Free |
-| `brave_search.py` | web-content-researcher | 2K/month free |
-| `tavily_search.py` | web-content-researcher | 1K/month free |
-| `trafilatura_scraper.py` | web-content-researcher | Free |
-| `sitemap_feed_extractor.py` | web-content-researcher | Free |
-| `kroki_diagram.py` | diagram-generator | Free |
+All scripts: `$SKILL_DIR/scripts/`, run via `uv run`; each supports `--help`.
+The `-o` flag is mandatory on search/scraper scripts (targets
+`$WORK_DIR/<slug>/downloads/<tool>`). Full table of tools, costs, and support
+scripts: [references/scripts-reference.md](references/scripts-reference.md).
