@@ -23,6 +23,13 @@
 #   PI_BIN             pi binary (default: pi)
 set -euo pipefail
 
+case "${1:-}" in
+  -h|--help)
+    sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+    ;;
+esac
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WORK_ROOT="${RESEARCH_WORK_DIR:-$HOME/.aws-deep-research/work}"

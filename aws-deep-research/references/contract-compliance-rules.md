@@ -3,6 +3,12 @@
 These rules apply to ALL research subagents and the synthesizer.
 **Read the research contract FIRST — before any searches or file reads.**
 
+## Contents
+
+- [For Researchers](#for-researchers)
+- [Evidence Tagging (all researchers)](#evidence-tagging-all-researchers)
+- [For Synthesizer](#for-synthesizer)
+
 ## For Researchers
 
 1. **Read `research-contract.md` as your very first step** — before running
