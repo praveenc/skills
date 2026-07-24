@@ -38,8 +38,8 @@ Query → Intent → Strategy → [Decompose] → Dispatch subagents → Synthes
 **ALL research runs in subagents. The parent agent only routes and dispatches.**
 
 Raw documentation, pricing data, blog content, and search results NEVER enter
-the parent's context. Each subagent writes findings to disk. The `synthesizer`
-reads all findings and writes the final report. The parent only reads the
+the parent's context. Each subagent writes findings to disk; the `synthesizer`
+reads all findings and writes the final report; the parent only reads the
 finished report to present to the user.
 
 ## Resolve Skill + Work Directories
@@ -47,10 +47,10 @@ finished report to present to the user.
 Run once and reuse `SKILL_DIR` and `WORK_DIR` in all subsequent commands.
 
 **Use the directory THIS `SKILL.md` was loaded from.** You just read this file
-via an absolute path (e.g. `read /path/to/aws-deep-research/SKILL.md`). The
-skill root is that file's parent directory. Run the resolver from **that same
-directory** so the whole session stays pinned to the install you actually
-loaded — do NOT substitute a `~/.kiro/...` or `~/.pi/...` path from memory:
+via an absolute path (e.g. `read /path/to/aws-deep-research/SKILL.md`); the skill
+root is that file's parent directory. Run the resolver from that same directory
+so the whole session stays pinned to the install you actually loaded. Do NOT
+substitute a `~/.kiro/...` or `~/.pi/...` path from memory:
 
 ```bash
 # Replace <SKILL_MD_DIR> with the directory you just read this SKILL.md from.
@@ -58,22 +58,19 @@ eval "$(bash <SKILL_MD_DIR>/scripts/resolve_skill_dir.sh)"
 echo "SKILL_DIR=$SKILL_DIR"   # sanity-check: must match <SKILL_MD_DIR>
 ```
 
-The resolver derives `SKILL_DIR` from its own `BASH_SOURCE` location, so as
-long as you invoke it by the path you loaded SKILL.md from, `SKILL_DIR` pins
-to that exact copy — whether it is a `--skill` path, a git worktree, a
-`~/.pi/...` install, or a `~/.kiro/...` install. **Verify the echo matches the
-directory you loaded SKILL.md from before continuing.** If it does not,
-re-run with the correct `<SKILL_MD_DIR>` — a mismatch means every downstream
-script and reference will silently run a different install than the one you
-loaded.
+The resolver derives `SKILL_DIR` from its own `BASH_SOURCE`, so it pins to the
+exact copy you invoked it from (a `--skill` path, git worktree, `~/.pi/...`, or
+`~/.kiro/...` install). **Verify the echo matches before continuing** — a
+mismatch means every downstream script and reference silently runs a different
+install than the one you loaded.
 
 - `SKILL_DIR` — where this skill lives (scripts, agents, references).
 - `WORK_DIR` — **global** research work root (default `~/.aws-deep-research/work`,
   override via `RESEARCH_WORK_DIR` in `$SKILL_DIR/scripts/.env`).
 
 **All intermediate artifacts go under `$WORK_DIR/<slug>/`, never under the
-invocation CWD.** This prevents stray `output/research/` folders from
-accumulating in every project directory you run the skill from.
+invocation CWD.** This keeps stray `output/research/` folders from accumulating
+in every project directory you run the skill from.
 
 ## Subagents
 
@@ -93,12 +90,10 @@ Agent definitions: `$SKILL_DIR/agents/`. Dispatch details: see
 
 - `uv` installed. Prefer a package manager so the download is verifiable:
   - macOS: `brew install uv`
-  - pipx: `pipx install uv`
-  - pip: `pip install uv`
+  - pipx / pip: `pipx install uv` or `pip install uv`
   - Other platforms: follow the official install docs at
     https://docs.astral.sh/uv/getting-started/installation/ and verify the
-    installer before running it. Do not pipe a remote script straight into a
-    shell.
+    installer before running it. Do not pipe a remote script into a shell.
 - Python 3.13+ (managed by `uv`)
 - Optional: API keys in `$SKILL_DIR/scripts/.env`
 - Optional: AWS credentials (`AWS_PROFILE` or env vars)
@@ -108,10 +103,8 @@ Agent definitions: `$SKILL_DIR/agents/`. Dispatch details: see
 
 Check whether `.env` exists AND has been customized away from the example:
 ```bash
-if [ ! -f "$SKILL_DIR/scripts/.env" ]; then
-  echo "NEEDS_SETUP"          # .env doesn't exist yet
-elif diff -q "$SKILL_DIR/scripts/.env" "$SKILL_DIR/scripts/.env.example" >/dev/null 2>&1; then
-  echo "NEEDS_SETUP"          # .env is a verbatim copy of .env.example
+if [ ! -f "$SKILL_DIR/scripts/.env" ] || diff -q "$SKILL_DIR/scripts/.env" "$SKILL_DIR/scripts/.env.example" >/dev/null 2>&1; then
+  echo "NEEDS_SETUP"   # missing, or a verbatim copy of .env.example
 else
   echo "CONFIGURED"
 fi
@@ -127,23 +120,16 @@ and follow the wizard. Otherwise skip to Step 1.
 For vague queries, read [references/intent-patterns.md](references/intent-patterns.md)
 to decide whether to ask a clarifying question. **Never ask more than one.**
 
-The intent determines **which subagents are candidates** for dispatch. The
-strategy (Step 1d below) may then NARROW or KEEP that default set.
+The intent determines **which subagents are candidates** for dispatch; the
+strategy (Step 1d) may then NARROW or KEEP that default set.
 
 | Intent | Default subagents (candidates) |
 |---|---|
-| `service-overview` | aws-mcp-researcher, web-content-researcher |
-| `architecture` | aws-mcp-researcher, web-content-researcher |
+| `service-overview`, `architecture`, `comparison`, `troubleshooting`, `best-practices`, `migration`, `security-compliance`, `news-updates` | aws-mcp-researcher, web-content-researcher |
 | `pricing` | aws-mcp-researcher (with pricing flag) |
-| `comparison` | aws-mcp-researcher, web-content-researcher |
-| `troubleshooting` | aws-mcp-researcher, web-content-researcher |
-| `best-practices` | aws-mcp-researcher, web-content-researcher |
-| `migration` | aws-mcp-researcher, web-content-researcher |
-| `security-compliance` | aws-mcp-researcher, web-content-researcher |
 | `cost-optimization` | aws-mcp-researcher (with pricing), web-content-researcher |
 | `agentcore` | agentcore-researcher |
 | `code-examples` | github-researcher, aws-mcp-researcher |
-| `news-updates` | aws-mcp-researcher, web-content-researcher |
 
 ### 1b. Classify query type: AWS or Generic
 
@@ -235,18 +221,14 @@ enough to be meaningful a month from now when you grep `~/.aws-deep-research/`.
 | How does DynamoDB handle hot partitions? | `dynamodb` | `dynamodb-hot-partitions-troubleshooting-patterns` |
 | Compare AWS Bedrock vs Azure OpenAI for enterprise RAG | `bedrock-azure` | `bedrock-vs-azure-openai-enterprise-rag-comparison` |
 | What's the cost of running Llama-3-70B on Bedrock? | `bedrock-cost` | `bedrock-llama3-70b-inference-pricing-analysis` |
-| Migrate self-hosted K8s to EKS Fargate | `eks-migration` | `self-hosted-k8s-to-eks-fargate-migration-plan` |
-| Bedrock AgentCore overview | `agentcore` | `bedrock-agentcore-service-overview-capabilities` |
 | Circuit breaker patterns (generic) | `circuit-breaker` | `circuit-breaker-pattern-distributed-systems-resilience` |
 
 ### Quick validator
 
-Before proceeding, sanity-check: count hyphen-separated tokens (`echo "$slug" | tr '-' '\n' | wc -l`).
-If < 4 tokens or total length < 30 chars → regenerate with more specificity.
-If > 7 tokens or length > 60 chars → drop stopwords.
-
-Once chosen, **declare the slug explicitly in your plan** before dispatching
-subagents. Example: `Slug: bedrock-llama3-70b-inference-pricing-analysis`.
+Sanity-check token count (`echo "$slug" | tr '-' '\n' | wc -l`): < 4 tokens or
+< 30 chars → regenerate with more specificity; > 7 tokens or > 60 chars → drop
+stopwords. Then **declare the slug explicitly in your plan** before dispatching,
+e.g. `Slug: bedrock-llama3-70b-inference-pricing-analysis`.
 
 ## Step 3 — Decompose (skip for `feed-only`)
 

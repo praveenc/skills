@@ -1,6 +1,7 @@
 {
   "skill_name": "aws-deep-research",
   "description": "Evaluation cases for the aws-deep-research skill. Covers strategy selection, multi-source synthesis, report quality, and edge cases.",
+  "how_to_run": "These are workflow-level behavior cases, graded by a judge (human or LLM) observing a live run of the skill against each `prompt`. For each case: run the skill on `prompt`, then check the run against `expected_behavior` (dispatch set, strategy, report sections, citation format, char bounds). Deterministic dispatch-layer behavior (command construction per harness, harness detection, guard exits, --help) is covered separately and runnably by `scripts/test_dispatch.py`: `uv run --python 3.13 --with pytest pytest scripts/test_dispatch.py -q`. Synthesizer insight-layer quality is scored by `scripts/eval_synthesis.sh` against `evals/synthesis-rubric.json`. Agent names in `expected_behavior` must match the live agents in `agents/` (aws-mcp-researcher, web-content-researcher, agentcore-researcher, github-researcher, diagram-generator, synthesizer).",
   "evals": [
     {
       "id": 1,
