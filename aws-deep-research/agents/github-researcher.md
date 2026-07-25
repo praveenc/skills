@@ -40,16 +40,13 @@ search (use sparingly), `--json` for JSON output.
 1. **Read the research contract** (`research-contract.md`) and
    `$SKILL_DIR/references/contract-compliance-rules.md`. Shape your
    `-q` queries using the contract's entity constraints.
-2. Validate GitHub token:
+2. Run `check_api_keys.sh` and inspect its `GITHUB=<status>` line:
    ```bash
-   eval "$(grep '^GITHUB_TOKEN=' $SKILL_DIR/scripts/.env 2>/dev/null)"
-   if [ -z "${GITHUB_TOKEN:-}" ] || echo "$GITHUB_TOKEN" | grep -q 'your_.*_here'; then
-     echo "GITHUB_TOKEN not configured" && exit 0
-   fi
-   curl -s -o /dev/null -w "%{http_code}" \
-     -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/rate_limit
+   bash "$SKILL_DIR/scripts/check_api_keys.sh" "$SKILL_DIR" | grep '^GITHUB='
    ```
-   If not 200 → write skip note to findings file and exit gracefully.
+   If not `GITHUB=200`, write a skip note to the findings file and exit
+   gracefully. The search script reads the token from the process environment
+   or the external config as literal data without shell evaluation.
 3. Run `github_search.py` with all subqueries
 4. Only use `--deep-index` if user specifically needs code-level analysis
 5. Verify output has useful content

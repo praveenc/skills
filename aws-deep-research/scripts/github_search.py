@@ -40,6 +40,8 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from rich.console import Console
 
+from read_env import config_path, read_env_value
+
 console = Console(stderr=True)
 
 
@@ -97,7 +99,7 @@ def make_server_params() -> StdioServerParameters:
 
     return StdioServerParameters(
         command="uvx",
-        args=["awslabs.git-repo-research-mcp-server@latest"],
+        args=["awslabs.git-repo-research-mcp-server@1.0.15"],
         env=env,
     )
 
@@ -455,6 +457,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 async def main(args: argparse.Namespace) -> None:
+    if not os.environ.get("GITHUB_TOKEN"):
+        token = read_env_value(config_path(), "GITHUB_TOKEN")
+        if token:
+            os.environ["GITHUB_TOKEN"] = token
+
     # Check GITHUB_TOKEN
     if not os.environ.get("GITHUB_TOKEN"):
         console.print(

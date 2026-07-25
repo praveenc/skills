@@ -25,13 +25,13 @@ npx skills add https://github.com/praveenc/skills --skill aws-deep-research
 ## How it works
 
 <p align="center">
-  <img src="./docs/workflow.svg"
+  <img src="./docs/workflow.png"
        alt="aws-deep-research workflow: query, research contract, facet decomposition, parallel subagent dispatch, findings files, size-gate, synthesis, report"
        width="720">
 </p>
 
 <p align="center"><sub>
-  <a href="./docs/workflow.svg">Open full-size SVG</a> &middot;
+  <a href="./docs/workflow.png">Open full-size PNG</a> &middot;
   <a href="./docs/workflow.d2">View D2 source</a>
 </sub></p>
 
@@ -74,13 +74,16 @@ The skill uses these keys (all optional; it gracefully degrades):
 | `GITHUB_TOKEN` | Higher GitHub API rate limits | 5,000/hr with token vs 60/hr without |
 | AWS credentials (via `~/.aws/config` or env) | AWS docs + pricing + Bedrock AgentCore MCP | - |
 
-Copy `scripts/.env.example` to `scripts/.env` and populate the keys you need.
+Create `~/.config/aws-deep-research/config.env` from
+`scripts/.env.example`, populate only the keys you need, and set mode `600`.
+The config stays outside the installed skill tree so scanners and package
+publishers cannot ingest credentials.
 
 ## Artifacts
 
 Research artifacts write to `~/.aws-deep-research/work/<slug>/` and final
 reports to `~/.aws-deep-research/outputs/`. Override via `RESEARCH_WORK_DIR` /
-`REPORT_OUTPUT_DIR` in `.env`.
+`REPORT_OUTPUT_DIR` in the external config file.
 
 ## Eval
 

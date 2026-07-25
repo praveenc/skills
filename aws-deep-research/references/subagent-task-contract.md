@@ -20,7 +20,7 @@ task brief. This reference is the single source of truth — subagent-specific
 
 | Subagent | Extra fields |
 |---|---|
-| `web-content-researcher` | `feed-urls` (list of blog feed URLs to extract), `fetchv2-max-length` (default 8000; bump to 15000–20000 for known primary sources) |
+| `web-content-researcher` | `feed-urls` (list of user-approved blog feed URLs), `fetchv2-max-length` (default 8000; bump to 15000-20000 for known primary sources), `public-web-approved: true` (mandatory explicit consent gate) |
 | `aws-mcp-researcher` | `pricing-flag` (true if pricing intent), `region` (default `us-east-1`) |
 | `github-researcher` | `top-n` (default 5) |
 | `agentcore-researcher` | `top-n` (default 3) |
@@ -37,6 +37,8 @@ Every subagent, before doing anything else:
 3. Confirm `findings-file` path is inside `work-dir/` — never write elsewhere.
 4. For each subquery, tag all results with its facet label so the synthesizer
    can see which facet yielded which evidence.
+5. `web-content-researcher` MUST stop unless `public-web-approved: true` is
+   present in the brief.
 
 ## What NOT to include in subagent task briefs
 

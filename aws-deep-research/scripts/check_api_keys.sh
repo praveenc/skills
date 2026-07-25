@@ -12,22 +12,26 @@ USAGE:
   check_api_keys.sh [SKILL_DIR]
 
 ARGUMENTS:
-  SKILL_DIR   skill root whose scripts/.env holds the keys (default: ".")
+  SKILL_DIR   skill root containing scripts/read_env.py (default: ".")
+
+ENVIRONMENT:
+  AWS_DEEP_RESEARCH_CONFIG
+              external config path (default: ~/.config/aws-deep-research/config.env)
 
 OPTIONS:
   -h, --help  show this help and exit
 
 OUTPUT:
   One "SERVICE=STATUS" line per service on stdout, e.g.:
-    AWS=VALID (arn:aws:sts::...)   |  AWS=INVALID
-    TAVILY=CONFIGURED              |  TAVILY=MISSING
-    BRAVE=CONFIGURED               |  BRAVE=MISSING
-    GITHUB=<http-status>           |  GITHUB=MISSING
-    KROKI=LOCAL|REMOTE|UNAVAILABLE
+    AWS=VALID|INVALID
+    TAVILY=CONFIGURED|MISSING
+    BRAVE=CONFIGURED|MISSING
+    GITHUB=<http-status>|MISSING
+    KROKI=LOCAL|CONFIGURED|UNAVAILABLE
 
 EXAMPLES:
-  check_api_keys.sh                 # keys from ./scripts/.env
-  check_api_keys.sh "$SKILL_DIR"    # keys from a resolved skill dir
+  check_api_keys.sh
+  check_api_keys.sh "$SKILL_DIR"
 
 EXIT CODES:
   0  always (per-service status is reported on stdout, not via exit code)
@@ -39,14 +43,22 @@ case "${1:-}" in
 esac
 
 SKILL_DIR="${1:-.}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${AWS_DEEP_RESEARCH_CONFIG:-$HOME/.config/aws-deep-research/config.env}"
 
-# Load keys from .env
-eval "$(grep -E '^(TAVILY_API_KEY|BRAVE_SEARCH_API_KEY|GITHUB_TOKEN)=' "$SKILL_DIR/scripts/.env" 2>/dev/null)" || true
+read_env() {
+  python3 "$SCRIPT_DIR/read_env.py" "$ENV_FILE" "$1"
+}
+
+# Environment variables take precedence over literal values in .env.
+TAVILY_API_KEY="${TAVILY_API_KEY:-$(read_env TAVILY_API_KEY)}"
+BRAVE_SEARCH_API_KEY="${BRAVE_SEARCH_API_KEY:-$(read_env BRAVE_SEARCH_API_KEY)}"
+GITHUB_TOKEN="${GITHUB_TOKEN:-$(read_env GITHUB_TOKEN)}"
+KROKI_URL="${KROKI_URL:-$(read_env KROKI_URL)}"
 
 # --- AWS Credentials ---
 if aws sts get-caller-identity --profile 001 >/dev/null 2>&1; then
-  CALLER=$(aws sts get-caller-identity --profile 001 --output text --query 'Arn' 2>/dev/null)
-  echo "AWS=VALID ($CALLER)"
+  echo "AWS=VALID"
 else
   echo "AWS=INVALID"
 fi
@@ -77,10 +89,18 @@ else
 fi
 
 # --- Kroki (optional) ---
-if curl -s --max-time 2 http://localhost:8000/health >/dev/null 2>&1; then
-  echo "KROKI=LOCAL"
-elif curl -s --max-time 2 https://kroki.io/health >/dev/null 2>&1; then
-  echo "KROKI=REMOTE"
-else
-  echo "KROKI=UNAVAILABLE"
-fi
+case "$KROKI_URL" in
+  [Dd][Ii][Ss][Aa][Bb][Ll][Ee][Dd])
+    echo "KROKI=UNAVAILABLE"
+    ;;
+  "")
+    if curl -s --max-time 2 http://localhost:8000/health >/dev/null 2>&1; then
+      echo "KROKI=LOCAL"
+    else
+      echo "KROKI=UNAVAILABLE"
+    fi
+    ;;
+  *)
+    echo "KROKI=CONFIGURED"
+    ;;
+esac

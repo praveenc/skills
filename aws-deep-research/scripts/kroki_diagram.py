@@ -8,14 +8,13 @@
 """
 Kroki Diagram Renderer — renders D2 diagram source to SVG/PNG.
 
-Connects to a Kroki instance (self-hosted Docker or remote kroki.io)
-and renders D2 diagram-as-code source into SVG or PNG images.
+Connects to an explicitly configured Kroki instance or local Docker and
+renders D2 diagram-as-code source into SVG or PNG images.
 
 Endpoint resolution (tiered):
-  1. KROKI_URL env var or --url flag (explicit self-hosted)
+  1. KROKI_URL env var or --url flag (explicit opt-in)
   2. Auto-detect local Docker: http://localhost:8000
-  3. Remote: https://kroki.io (with warning)
-  4. Fail gracefully if none available
+  3. Fail gracefully if none available
 
 Usage:
     uv run kroki_diagram.py -i diagram.d2 -o output/diagrams/arch.svg
@@ -34,16 +33,21 @@ from pathlib import Path
 import requests
 from rich.console import Console
 
+from read_env import config_path, read_env_value
+
 console = Console(stderr=True)
 
-REMOTE_KROKI = "https://kroki.io"
 LOCAL_KROKI = "http://localhost:8000"
 
 
 def resolve_endpoint(explicit_url: str | None = None) -> tuple[str, str]:
     """Resolve Kroki endpoint. Returns (url, source_label)."""
     # 1. Explicit URL (flag or env var)
-    url = explicit_url or os.environ.get("KROKI_URL")
+    url = (
+        explicit_url
+        or os.environ.get("KROKI_URL")
+        or read_env_value(config_path(), "KROKI_URL")
+    )
     if url and url.lower() == "disabled":
         return "", "disabled"
     if url:
@@ -51,6 +55,10 @@ def resolve_endpoint(explicit_url: str | None = None) -> tuple[str, str]:
         try:
             r = requests.get(f"{url}/health", timeout=5)
             if r.ok:
+                if not url.startswith(("http://localhost", "http://127.0.0.1")):
+                    console.print(
+                        "[yellow]⚠ Diagram content will be sent to the configured Kroki endpoint.[/yellow]"
+                    )
                 return url, f"explicit ({url})"
         except requests.ConnectionError:
             console.print(f"[yellow]⚠ Configured KROKI_URL={url} unreachable[/yellow]")
@@ -60,20 +68,6 @@ def resolve_endpoint(explicit_url: str | None = None) -> tuple[str, str]:
         r = requests.get(f"{LOCAL_KROKI}/health", timeout=3)
         if r.ok:
             return LOCAL_KROKI, f"local Docker ({LOCAL_KROKI})"
-    except requests.ConnectionError:
-        pass
-
-    # 3. Remote kroki.io
-    try:
-        r = requests.get(f"{REMOTE_KROKI}/health", timeout=5)
-        if r.ok:
-            console.print(
-                "[yellow]⚠ Using remote kroki.io — diagram content sent to third party.[/yellow]"
-            )
-            console.print(
-                "[dim]  To self-host: docker run -d -p 8000:8000 yuzutech/kroki[/dim]"
-            )
-            return REMOTE_KROKI, f"remote ({REMOTE_KROKI})"
     except requests.ConnectionError:
         pass
 
@@ -161,7 +155,7 @@ def main() -> None:
     if not endpoint:
         console.print("[red]✗ No Kroki endpoint available.[/red]")
         console.print("[dim]  Self-host: docker run -d -p 8000:8000 yuzutech/kroki[/dim]")
-        console.print("[dim]  Or set KROKI_URL in scripts/.env[/dim]")
+        console.print("[dim]  Or set KROKI_URL in ~/.config/aws-deep-research/config.env[/dim]")
         sys.exit(1)
 
     console.print(f"[bold]Rendering D2 → {fmt.upper()} via {label}[/bold]")

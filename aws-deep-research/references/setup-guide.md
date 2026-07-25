@@ -1,16 +1,26 @@
 # First-Run Setup Guide
 
-This guide runs once — when `$SKILL_DIR/scripts/.env` has never been customized.
+This guide runs once when the external machine-local config has not been
+created or still matches the template.
+
+Default path: `~/.config/aws-deep-research/config.env`.
+Override it with `AWS_DEEP_RESEARCH_CONFIG`.
+Never store credentials inside the skill directory.
 
 ## Detection
 
 ```bash
-diff -q "$SKILL_DIR/scripts/.env" "$SKILL_DIR/scripts/.env.example" >/dev/null 2>&1
-echo "ENV_CUSTOMIZED=$?"
+CONFIG_FILE="${AWS_DEEP_RESEARCH_CONFIG:-$HOME/.config/aws-deep-research/config.env}"
+if [ -f "$CONFIG_FILE" ]; then
+  diff -q "$CONFIG_FILE" "$SKILL_DIR/scripts/.env.example" >/dev/null 2>&1
+  echo "ENV_CUSTOMIZED=$?"
+else
+  echo "ENV_CUSTOMIZED=1"
+fi
 ```
 
-- Exit `0` (identical) → run setup below
-- Exit `1` (differ) → already configured, skip to Step 1
+- Exit `0` (identical) - run setup below
+- Exit `1` (missing or different) - create/configure as needed
 
 ## Setup Message
 
@@ -21,7 +31,7 @@ Show the user:
 > This skill uses optional API keys for web search and GitHub search.
 > AWS documentation, blog feeds, and MCP-based sources work without any keys.
 >
-> **Optional API keys** (add to `$SKILL_DIR/scripts/.env`):
+> **Optional API keys** (add to `~/.config/aws-deep-research/config.env`):
 >
 > | Service | Free Tier | Credit Card? | Sign Up |
 > |---------|-----------|-------------|---------|
@@ -31,7 +41,8 @@ Show the user:
 >
 > Would you like to add any keys now, or proceed without them?
 
-If the user provides keys, update `.env` accordingly.
+If the user provides keys, create the parent directory with mode `700`, write
+`CONFIG_FILE` with mode `600`, and update it without echoing values.
 
 Also ask:
 
@@ -40,5 +51,5 @@ Also ask:
 >
 > Would you like to use a different path?
 
-If yes, update `REPORT_OUTPUT_DIR` in `.env`. Otherwise keep the default.
+If yes, update `REPORT_OUTPUT_DIR` in `CONFIG_FILE`. Otherwise keep the default.
 Then proceed to Step 1.

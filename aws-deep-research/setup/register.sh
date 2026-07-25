@@ -45,7 +45,7 @@ echo "[register] registering top-level agent: $KIRO_AGENTS/$SKILL_NAME.json"
 cp "$SKILL_SRC/setup/kiro-agent.json" "$KIRO_AGENTS/$SKILL_NAME.json"
 
 # --- 3. Subagent registration (so ListAgents finds them by name) ---
-# Kiro resolves `file://agents/<name>.md` relative to the agent JSON's
+# Kiro resolves each `file://<name>.md` prompt relative to the agent JSON's
 # directory, so the .md prompt file must live next to the .json in
 # ~/.kiro/agents/. Copy BOTH.
 echo "[register] registering subagents from $SKILL_SRC/agents/"
@@ -60,11 +60,12 @@ for f in "$SKILL_SRC"/agents/*.json; do
   fi
 done
 
-# --- 4. .env check ---
-if [ ! -f "$SKILL_DST/scripts/.env" ]; then
-  echo "[register] WARNING: $SKILL_DST/scripts/.env not found."
-  echo "           Copy scripts/.env.example -> scripts/.env and fill in keys."
-  echo "           Required: BRAVE_API_KEY, TAVILY_API_KEY, GITHUB_TOKEN (optional)."
+# --- 4. external config check ---
+CONFIG_FILE="${AWS_DEEP_RESEARCH_CONFIG:-$HOME/.config/aws-deep-research/config.env}"
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "[register] WARNING: $CONFIG_FILE not found."
+  echo "           Copy $SKILL_DST/scripts/.env.example to that path,"
+  echo "           set mode 600, and fill only the optional keys you need."
 fi
 
 echo

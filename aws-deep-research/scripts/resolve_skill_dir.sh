@@ -56,10 +56,13 @@ if [ -z "$SKILL_DIR" ]; then
   exit 1
 fi
 
-# --- Resolve WORK_DIR from .env (RESEARCH_WORK_DIR) or default ---
+CONFIG_FILE="${AWS_DEEP_RESEARCH_CONFIG:-$HOME/.config/aws-deep-research/config.env}"
+
+# --- Resolve WORK_DIR from external machine-local config or default ---
 WORK_DIR=""
-if [ -f "$SKILL_DIR/scripts/.env" ]; then
-  WORK_DIR="$(grep -E '^RESEARCH_WORK_DIR=' "$SKILL_DIR/scripts/.env" 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
+if [ -f "$CONFIG_FILE" ]; then
+  WORK_DIR="$(python3 "$SCRIPT_DIR/read_env.py" \
+    "$CONFIG_FILE" RESEARCH_WORK_DIR)"
 fi
 if [ -z "$WORK_DIR" ]; then
   WORK_DIR="$HOME/.aws-deep-research/work"
@@ -68,5 +71,7 @@ fi
 WORK_DIR="${WORK_DIR/#\~/$HOME}"
 mkdir -p "$WORK_DIR"
 
-echo "SKILL_DIR=$SKILL_DIR"
-echo "WORK_DIR=$WORK_DIR"
+# This output is consumed by eval, so quote values as shell data.
+printf 'SKILL_DIR=%q\n' "$SKILL_DIR"
+printf 'CONFIG_FILE=%q\n' "$CONFIG_FILE"
+printf 'WORK_DIR=%q\n' "$WORK_DIR"

@@ -2,7 +2,6 @@
 # requires-python = ">=3.13"
 # dependencies = [
 #   "requests>=2.31.0",
-#   "python-dotenv>=1.0.0",
 #   "rich>=13.7.0",
 #   "trafilatura[all]>=2.0.0",
 #   "defusedxml"
@@ -43,7 +42,6 @@ from common import (
     sanitize_folder_name,
     save_urls_to_file,
 )
-from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
@@ -52,6 +50,8 @@ from rich.progress import (
     TextColumn,
 )
 from rich.table import Table
+
+from read_env import config_path, read_env_value
 
 # Type aliases for clarity
 type SearchResults = dict[str, Any]
@@ -193,17 +193,18 @@ class UsageTracker:
 
 
 def load_api_key() -> str:
-    """Load Tavily API key from environment or .env file."""
-    load_dotenv()
-    api_key = os.getenv("TAVILY_API_KEY")
+    """Load Tavily API key from environment or external config."""
+    api_key = os.getenv("TAVILY_API_KEY") or read_env_value(
+        config_path(), "TAVILY_API_KEY"
+    )
 
     if not api_key:
         console.print(
             Panel(
                 "[red]TAVILY_API_KEY not found![/red]\n\n"
                 "Please set your API key in one of these ways:\n"
-                "1. Create a .env file with: TAVILY_API_KEY=tvly-your_key_here\n"
-                "2. Set environment variable: export TAVILY_API_KEY=tvly-your_key_here\n\n"
+                "1. Add TAVILY_API_KEY to ~/.config/aws-deep-research/config.env\n"
+                "2. Or set environment variable: export TAVILY_API_KEY=tvly-your_key_here\n\n"
                 "Get your API key at: https://app.tavily.com",
                 title="Configuration Error",
                 border_style="red",
