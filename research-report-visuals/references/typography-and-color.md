@@ -14,7 +14,10 @@ Every visual uses exactly two (occasionally three) typefaces:
 1. **Display/Heading font** - Carries editorial authority. Used for the
    hero title and section headings ONLY. Serif or distinctive sans.
 2. **Body font** - Optimized for reading. Used for all body text,
-   descriptions, labels. Clean sans-serif.
+   descriptions, labels. A clean sans-serif OR a screen-optimized serif
+   (e.g. Newsreader). A serif body at 17-18px reads warmer and more
+   comfortably for prose-heavy explainers; a sans body reads crisper for
+   dense/technical reference. Choose by content register, not reflex.
 3. **Mono font** (optional) - Used for data, numbers, code, and technical
    identifiers. Signals precision.
 
@@ -27,19 +30,30 @@ demands a different register.
 | Register | Heading | Body | Mono | When |
 |----------|---------|------|------|------|
 | **Default** (editorial) | Newsreader | DM Sans | JetBrains Mono | Most reports. Best breathing room. |
-| Technical/engineering | Space Grotesk | Inter | Fira Code | Protocol specs, API docs |
+| **Editorial serif** (most readable) | Fraunces | Newsreader | JetBrains Mono | Prose-heavy explainers, field manuals, concept/decision guides. Serif body at 18px/1.65-1.7 with oldstyle numerals reads warmest. |
+| Technical/engineering | Space Grotesk | Inter | Fira Code | Protocol specs, API docs, dense reference |
 | Warm/accessible | Fraunces | DM Sans | DM Mono | Non-technical, narrative-heavy |
 | Product/modern | Instrument Sans | Geist | Geist Mono | Product comparisons, vendor analysis |
 | Research/academic | Newsreader | Source Sans 3 | Source Code Pro | Papers, citations-heavy |
+
+When a serif is used for the body, enable oldstyle numerals and optical
+sizing for a genuinely editorial feel:
+```css
+body { font-feature-settings: "kern", "liga", "onum", "pnum"; }
+h1, h2 { font-optical-sizing: auto; }
+```
+A serif display used italic for a key word or a pull-quote is a strong
+editorial signature (Fraunces italic). Guard descenders: keep line-height
+>= 1.3 on italic display so `g y p q j` are not clipped.
 
 ### Size Scale
 
 | Element | Size | Weight | Line-height |
 |---------|------|--------|-------------|
-| Hero title | 38-44px | 400 (serif) or 700 (sans) | 1.15-1.2 |
-| Section title | 26-30px | 400 (serif) or 700 (sans) | 1.2 |
-| Body text | 16px | 400 | **1.8** |
-| Card title | 16-18px | 700 | 1.3 |
+| Hero title | 40-50px | 400-600 (serif) or 700 (sans) | 1.1-1.2 |
+| Section title | 26-30px | 400-600 (serif) or 700 (sans) | 1.18-1.2 |
+| Body text | 16px (sans) / 17-18px (serif) | 400 | 1.8 (sans) / 1.65-1.7 (serif) |
+| Card title | 16-18px | 600-700 | 1.3 |
 | Label/eyebrow | 11-12px | 600 | 1.4 |
 | Table text | 14px | 400 | 1.5 |
 | Code blocks | 13-14px | 400 | 1.7 |
@@ -47,8 +61,9 @@ demands a different register.
 
 ### Letter-spacing
 
-- Hero title: `-0.02em` to `-0.03em` (tighter, more confident)
-- Section title: `-0.01em`
+- Hero title (sans): `-0.02em` to `-0.03em` (tighter, more confident)
+- Hero title (serif): `-0.01em` to `-0.02em` (serifs need less negative tracking; over-tightening looks cramped)
+- Section title: `-0.01em` (sans) / `-0.005em` to `-0.01em` (serif)
 - Eyebrow/labels: `0.04em` to `0.08em` (spaced out, uppercase)
 - Body: `0` (default)
 - Mono: `0` (never adjust mono spacing)
@@ -56,7 +71,9 @@ demands a different register.
 ### Non-Negotiable Rules
 
 - Body text MUST be at minimum `#2d2d2d` on light backgrounds
-- Line-height for body text MUST be **1.8** (non-negotiable for readability)
+- Body line-height MUST be generous for readability: **1.8 for a sans body**,
+  **1.65-1.7 for a serif body** (serif x-height and letterforms read
+  comfortably tighter; 1.8 on serif looks loose). Never below these floors.
 - Maximum body line length: 720px (prevents eye fatigue)
 - Headings use negative letter-spacing; body uses none
 - Never use more than 3 font sizes on a single screen (excluding data)

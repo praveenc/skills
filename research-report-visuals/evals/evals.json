@@ -1,81 +1,194 @@
-[
-  {
-    "id": "eval-01-comparison-report",
-    "description": "Technical comparison report with quantitative data and multiple entities",
-    "prompt": "Create a visual for this report: evals/samples/gpu-comparison-sample.md",
-    "assertions": [
-      "output contains <div class=\"masthead\">",
-      "output contains class=\"masthead-date\"",
-      "output contains class=\"footer-attribution\"",
-      "output contains ❤️ or &#10084;",
-      "output does NOT contain \u2014 (em-dash)",
-      "output does NOT contain \u2013 (en-dash)",
-      "output file size < 40KB",
-      "output contains at least 2 <a href= in footer-sources",
-      "output body text color is #2d2d2d or darker",
-      "output contains :hover CSS rule",
-      "output does NOT contain border-top: 3px solid on .card or .platform-card",
-      "output contains data-lucide= OR class=\"icon\"",
-      "output contains @keyframes (hero entrance animation)"
-    ]
+{
+  "meta": {
+    "about": "Eval cases for research-report-visuals. Two-phase: (1) generate HTML per case into outputs/<id>.html in an isolated session, (2) run.sh validates deterministically. See README.md.",
+    "validated_against": {
+      "harness": "pi / kiro-cli chat",
+      "model": "claude-opus-4-8",
+      "note": "Single-harness. Cross-harness runs not yet done; treat as a known gap."
+    },
+    "negative_ratio_target": "~30% of cases should be boundary/negative (currently 4/9 = 44%)",
+    "lifecycle": "Re-run after any edit to SKILL.md, build-rules.md, visual-signature.md, or typography-and-color.md. Regenerate fixtures when the skill's HTML contract changes."
   },
-  {
-    "id": "eval-02-myth-debunking",
-    "description": "Narrative myth-vs-fact report with no quantitative data",
-    "prompt": "Create a visual for this report: evals/samples/myth-debunking-sample.md",
-    "assertions": [
-      "output uses verdict-split or dual-panel layout",
-      "output does NOT include Highcharts or Chart.js CDN (no quantitative data)",
-      "output contains timeline OR claim-card pattern",
-      "output body line-height >= 1.8",
-      "output contains <div class=\"masthead\">",
-      "output contains class=\"footer-sources-list\"",
-      "output max-width on body paragraphs is 720px",
-      "output hero title has NO max-width constraint"
-    ]
-  },
-  {
-    "id": "eval-03-blog-digest",
-    "description": "Blog post digest with 3-5 articles summarized",
-    "prompt": "Create a visual for this report: evals/samples/blog-digest-sample.md",
-    "assertions": [
-      "output contains data-lucide= (contextual icons per card)",
-      "output does NOT contain colored corner curves or border-top accent bars",
-      "output cards have hover interaction (translateY or box-shadow transition)",
-      "output contains <a href= linking to original blog posts",
-      "output differentiates cards by content (different icons, badges, or key details)"
-    ]
-  },
-  {
-    "id": "eval-04-short-report",
-    "description": "Very short report (under 300 words) that should not be over-distilled",
-    "prompt": "Create a visual for this report: evals/samples/short-report-sample.md",
-    "assertions": [
-      "agent acknowledges report is short OR produces proportionally brief visual",
-      "output does NOT pad with filler content or Lorem ipsum",
-      "output still contains masthead and footer",
-      "output file size < 20KB"
-    ]
-  },
-  {
-    "id": "eval-05-code-heavy",
-    "description": "Technical report with significant code samples that must be preserved",
-    "prompt": "Create a visual for this report: evals/samples/code-heavy-sample.md",
-    "assertions": [
-      "output contains <pre> or <code> blocks with actual code from the report",
-      "output code blocks use white-space: pre-wrap",
-      "output code blocks have dark background (#1c1917 or similar)",
-      "output code blocks have max-width constraint (720px or similar)",
-      "output does NOT replace code samples with only tables or descriptions"
-    ]
-  },
-  {
-    "id": "eval-06-negative-not-a-report",
-    "description": "Request outside skill scope should not activate or should decline gracefully",
-    "prompt": "Create a dashboard from this CSV of sales data (no markdown report provided)",
-    "assertions": [
-      "agent declines or redirects (does not produce a full HTML visual)",
-      "agent explains this skill requires a markdown research report as input"
-    ]
-  }
-]
+  "cases": [
+    {
+      "id": "eval-01-comparison-report",
+      "type": "generate",
+      "description": "Technical comparison report with quantitative data and multiple entities",
+      "input": "samples/gpu-comparison-sample.md",
+      "prompt": "Create a visual for this report: evals/samples/gpu-comparison-sample.md",
+      "assertions": [
+        "masthead present (type + date row)",
+        "footer attribution with heart",
+        "no em/en dashes",
+        "file < 40KB",
+        "at least 2 source links in footer",
+        "body text dark enough",
+        "hover interaction present",
+        "no colored top-border bars on cards",
+        "contextual icons present",
+        "hero entrance animation present"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "class\\s*=\\s*[\"'][^\"']*\\bmasthead\\b", "desc": "masthead element exists (tolerant to extra classes)"},
+        {"type": "regex", "flags": "i", "pattern": "masthead[-_]?date", "desc": "masthead has a date slot"},
+        {"type": "regex", "flags": "i", "pattern": "footer[-_]?attribution", "desc": "footer attribution row exists"},
+        {"type": "regex", "pattern": "\u2764|&#10084;|&#x2764;", "desc": "heart glyph in attribution"},
+        {"type": "absent", "pattern": "\u2014", "desc": "no em-dash"},
+        {"type": "absent", "pattern": "\u2013", "desc": "no en-dash"},
+        {"type": "max_bytes", "value": 40000, "desc": "file under 40KB"},
+        {"type": "count_regex", "flags": "i", "pattern": "<a\\s+href=", "min": 2, "desc": "at least 2 anchor links (sources)"},
+        {"type": "regex", "flags": "i", "pattern": "--body\\s*:\\s*#(0|1|2)[0-9a-f]{5}", "desc": "body color token is dark (#0xxxxx/#1xxxxx/#2xxxxx); heuristic"},
+        {"type": "regex", "flags": "i", "pattern": ":hover", "desc": "hover interaction present"},
+        {"type": "absent_regex", "flags": "i", "pattern": "\\.(card|platform-card)[^{]*\\{[^}]*border-top:\\s*[34]px\\s+solid", "desc": "no colored top-border bar on cards"},
+        {"type": "regex", "flags": "i", "pattern": "data-lucide=|class=\"icon\"", "desc": "contextual icons present"},
+        {"type": "regex", "flags": "i", "pattern": "@keyframes", "desc": "hero entrance animation present"},
+        {"type": "judge", "desc": "cards are differentiated by content, and the visual reads as a story (not a dashboard)"}
+      ]
+    },
+    {
+      "id": "eval-02-myth-debunking",
+      "type": "generate",
+      "description": "Narrative myth-vs-fact report with no quantitative data",
+      "input": "samples/myth-debunking-sample.md",
+      "prompt": "Create a visual for this report: evals/samples/myth-debunking-sample.md",
+      "assertions": [
+        "no charting library (no quantitative data)",
+        "body line-height generous (>=1.65: 1.8 sans / 1.65-1.7 serif)",
+        "masthead present",
+        "footer sources list present",
+        "body paragraphs capped at 720px",
+        "verdict-split or claim/timeline pattern (judge)"
+      ],
+      "checks": [
+        {"type": "absent_regex", "flags": "i", "pattern": "highcharts|chart\\.js|chart\\.umd", "desc": "no charting CDN for a no-data report"},
+        {"type": "regex", "pattern": "line-height:\\s*(1\\.(6[5-9]|[7-9][0-9]?)|2(\\.0+)?)", "desc": "body line-height >= 1.65 (serif) up to 2.0 (sans); loosened for the serif-body register"},
+        {"type": "regex", "flags": "i", "pattern": "class\\s*=\\s*[\"'][^\"']*\\bmasthead\\b", "desc": "masthead element exists"},
+        {"type": "regex", "flags": "i", "pattern": "footer[-_]?sources", "desc": "footer sources block exists"},
+        {"type": "regex", "pattern": "max-width:\\s*720px", "desc": "prose line-length cap present"},
+        {"type": "absent", "pattern": "\u2014", "desc": "no em-dash"},
+        {"type": "judge", "desc": "uses a verdict-split / claim-card / timeline pattern appropriate to a myth-vs-fact narrative; hero title is not width-constrained"}
+      ]
+    },
+    {
+      "id": "eval-03-blog-digest",
+      "type": "generate",
+      "description": "Blog post digest with 3-5 articles summarized",
+      "input": "samples/blog-digest-sample.md",
+      "prompt": "Create a visual for this report: evals/samples/blog-digest-sample.md",
+      "assertions": [
+        "contextual icons per card",
+        "no colored corner/border-top accent bars",
+        "cards have hover interaction",
+        "links to original posts",
+        "cards differentiated by content (judge)"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "data-lucide=", "desc": "contextual Lucide icons present"},
+        {"type": "absent_regex", "flags": "i", "pattern": "\\.(card|[a-z-]*card)[^{]*\\{[^}]*border-top:\\s*[34]px\\s+solid", "desc": "no colored top-border accent bars on cards"},
+        {"type": "regex", "flags": "i", "pattern": "(translateY|box-shadow)[^;]*;[^}]*}", "desc": "hover lift/shadow transition present"},
+        {"type": "count_regex", "flags": "i", "pattern": "<a\\s+href=\"https?://", "min": 2, "desc": "links to original posts"},
+        {"type": "absent", "pattern": "\u2014", "desc": "no em-dash"},
+        {"type": "judge", "desc": "each card is differentiated by content (different icon/badge/key detail), not a uniform grid"}
+      ]
+    },
+    {
+      "id": "eval-04-short-report",
+      "type": "generate",
+      "description": "Very short report (under 300 words) that should not be over-distilled or padded",
+      "input": "samples/short-report-sample.md",
+      "prompt": "Create a visual for this report: evals/samples/short-report-sample.md",
+      "assertions": [
+        "masthead present",
+        "footer present",
+        "file < 20KB (proportionally brief)",
+        "no filler / Lorem ipsum (judge)"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "class\\s*=\\s*[\"'][^\"']*\\bmasthead\\b", "desc": "masthead element exists"},
+        {"type": "regex", "flags": "i", "pattern": "footer[-_]?(sources|attribution)", "desc": "footer present"},
+        {"type": "max_bytes", "value": 20000, "desc": "proportionally brief, under 20KB"},
+        {"type": "absent_regex", "flags": "i", "pattern": "lorem ipsum", "desc": "no Lorem ipsum filler"},
+        {"type": "absent", "pattern": "\u2014", "desc": "no em-dash"},
+        {"type": "judge", "desc": "content is proportional to a short source; no invented filler sections"}
+      ]
+    },
+    {
+      "id": "eval-05-code-heavy",
+      "type": "generate",
+      "description": "Technical report with significant code samples that must be preserved",
+      "input": "samples/code-heavy-sample.md",
+      "prompt": "Create a visual for this report: evals/samples/code-heavy-sample.md",
+      "assertions": [
+        "code blocks present with actual code",
+        "code uses white-space: pre-wrap",
+        "code blocks have a dark background",
+        "code blocks width-constrained (~720px)",
+        "code not replaced by tables/descriptions only (judge)"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "<pre|<code|class=\"code\"", "desc": "code blocks present"},
+        {"type": "regex", "pattern": "white-space:\\s*pre-wrap", "desc": "code uses pre-wrap"},
+        {"type": "regex", "flags": "i", "pattern": "(code[-_]?bg|#1c1917|#1[0-9a-f]{5})", "desc": "dark code background"},
+        {"type": "regex", "pattern": "max-width:\\s*(720px|var\\(--prose\\))", "desc": "code width-constrained"},
+        {"type": "absent", "pattern": "\u2014", "desc": "no em-dash"},
+        {"type": "judge", "desc": "actual code from the source is shown, not only summarized into tables"}
+      ]
+    },
+    {
+      "id": "eval-06-negative-csv-dashboard",
+      "type": "negative",
+      "description": "Raw CSV + dashboard request (no markdown report). Guards the 'dashboards / raw datasets' over-trigger vector from dimension 4.",
+      "prompt": "Create a dashboard from this CSV of sales data (no markdown report provided): date,region,revenue\\n2026-01,us,1200\\n2026-02,us,1500",
+      "assertions": [
+        "agent declines or redirects; does not emit a full HTML visual",
+        "agent explains this skill needs a markdown research report"
+      ],
+      "checks": [
+        {"type": "html_absent", "desc": "no HTML visual should be generated for a raw-CSV dashboard request"},
+        {"type": "response_regex", "flags": "i", "pattern": "research report|markdown report|not a report|requires a .*report", "desc": "response explains the skill needs a markdown report (if a transcript is captured)"}
+      ]
+    },
+    {
+      "id": "eval-07-negative-landing-page",
+      "type": "negative",
+      "description": "General web-design request. Guards the 'general web design / landing pages' over-trigger vector from dimension 4's Does-NOT clause.",
+      "prompt": "Design a landing page for my new SaaS startup with a hero, pricing tiers, and a signup form.",
+      "assertions": [
+        "agent does not treat this as a report-to-visual task",
+        "agent redirects to a general frontend/design path, not research-report-visuals"
+      ],
+      "checks": [
+        {"type": "html_absent", "desc": "research-report-visuals should not fire for a landing-page build; no report-visual HTML produced under this id"},
+        {"type": "response_regex", "flags": "i", "pattern": "not a (research )?report|landing page|different skill|frontend|design skill", "desc": "response redirects away from report-visuals (if a transcript is captured)"}
+      ]
+    },
+    {
+      "id": "eval-08-negative-raw-dataset",
+      "type": "negative",
+      "description": "Raw dataset visualization with no report/narrative. Guards the 'data visualization from raw datasets' over-trigger vector from dimension 4.",
+      "prompt": "Here are 500 rows of sensor readings. Build me an interactive chart to explore them.",
+      "assertions": [
+        "agent does not produce a research-report visual",
+        "agent notes this is raw-data viz, outside this skill's scope"
+      ],
+      "checks": [
+        {"type": "html_absent", "desc": "no report-visual HTML for a raw-dataset charting request"},
+        {"type": "response_regex", "flags": "i", "pattern": "raw data|dataset|not a (research )?report|out of scope|charting", "desc": "response explains raw-data viz is out of scope (if a transcript is captured)"}
+      ]
+    },
+    {
+      "id": "eval-09-negative-readme",
+      "type": "negative",
+      "description": "Non-report markdown (a README). Guards the 'any structured markdown document' over-trigger: this skill is for reports/analyses with a narrative, not arbitrary .md files.",
+      "prompt": "Turn my project's README.md into a nice visual page. It has an install section, a usage section, and a contributing section.",
+      "assertions": [
+        "agent does not treat a README as a research report",
+        "agent explains this skill is for research reports/analyses, not arbitrary markdown"
+      ],
+      "checks": [
+        {"type": "html_absent", "desc": "no report-visual HTML for a README (non-report markdown)"},
+        {"type": "response_regex", "flags": "i", "pattern": "not a (research )?report|README|non-report|research report|narrative|different skill", "desc": "response explains a README is not a research report (if a transcript is captured)"}
+      ]
+    }
+  ]
+}

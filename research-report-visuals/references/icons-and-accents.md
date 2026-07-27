@@ -14,7 +14,12 @@ SVG-based icons with excellent coverage of technical and abstract concepts.
 ### CDN Include
 
 ```html
-<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Pinned to a specific version with the explicit UMD path (do NOT use
+     @latest: a breaking release can silently drop every icon). Version
+     live-verified against the npm registry at build time, not just dated.
+     The explicit /dist/umd/ path avoids relying on unpkg's bare-URL redirect
+     and guarantees the global `lucide.createIcons()` used below is exposed. -->
+<script src="https://unpkg.com/lucide@1.27.0/dist/umd/lucide.min.js"></script>
 ```
 
 Place in `<head>` or before closing `</body>`. Then call:

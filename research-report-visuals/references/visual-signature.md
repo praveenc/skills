@@ -41,6 +41,91 @@ Other colors exist but play supporting roles.
 
 ---
 
+## 1.5 Page Surface (the anti-samey decision)
+
+The single biggest reason a set of these visuals looks identical is that
+every one defaults to a flat `--bg` page. Atmosphere on the hero alone is
+not enough: the reader spends 95% of their scroll on the body, and if that
+body is always the same warm-white, every report feels like the same
+template. **Give the whole page a subtle surface texture applied to `body`,
+chosen from the report's domain.** This is what makes each visual read as a
+distinct material.
+
+Apply to `body` with `background-attachment: fixed` so the texture stays put
+while content scrolls over it. Keep it VERY subtle: line/dot colors at
+0.04-0.10 alpha, tinted toward the dominant accent. It must never compete
+with body text.
+
+**Surface S1: Dot grid** (nodes, systems, networks, neural/agent topics)
+```css
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  background-attachment: fixed;
+}
+/* --dot: rgba(<accent-rgb>, 0.10); */
+```
+
+**Surface S2: Graph paper** (specs, protocols, engineering, spec-driven)
+```css
+body {
+  background-color: var(--bg);
+  background-image:
+    repeating-linear-gradient(0deg,  var(--grid) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 64px);
+  background-attachment: fixed;
+}
+/* --grid: rgba(<ink-rgb>, 0.05); larger 64px cells read calmer than 26px */
+```
+
+**Surface S3: Blueprint grid** (architecture, infra, toolkits, diagrams)
+```css
+/* same as S2 but 26px cells and a cooler/accent-tinted line for a
+   "technical drawing" feel. Pair with a light or a dark canvas. */
+background-size: 26px 26px;
+```
+
+**Surface S4: Ruled lines** (field manuals, guides, editorial/manuscript)
+```css
+body {
+  background-color: var(--bg);
+  background-image: repeating-linear-gradient(
+    180deg, transparent 0 31px, var(--rule) 31px 32px);
+  background-attachment: fixed;
+}
+/* --rule: rgba(<accent-rgb>, 0.06); align the 32px rhythm to line-height */
+```
+
+**Surface S5: Grain / noise overlay** (narrative, security, moody reports)
+```css
+/* a fixed, pointer-events:none overlay pseudo-element on body or a wrapper */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none; opacity: 0.4;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(0,0,0,0.015) 0, transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(0,0,0,0.02) 0, transparent 50%);
+  background-size: 300px 300px, 400px 400px;
+}
+```
+
+**Surface S6: Plain** (dense reports where any texture would add noise)
+Legitimate, but choose it deliberately, not by default. If you pick plain,
+the hero atmosphere and grid-breaker must carry the distinctiveness.
+
+**Rules:**
+- Pick ONE surface per visual, driven by the report's domain (above).
+- Rotate: do not ship the same surface for two consecutive reports in a
+  project. Dot grid, then graph paper, then ruled, etc.
+- The hero sits ON TOP of the page surface. Give the hero its own atmosphere
+  (section 2) with an opaque-enough start so text stays crisp over the texture.
+- Cards/callouts use `--surface` (solid) so they float cleanly above the texture.
+- Test readability: if you can read the texture more easily than the body
+  text, it is too strong. Halve the alpha.
+
+---
+
 ## 2. Hero Atmosphere
 
 The hero section is the first thing the reader sees. It should NOT be
@@ -211,11 +296,17 @@ the report's register:
 | Report feel | Heading | Body | Rationale |
 |-------------|---------|------|-----------|
 | Editorial/authoritative | Newsreader | DM Sans | Newspaper editorial energy |
+| Editorial serif (most readable) | Fraunces | Newsreader | Serif body at 18px/1.65-1.7, warmest for prose-heavy explainers and field manuals |
 | Technical/precise | Space Grotesk | Inter | Engineering documentation feel |
 | Warm/accessible | Fraunces | DM Sans | Friendly, inviting for non-technical readers |
 | Modern/product | Instrument Sans | Geist | Clean SaaS feel for product comparisons |
 | Academic/research | Libre Baskerville | Source Sans 3 | Paper/journal authority |
 | Bold/security | JetBrains Mono (titles) | Inter | Monospace titles signal "system-level" |
+
+A serif body (Newsreader) is often more readable than a sans body for
+prose-heavy reports. When you use one, set 17-18px, line-height 1.65-1.7,
+and `font-feature-settings: "onum", "pnum"` for oldstyle numerals. Fraunces
+italic for a pull-quote or an emphasized word is a strong editorial signature.
 
 Choose based on WHO will read this and WHAT the content feels like, not
 a default. A security audit visual should not look like a tech strategy
@@ -257,14 +348,16 @@ demands it AND you explicitly choose it in the signature decisions.
 
 ## Signature Decision Checklist
 
-Before building, answer these five questions:
+Before building, answer these six questions:
 
 1. **What is the dominant color?** (name it, justify from content)
-2. **What hero treatment?** (tinted bg / dot grid / accent line / faded motif)
-3. **What is the grid-breaker?** (pull-quote / mega-stat / full-bleed / gutter)
-4. **What is the font register?** (editorial / technical / warm / modern / academic / bold)
-5. **Light or dark?** (default: light; justify dark if chosen)
+2. **What is the page surface?** (dot grid / graph paper / blueprint / ruled / grain / plain, driven by domain; rotate between reports)
+3. **What hero treatment?** (tinted bg / dot grid / accent line / faded motif, sitting on top of the page surface)
+4. **What is the grid-breaker?** (pull-quote / mega-stat / full-bleed / gutter)
+5. **What is the font register?** (editorial serif / editorial / technical / warm / modern / academic / bold)
+6. **Light or dark?** (default: light; justify dark if chosen)
 
-These five choices produce distinctive output without unbounded creative
-freedom. The choices are CONSTRAINED but VARIED — each combination yields
-a meaningfully different visual.
+These six choices produce distinctive output without unbounded creative
+freedom. The choices are CONSTRAINED but VARIED, and the page-surface choice
+in particular is what stops a set of visuals from all looking the same. Each
+combination yields a meaningfully different visual.
