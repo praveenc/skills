@@ -134,7 +134,12 @@ where the reader will only care about 1-2).
 > **When:** You need icon names, CDN setup, or card differentiation patterns.
 
 **Quick rules:**
-- Use Lucide Icons from CDN (clean, consistent, technical)
+- Use Lucide Icons from CDN (clean, consistent, technical). The exact
+  mechanism (do NOT invent `data-icon` or inline SVGs): pin the UMD script
+  `<script src="https://unpkg.com/lucide@1.27.0/dist/umd/lucide.min.js"></script>`,
+  mark each icon `<i data-lucide="cpu" class="icon"></i>`, and call
+  `lucide.createIcons();` after the DOM loads. Without `data-lucide=` + that
+  call, no icon renders. Load the reference for the icon-name catalog.
 - Every card/item gets a CONTEXTUAL icon representing its topic
 - Never use generic decorative accents (colored corners, gradient blobs)
 - Cards must be differentiated by content, not random color placement
