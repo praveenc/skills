@@ -85,13 +85,6 @@ Research artifacts write to `~/.aws-deep-research/work/<slug>/` and final
 reports to `~/.aws-deep-research/outputs/`. Override via `RESEARCH_WORK_DIR` /
 `REPORT_OUTPUT_DIR` in the external config file.
 
-## Eval
-
-Synthesizer backend choice (Sonnet 4.6 vs Palmyra X5) was decided via two
-blind-read rounds with the evaluator unable to see the model label. See
-[evals/palmyra-vs-claude/SPIKE_SUMMARY.md](./evals/palmyra-vs-claude/SPIKE_SUMMARY.md)
-for the full evaluation.
-
 ## Full documentation
 
 See [SKILL.md](./SKILL.md) for the complete workflow specification.
