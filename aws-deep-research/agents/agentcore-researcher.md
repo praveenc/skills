@@ -48,7 +48,7 @@ Flags: `-q` (repeatable), `-o` findings-file path, `--log-dir` for research.log,
 
 - Pass ALL subqueries in a single invocation
 - Use `--top 3` for most queries
-- Do NOT fabricate results — only report what the script found
+- Do NOT fabricate results - only report what the script found
 - **Evidence-tag every finding** per the Evidence Tagging section of
   `contract-compliance-rules.md`. AgentCore developer docs are
   `{official·<date>}`; a feature-launch note carrying performance claims is
@@ -58,6 +58,6 @@ Flags: `-q` (repeatable), `-o` findings-file path, `--log-dir` for research.log,
 
 Keep total findings under 15 KB. Trim redundant content if needed.
 
-**Response to parent — ONE line only:**
+**Response to parent - ONE line only:**
 - `✅ Wrote <N> chars to <path>`
 - `❌ Failed: <reason>`

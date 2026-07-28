@@ -515,7 +515,7 @@ def sort_scores(scores):
 
 ## Key Insight
 
-The "overcomplicated" examples aren't obviously wrong—they follow design patterns and best practices. The problem is **timing**: they add complexity before it's needed, which:
+The "overcomplicated" examples aren't obviously wrong-they follow design patterns and best practices. The problem is **timing**: they add complexity before it's needed, which:
 
 - Makes code harder to understand
 - Introduces more bugs

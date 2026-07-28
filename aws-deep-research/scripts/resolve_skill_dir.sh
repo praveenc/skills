@@ -2,16 +2,16 @@
 # Resolves the skill's base directory AND the research work directory.
 # Usage: eval "$(bash <path>/scripts/resolve_skill_dir.sh)"
 # Exports:
-#   SKILL_DIR  — absolute path to the skill folder (self-located; see below)
-#   WORK_DIR   — absolute path to the research work root
+#   SKILL_DIR  - absolute path to the skill folder (self-located; see below)
+#   WORK_DIR   - absolute path to the research work root
 #                (default ~/.aws-deep-research/work, override via RESEARCH_WORK_DIR in .env)
 #
 # Resolution strategy (in order):
-#   1. SELF-LOCATE — derive SKILL_DIR from this script's own location via
+#   1. SELF-LOCATE - derive SKILL_DIR from this script's own location via
 #      BASH_SOURCE. Whichever copy you invoke (kiro, pi, project-local, custom)
 #      is the copy that owns the session. This is the canonical path; it has
 #      no preference bias.
-#   2. FALLBACK — if BASH_SOURCE is unavailable (e.g. piped via stdin), search
+#   2. FALLBACK - if BASH_SOURCE is unavailable (e.g. piped via stdin), search
 #      a list of well-known install locations.
 #
 # The old preference-list behavior (kiro-before-pi) was a bug: invoking the

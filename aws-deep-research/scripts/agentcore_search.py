@@ -6,7 +6,7 @@
 # ]
 # ///
 """
-Bedrock AgentCore Documentation Search — standalone MCP client.
+Bedrock AgentCore Documentation Search - standalone MCP client.
 
 Spawns awslabs.amazon-bedrock-agentcore-mcp-server as a child process (stdio),
 runs search_agentcore_docs + fetch_agentcore_doc calls, and writes condensed
@@ -225,7 +225,7 @@ def format_markdown(findings: list[dict[str, Any]]) -> str:
     for url, title in source_urls:
         if url not in seen:
             seen.add(url)
-            lines.append(f"{idx}. {url} — {title}")
+            lines.append(f"{idx}. {url} - {title}")
             idx += 1
 
     lines.append("")

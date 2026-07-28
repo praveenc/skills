@@ -6,7 +6,7 @@
 # ]
 # ///
 """
-AWS Pricing Search — standalone MCP client.
+AWS Pricing Search - standalone MCP client.
 
 Spawns awslabs.aws-pricing-mcp-server as a child process (stdio),
 runs service discovery + pricing queries, and writes condensed results
@@ -502,7 +502,7 @@ def _format_product(lines: list[str], prod: dict[str, Any]) -> None:
                         price = dim.get("pricePerUnit", {}).get("USD", "N/A")
                         unit = dim.get("unit", "")
                         desc_text = dim.get("description", "")
-                        lines.append(f"  - {term_type}: ${price}/{unit} — {desc_text}")
+                        lines.append(f"  - {term_type}: ${price}/{unit} - {desc_text}")
 
     elif "raw" in prod:
         lines.append(f"- {str(prod['raw'])[:500]}")

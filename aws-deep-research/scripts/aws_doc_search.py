@@ -6,7 +6,7 @@
 # ]
 # ///
 """
-AWS Documentation Search — standalone MCP client.
+AWS Documentation Search - standalone MCP client.
 
 Connects to the AWS MCP Server (Preview) via mcp-proxy-for-aws, which handles
 SigV4 authentication using local AWS credentials. Runs aws___search_documentation
@@ -275,7 +275,7 @@ def format_markdown(findings: list[dict[str, Any]]) -> str:
                 if len(content) > 6000:
                     content = (
                         content[:6000]
-                        + "\n\n*[truncated — full page available at URL]*"
+                        + "\n\n*[truncated - full page available at URL]*"
                     )
                 lines.append(f"{content}\n")
 
@@ -291,7 +291,7 @@ def format_markdown(findings: list[dict[str, Any]]) -> str:
     for url, title in source_urls:
         if url not in seen:
             seen.add(url)
-            lines.append(f"{idx}. {url} — {title}")
+            lines.append(f"{idx}. {url} - {title}")
             idx += 1
 
     lines.append("")

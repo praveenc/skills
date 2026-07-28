@@ -16,7 +16,7 @@ that every subagent must respect when gathering and reporting data.
 
 Web sources frequently mix data across versions, services, and time periods.
 The contract acts as a **shared ground truth** that travels through the entire
-pipeline — researchers use it to tag/filter data, and the synthesizer uses it
+pipeline - researchers use it to tag/filter data, and the synthesizer uses it
 to cross-validate before including any data point in the report.
 
 ## Contract Format
@@ -68,8 +68,8 @@ Query: "Compare Claude Opus 4.6 vs Sonnet 4.6 vs Haiku 4.5 pricing and quality"
 
 ## Labeling Rules
 - ✅ "Claude Sonnet 4.6 scores 79.6% on SWE-bench"
-- ⚠️ "Claude 3.5 Sonnet costs $3.00/1M input tokens (older version — current 4.6 pricing may differ)"
-- ⚠️ "~5x cheaper than Opus (estimated from historical tier ratios — verify current pricing)"
+- ⚠️ "Claude 3.5 Sonnet costs $3.00/1M input tokens (older version - current 4.6 pricing may differ)"
+- ⚠️ "~5x cheaper than Opus (estimated from historical tier ratios - verify current pricing)"
 - ❌ Do NOT present Claude 3.5 pricing as if it applies to Claude 4.6
 - ❌ Do NOT present unsourced cost ratios or derived calculations without a ⚠️ label
 ```
@@ -94,7 +94,7 @@ Query: "How does Amazon S3 work?"
 - If mentioning alternatives, clearly label as comparison context
 
 ## Labeling Rules
-- Standard labeling — no special version constraints
+- Standard labeling - no special version constraints
 ```
 
 ### Recent Feature Query
@@ -109,15 +109,15 @@ Query: "Amazon S3 Files NFS support launched April 7, 2026"
 - **Exclude**: EFS (unless comparing), third-party NFS solutions
 
 ## Temporal Constraints
-- Feature launched 2026-04-07 — prioritize launch content
+- Feature launched 2026-04-07 - prioritize launch content
 - Pricing: current S3 Files pricing only
 
 ## Factual Anchors
-- S3 Files is a NEW feature — pre-launch content won't have details
+- S3 Files is a NEW feature - pre-launch content won't have details
 - Compare with EFS only when the query asks for comparison
 
 ## Labeling Rules
-- Standard labeling — flag any pre-launch speculation as unverified
+- Standard labeling - flag any pre-launch speculation as unverified
 ```
 
 ## When to Ask the User to Validate

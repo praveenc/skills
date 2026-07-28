@@ -81,15 +81,15 @@ content ready for synthesis, no per-URL overhead.
 
 fetchv2 silently truncates pages that exceed the cap and inserts a
 `<!-- Truncated: N chars omitted -->` marker. On a 2,500-char cap a
-substantive blog post / primary-source gist can lose **80–95% of its body**.
+substantive blog post / primary-source gist can lose **80-95% of its body**.
 You will not know unless you either (a) look at the marker, or (b) notice
 the synthesized report is shallow.
 
 | Situation | Recommended cap |
 |---|---|
-| ≥10 URLs, scouting/ranking mode | 1,500–2,000 chars |
-| 5–9 URLs, standard web research | **8,000 chars (new default)** |
-| 1–4 high-value primary sources (Karpathy gist, vendor press release, official docs) | 15,000–20,000 chars |
+| ≥10 URLs, scouting/ranking mode | 1,500-2,000 chars |
+| 5-9 URLs, standard web research | **8,000 chars (new default)** |
+| 1-4 high-value primary sources (Karpathy gist, vendor press release, official docs) | 15,000-20,000 chars |
 | Single primary source that may exceed 20 KB | Use `fetchv2:fetchv2_fetch` (single) and paginate via `start_index` until the response no longer carries a continuation marker |
 
 **Truncation-recovery rule (MANDATORY for primary sources)**:
@@ -97,7 +97,7 @@ the synthesized report is shallow.
 2. For any truncated URL that is **cited as a primary source in the research
    contract**, re-fetch it with a larger `max_length_per_url` (or with
    `fetchv2:fetchv2_fetch` + `start_index` pagination).
-3. For secondary / background sources, truncation is acceptable — note the
+3. For secondary / background sources, truncation is acceptable - note the
    marker in your findings file so the synthesizer knows the source is
    partial.
 
@@ -107,7 +107,7 @@ Rules:
 - Each result is separated by `---` dividers. Parse and attribute each
   chunk back to its source URL.
 - Failed URLs return inline error markers (`HTTP 429`, `HTTP 403`,
-  `Timeout fetching …`) — do not retry them serially. 4xx/5xx errors are
+  `Timeout fetching …`) - do not retry them serially. 4xx/5xx errors are
   persistent; note the failure in your findings file and move on.
 - **If fetchv2 reports a persistent failure for a specific URL**, fall back
   to `trafilatura_scraper.py` for that URL only.
@@ -138,21 +138,21 @@ uv run $SKILL_DIR/scripts/brave_search.py \
 
 ### Query Expansion (Non-AWS Topics Only)
 
-When the parent's task says "non-AWS topic — use query expansion", expand to
+When the parent's task says "non-AWS topic - use query expansion", expand to
 3 queries using ONE engine:
-1. **Synonym/rephrase** — alternate terminology with `OR`
-2. **Specificity shift** — broad overview + narrow/technical + practical
-3. **Operator-enriched** — `intitle:`, exact phrases, scoped
+1. **Synonym/rephrase** - alternate terminology with `OR`
+2. **Specificity shift** - broad overview + narrow/technical + practical
+3. **Operator-enriched** - `intitle:`, exact phrases, scoped
 
 For AWS-specific topics, stick to 1-2 web searches max.
 
 ## Blog Research Process
 
 For each category feed URL provided by the parent:
-1. Fetch titles with `--top 50 --json` (cheap — RSS entries are small)
-2. Semantic title filtering — scan ALL titles for conceptual relevance
+1. Fetch titles with `--top 50 --json` (cheap - RSS entries are small)
+2. Semantic title filtering - scan ALL titles for conceptual relevance
    (not just keyword matches)
-3. Select 3–5 most relevant posts by title
+3. Select 3-5 most relevant posts by title
 4. **Batch-fetch the selected post URLs with `fetchv2:fetchv2_fetch_batch`**
    in a single call (max 10 URLs). Fall back to `trafilatura_scraper.py`
    only for URLs fetchv2 can't render.
@@ -225,7 +225,7 @@ credentials, private files, and sibling findings.
   `fetchv2:fetchv2_fetch_batch` (primary) or `trafilatura_scraper.py`
   (fallback) only.
 - **NEVER loop trafilatura over many URLs.** Batch via fetchv2 instead.
-- **Respect `$SKILL_DIR/scripts/blocklist.txt`** — a list of domains to
+- **Respect `$SKILL_DIR/scripts/blocklist.txt`** - a list of domains to
   exclude (Amazon-Security-blocked, persistent 5xx, spam aggregators, etc.).
   Brave/Tavily scripts filter automatically, but if you construct a URL
   yourself (e.g., from a research contract or from a user message), check
@@ -234,7 +234,7 @@ credentials, private files, and sibling findings.
   (so `example.com` also blocks `sub.example.com`).
 - Always use `--json -y` flags for non-interactive, parseable output
 - Always use `--no-scrape` with Brave (fetchv2 does the scraping now)
-- Cite every source URL — no uncited claims
+- Cite every source URL - no uncited claims
 - Note publication dates when available
 - **Evidence-tag every finding** per the Evidence Tagging section of
   `contract-compliance-rules.md`. First-party vendor launch/marketing pages
@@ -250,7 +250,7 @@ credentials, private files, and sibling findings.
 Keep total output under 15KB. Emit only the structured, paraphrased evidence
 records defined above. Never dump or quote raw results.
 
-**Response to parent — ONE line only:**
+**Response to parent - ONE line only:**
 - `✅ Wrote <N> chars to <path>`
 - `❌ Failed: <reason>`
 

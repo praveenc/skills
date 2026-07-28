@@ -62,7 +62,7 @@ You will be given:
 Steps:
 1. **Read the research contract** (`research-contract.md`) and
    `$SKILL_DIR/references/contract-compliance-rules.md`. Use the contract's
-   entity exclusions to shape your `-q` queries — add NOT/exclude terms.
+   entity exclusions to shape your `-q` queries - add NOT/exclude terms.
    Example: contract says "Exclude: EFS" → `-q "S3 Files NFS NOT EFS"`
 2. Run `aws_doc_search.py` with all doc subqueries in a single invocation
 3. If pricing is requested, run `aws_pricing_search.py` with pricing subqueries
@@ -73,14 +73,14 @@ Steps:
 ### Bedrock Optimization
 
 If the parent's task mentions Bedrock, read `$SKILL_DIR/references/bedrock-llms-txt.md`
-for direct URL lookup — faster and more precise than broad search.
+for direct URL lookup - faster and more precise than broad search.
 
 ## Rules
 
 - Pass ALL subqueries in a single script invocation (not one at a time)
-- Always state the date pricing was queried — prices change
+- Always state the date pricing was queried - prices change
 - Include the region for all pricing data
-- Do NOT fabricate results — only report what the scripts found
+- Do NOT fabricate results - only report what the scripts found
 - If AWS credentials are missing, note it and exit gracefully
 - **Evidence-tag every finding** per the Evidence Tagging section of
   `contract-compliance-rules.md`. AWS docs / What's New / API reference are
@@ -91,7 +91,7 @@ for direct URL lookup — faster and more precise than broad search.
 
 Keep total findings under 15 KB per file. Trim redundant content if needed.
 
-**Response to parent — ONE line only:**
+**Response to parent - ONE line only:**
 - `✅ Wrote <N> chars to <path>`
 - `❌ Failed: <reason>`
 

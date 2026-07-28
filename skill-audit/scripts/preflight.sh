@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# preflight.sh — Validate a skill directory and resolve the audit output path.
+# preflight.sh - Validate a skill directory and resolve the audit output path.
 #
 # Usage: preflight.sh <skill-dir> [output-file]
 #
@@ -7,7 +7,7 @@
 # output path, and prints structured JSON to stdout.
 #
 # Exit codes:
-#   0  Success — JSON printed to stdout
+#   0  Success - JSON printed to stdout
 #   1  Skill directory invalid or missing SKILL.md
 #   2  Usage / argument error
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""normalize.py — Convert a currency-rate CSV into a canonical JSON rates table.
+"""normalize.py - Convert a currency-rate CSV into a canonical JSON rates table.
 
 Usage:
   normalize.py <input.csv>
@@ -8,7 +8,7 @@ Reads a CSV with an exact header `currency,rate` and prints a JSON object
 {"base": "USD", "rates": {...}} to stdout. Diagnostics go to stderr.
 
 Exit codes:
-  0  Success — JSON printed to stdout
+  0  Success - JSON printed to stdout
   1  Input error (missing file, bad header, duplicate rows, unparseable rate)
   2  Usage / argument error
 """

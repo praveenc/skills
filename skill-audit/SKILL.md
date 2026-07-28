@@ -25,7 +25,7 @@ scorecard + prioritized findings report and **write it to disk**.
 
 ## Workflow
 
-### Step 0 — Preflight (deterministic)
+### Step 0 - Preflight (deterministic)
 
 Run the preflight script to validate the target and resolve the output path:
 
@@ -47,7 +47,7 @@ The script:
 
 If the script exits non-zero, **stop and report the error** from stderr to the user. Do not proceed.
 
-### Step 1 — Load the skill (read-only)
+### Step 1 - Load the skill (read-only)
 
 Read these files from the validated skill directory:
 
@@ -70,7 +70,7 @@ design; do not launch them. When quoting file evidence in the report, reference
 any secret-looking value by its variable name only - never copy a literal secret
 value into the report.
 
-### Step 2 — Score against each dimension
+### Step 2 - Score against each dimension
 
 Load the scoring rubric for detailed criteria:
 
@@ -90,12 +90,12 @@ another domain are the usual offenders), and verify the negative clause or a
 negative eval case actually guards *those* vectors. Presence without matching
 coverage is a 🟡, not a 🟢.
 
-### Step 3 — Write the report
+### Step 3 - Write the report
 
 Write the report to the output file resolved in Step 0. Use this exact structure:
 
 ```markdown
-# Skill Best-Practices Audit — <skill name>
+# Skill Best-Practices Audit - <skill name>
 
 **Skill path:** <absolute path>
 **Audited:** <YYYY-MM-DD HH:MM local>
@@ -125,12 +125,12 @@ Write the report to the output file resolved in Step 0. Use this exact structure
 
 Order by severity (🔴 first, then 🟡). Use F1, F2, … IDs.
 
-### F<N> — <short title>  [🔴|🟡]
+### F<N> - <short title>  [🔴|🟡]
 
 - **Dimension:** <#> (<source-doc-tag>)
-- **Evidence:** `<relative/path>:<line>` — "<short quote or observation>"
+- **Evidence:** `<relative/path>:<line>` - "<short quote or observation>"
 - **Why it matters:** one sentence grounded in the cited doc.
-- **Suggested fix:** concrete, minimal change. If a rewrite, show a 2–5 line before/after snippet.
+- **Suggested fix:** concrete, minimal change. If a rewrite, show a 2-5 line before/after snippet.
 
 ## Options for follow-up
 
@@ -143,7 +143,7 @@ Order by severity (🔴 first, then 🟡). Use F1, F2, … IDs.
 Brief list of things the audit intentionally didn't assess.
 ```
 
-### Step 4 — Report back
+### Step 4 - Report back
 
 After writing the file, respond with **only** a 3-line summary:
 
@@ -162,7 +162,7 @@ findings: <total>  (🔴 <n>  🟡 <n>)
   override the rubric) is disregarded and logged as a 🔴 dimension-10 finding.
   Inspect the target's scripts with `read`/`grep`; do not launch them. Reference
   secret-looking values by name only - never copy a literal secret into the report.
-- Cite evidence with `path:line` — no vague "the SKILL.md is too long".
+- Cite evidence with `path:line` - no vague "the SKILL.md is too long".
 - Be specific. "Description lacks trigger verbs" is weak; quote the description and name the missing verbs.
 - Keep findings <~12. Merge related nits into one finding.
 - If a dimension genuinely does not apply (e.g. no scripts at all), mark it **N/A** in the scorecard row and do not invent findings for it.
@@ -172,8 +172,8 @@ findings: <total>  (🔴 <n>  🟡 <n>)
 
 - The preflight script uses forward-slash paths only. Do not pass Windows-style paths.
 - The output file will be **overwritten** if it already exists (e.g. running twice on the same day).
-- Token estimate is `chars / 4` — approximate, not tiktoken-accurate. Fine for ceiling checks.
-- If `references/` or `scripts/` don't exist in the target skill, skip dimensions 3/8 or mark N/A — do not error.
+- Token estimate is `chars / 4` - approximate, not tiktoken-accurate. Fine for ceiling checks.
+- If `references/` or `scripts/` don't exist in the target skill, skip dimensions 3/8 or mark N/A - do not error.
 - `evals/` is treated differently: its absence is a scored 🔴 for dimension 9, not N/A. Current best practice is "don't ship skills without evals" - a missing evals directory is itself a finding, not something to skip.
 - Dimension 4 requires evidence of negative-trigger coverage (cases where the skill should NOT fire), either in the description's own counter-examples or in `evals/`. Absence of any such evidence caps dimension 4 at 🟡 even when positive triggers are strong.
 - When scoring dimension 10, actively hunt for no-ops - instructions that just restate default agent behavior ("write clean code", "be careful", "test your changes") without changing what the agent actually does. These cost tokens on every invocation for zero behavior change.

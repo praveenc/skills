@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dispatch.sh — portable subagent dispatch for the aws-deep-research skill.
+# dispatch.sh - portable subagent dispatch for the aws-deep-research skill.
 #
 # Dispatches ONE subagent as a headless child process on a process-fan-out
 # harness (pi or Claude Code). The CALLER is responsible for backgrounding
@@ -29,7 +29,7 @@
 #   2  usage error
 #   3  harness could not be determined (caller must ask the user, pass --harness)
 #   4  harness is known but not supported by this script (e.g. kiro, or an
-#      untested harness) — caller must handle per SKILL.md
+#      untested harness) - caller must handle per SKILL.md
 set -euo pipefail
 
 # --- tiny helpers -----------------------------------------------------------
@@ -41,7 +41,7 @@ HARNESS_OVERRIDE="${DISPATCH_HARNESS:-}"
 
 usage() {
   cat <<'EOF'
-dispatch.sh — portable subagent dispatch (pi / Claude Code)
+dispatch.sh - portable subagent dispatch (pi / Claude Code)
 
 USAGE:
   dispatch.sh [--harness pi|claude] <agent-name> <task> <outfile>
@@ -217,7 +217,7 @@ if [ "${DISPATCH_BANNER_SHOWN:-}" != "1" ]; then
   # bold only when stderr is a TTY; plain otherwise (logs, pipes, tests).
   if [ -t 2 ]; then B=$'\033[1m'; R=$'\033[0m'; else B=""; R=""; fi
   err ""
-  err "⚠️  ${B}Each subagent launches a full, separate CLI process — its own model"
+  err "⚠️  ${B}Each subagent launches a full, separate CLI process - its own model"
   err "    context and its own auth round-trip. A 4-researcher round = 4 CLI cold starts.${R}"
   err ""
 fi

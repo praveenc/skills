@@ -6,17 +6,17 @@ coding-agent harness is running. There are two dispatch worlds.
 
 ## Contents
 
-- [Step 1 — Determine the harness](#step-1--determine-the-harness)
+- [Step 1 - Determine the harness](#step-1--determine-the-harness)
 - [Two dispatch worlds](#two-dispatch-worlds)
-- [Backend A — Kiro (in-session subagent tool)](#backend-a--kiro-in-session-subagent-tool)
+- [Backend A - Kiro (in-session subagent tool)](#backend-a--kiro-in-session-subagent-tool)
   - [Detect the engine (v2 vs v3)](#first-detect-the-engine-the-call-shape-differs)
-  - [The generic path (no registration) — PREFERRED](#the-generic-path-no-registration-required--preferred)
+  - [The generic path (no registration) - PREFERRED](#the-generic-path-no-registration-required--preferred)
   - [The named-agent path (optional)](#the-named-agent-path-optional-optimization)
-- [Backend B — pi / Claude Code (process fan-out via `dispatch.sh`)](#backend-b--pi--claude-code-process-fan-out-via-dispatchsh)
+- [Backend B - pi / Claude Code (process fan-out via `dispatch.sh`)](#backend-b--pi--claude-code-process-fan-out-via-dispatchsh)
 - [Batching rounds (both backends: ≤4 parallel)](#batching-rounds-both-backends-4-parallel)
 - [Task brief (both backends)](#task-brief-both-backends)
 
-## Step 1 — Determine the harness
+## Step 1 - Determine the harness
 
 Detect it, do not assume. Cheap → certain:
 
@@ -26,13 +26,13 @@ Detect it, do not assume. Cheap → certain:
    - Codex → `CODEX_SANDBOX` / `CODEX_HOME`
    - Kiro → `KIRO_AGENT` / `KIRO_CLI` / `KIRO_VERSION`
 2. **If zero or more-than-one fingerprint matches → ASK the user exactly one
-   question**: *"Which coding agent is running this — pi, claude, codex, or
+   question**: *"Which coding agent is running this - pi, claude, codex, or
    kiro?"* The environment can be ambiguous (e.g. a pi runtime pointed at a
    Kiro endpoint), so never silently guess when signals conflict.
 3. **The user may name anything.** If they name a harness that is not one of
    the four tested (pi, claude, codex, kiro), say plainly: *"‹X› isn't one of
    the four tested harnesses. Most harnesses follow the process-fan-out
-   pattern, so I can try that as a best effort — proceed?"* and let them
+   pattern, so I can try that as a best effort - proceed?"* and let them
    confirm. Do not refuse.
 4. **Always echo the chosen harness + backend + the exact command before
    dispatching.** `scripts/dispatch.sh` does this for you.
@@ -41,9 +41,9 @@ Detect it, do not assume. Cheap → certain:
 
 | Harness | Backend | Mechanism |
 |---|---|---|
-| Kiro | **in-session** | native subagent tool (`use_subagent` on v2, `subagent` on v3) — no subprocess |
+| Kiro | **in-session** | native subagent tool (`use_subagent` on v2, `subagent` on v3) - no subprocess |
 | pi, Claude Code | **process-fan-out** | `scripts/dispatch.sh` spawns headless children |
-| Codex | (process-fan-out, not yet enabled — pending sandbox/network spike) |
+| Codex | (process-fan-out, not yet enabled - pending sandbox/network spike) |
 | untested | process-fan-out, best effort | try `dispatch.sh --harness <name>`; likely needs a per-CLI tweak |
 
 The agent role prompts in `$SKILL_DIR/agents/*.md` are the **single source of
@@ -51,10 +51,10 @@ truth** both backends use.
 
 ---
 
-## Backend A — Kiro (in-session subagent tool)
+## Backend A - Kiro (in-session subagent tool)
 
 Kiro dispatches subagents **inside the current session** via its native
-subagent tool. **Do NOT shell out to `kiro-cli chat --agent …`** — that runs
+subagent tool. **Do NOT shell out to `kiro-cli chat --agent …`** - that runs
 one agent as an entire new session, not a fan-out primitive. **Do NOT reach for
 any other delegate-shaped tool** (e.g. an MCP `*_Delegate`); use only Kiro's
 built-in subagent tool.
@@ -69,31 +69,31 @@ which one is live by checking the tool surface, then use the matching call:
 | **v2** (current default) | `use_subagent` | `command: InvokeSubagents` with a `subagents[]` array |
 | **v3** (opt-in beta) | `subagent` | name the agents in natural language; Kiro plans the DAG |
 
-If you can see a tool named `use_subagent`, you are on **v2** — use the v2 call
+If you can see a tool named `use_subagent`, you are on **v2** - use the v2 call
 below. If you see `subagent` (and not `use_subagent`), you are on **v3**. When
 in doubt, v2 is the safe default (it is the current engine for kiro-cli 2.x).
 
-### The generic path (no registration required) — PREFERRED
+### The generic path (no registration required) - PREFERRED
 
 Kiro's default subagent can take an **inline role prompt**, so this skill does
 **not** need any agent to be pre-registered. The `agents/*.md` files are the
 single source of truth: hand each one to a subagent as its role.
 
-**v2 — `use_subagent` / `InvokeSubagents`:** call the tool with one entry in
+**v2 - `use_subagent` / `InvokeSubagents`:** call the tool with one entry in
 `content.subagents[]` per researcher (≤4 per call). For each entry:
 
-- `query` — instruct it to adopt the role and write findings to disk, e.g.:
+- `query` - instruct it to adopt the role and write findings to disk, e.g.:
   *"Read `$SKILL_DIR/agents/web-content-researcher.md` and act as that agent.
   Follow the task brief below. Write your findings to
   `$WORK_DIR/<slug>/web-content.md`. \n\n<task brief per subagent-task-contract.md>"*
-- `agent_name` — **omit it** to use the default subagent (this is the generic path).
-- `relevant_context` — optional extra context.
+- `agent_name` - **omit it** to use the default subagent (this is the generic path).
+- `relevant_context` - optional extra context.
 
 All entries in one `subagents[]` array run in parallel, so a round of ≤4
 researchers is a single `InvokeSubagents` call. Run the synthesizer as a second
 call after the size-gate check.
 
-**v3 — `subagent` tool:** describe the round in natural language, naming the
+**v3 - `subagent` tool:** describe the round in natural language, naming the
 role files (*"dispatch four researchers in parallel, each adopting the role in
 `$SKILL_DIR/agents/<name>.md`, writing to `$WORK_DIR/<slug>/<file>.md`; then run
 the synthesizer"*). Kiro plans the 4-parallel DAG and returns results via the
@@ -123,19 +123,19 @@ Either way, author the task brief per the shared
 
 ---
 
-## Backend B — pi / Claude Code (process fan-out via `dispatch.sh`)
+## Backend B - pi / Claude Code (process fan-out via `dispatch.sh`)
 
 There is no native subagent tool in pi or Claude Code, so the parent spawns
-each subagent as a **headless child process**. Use the shim — never improvise a
+each subagent as a **headless child process**. Use the shim - never improvise a
 delegate-shaped tool from the environment.
 
 ```bash
 scripts/dispatch.sh [--harness pi|claude] <agent-name> <task> <outfile>
 ```
 
-- `<agent-name>` — base name under `$SKILL_DIR/agents/` (e.g. `synthesizer`)
-- `<task>` — literal task string, or `@/path/to/taskfile` to read from a file
-- `<outfile>` — where the child's findings/report are written
+- `<agent-name>` - base name under `$SKILL_DIR/agents/` (e.g. `synthesizer`)
+- `<task>` - literal task string, or `@/path/to/taskfile` to read from a file
+- `<outfile>` - where the child's findings/report are written
 
 The shim loads `$SKILL_DIR/agents/<agent-name>.md` as the child's system
 prompt, maps tool names per-CLI (pi `read,write,bash`; claude `Read Write
@@ -163,7 +163,7 @@ Then run the silent-failure size gate (SKILL.md Step 5), then dispatch the
 
 ### Dry-run / debugging
 
-`DISPATCH_DRY_RUN=1` prints the resolved command and exits without spawning —
+`DISPATCH_DRY_RUN=1` prints the resolved command and exits without spawning -
 use it to preview exactly what will run.
 
 ### Exit codes
@@ -182,19 +182,19 @@ use it to preview exactly what will run.
 Both Kiro and the process-fan-out CLIs cap at 4 parallel subagents. Plan rounds
 to minimise wall-clock time.
 
-**Simple queries (2–3 researchers)** — one research round + synthesizer:
+**Simple queries (2-3 researchers)** - one research round + synthesizer:
 ```
 Round 1: [aws-mcp-researcher, web-content-researcher]   → ~2 min
 Round 2: [synthesizer]                                    → ~2 min
 ```
 
-**Comprehensive queries (4 researchers)** — one full round + synthesizer:
+**Comprehensive queries (4 researchers)** - one full round + synthesizer:
 ```
 Round 1: [aws-mcp-researcher, web-content-researcher, github-researcher, agentcore-researcher]  → ~3 min
 Round 2: [synthesizer]                                                                            → ~2 min
 ```
 
-**With diagram (optional)** — add to the synthesizer round if a slot is free:
+**With diagram (optional)** - add to the synthesizer round if a slot is free:
 ```
 Round 2: [synthesizer, diagram-generator]  → ~2 min (parallel)
 ```

@@ -6,7 +6,7 @@
 # ]
 # ///
 """
-Kroki Diagram Renderer — renders D2 diagram source to SVG/PNG.
+Kroki Diagram Renderer - renders D2 diagram source to SVG/PNG.
 
 Connects to an explicitly configured Kroki instance or local Docker and
 renders D2 diagram-as-code source into SVG or PNG images.

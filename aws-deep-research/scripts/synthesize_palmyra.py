@@ -6,11 +6,11 @@
 # ]
 # ///
 """
-synthesize_palmyra.py — alternate synthesizer backend using Writer Palmyra X5
+synthesize_palmyra.py - alternate synthesizer backend using Writer Palmyra X5
 on Amazon Bedrock (inference profile: us.writer.palmyra-x5-v1:0).
 
 This is an OPT-IN backend. The default synthesizer path remains the agent
-at agents/synthesizer.md — this script is invoked only when dispatched
+at agents/synthesizer.md - this script is invoked only when dispatched
 explicitly (e.g., via a comprehensive-raw strategy or --use-palmyra flag).
 
 Behavior intentionally mirrors the existing synthesizer agent:
@@ -52,7 +52,7 @@ PALMYRA_OUTPUT_CAP_TOKENS = 8_192
 # Approximate byte-to-token ratio for English prose. Conservative.
 CHARS_PER_TOKEN = 4.0
 
-# Pricing ($/1M tokens) — used for cost estimate in the status line.
+# Pricing ($/1M tokens) - used for cost estimate in the status line.
 PRICE_INPUT_PER_1M = 0.60
 PRICE_OUTPUT_PER_1M = 6.00
 
@@ -64,7 +64,7 @@ SYSTEM_PROMPT = textwrap.dedent("""\
 
     Your job: ingest a research contract + one or more findings files from
     specialized researcher subagents, and produce a single cohesive research
-    report with proper inline citations. Do not concatenate — synthesize.
+    report with proper inline citations. Do not concatenate - synthesize.
 
     ## Hard rules
 
@@ -74,7 +74,7 @@ SYSTEM_PROMPT = textwrap.dedent("""\
     - Do NOT fabricate. If a claim is not supported by the findings files,
       omit it or place it in the Gaps & Limitations section.
     - If a findings file is marked WEAK or MISSING by the caller, record that
-      explicitly in Gaps & Limitations — never paper over it.
+      explicitly in Gaps & Limitations - never paper over it.
     - Organize by topic, not by source. Use bridging sentences between sections.
     - Keep prose tight. Cut redundancy ruthlessly.
 
@@ -120,7 +120,7 @@ SYSTEM_PROMPT = textwrap.dedent("""\
 
     ## References
     [1] [Title](https://url)
-    [2] [Title — Blog Name (YYYY-MM-DD)](https://url)
+    [2] [Title - Blog Name (YYYY-MM-DD)](https://url)
     ```
 
     ## Output budget
@@ -266,14 +266,14 @@ def build_prompt(
         status = classify_file(fp)
         size = fp.stat().st_size if fp.exists() else 0
         per_file.append((fp, status, size))
-        status_lines.append(f"- `{fp.name}` — **{status}** ({size} bytes)")
+        status_lines.append(f"- `{fp.name}` - **{status}** ({size} bytes)")
         if status == "OK":
             body = read_text(fp)
             findings_chunks.append(f"## Findings from `{fp.name}`\n\n{body}")
         elif status == "WEAK":
             body = read_text(fp)
             findings_chunks.append(
-                f"## Findings from `{fp.name}` (WEAK — low content, treat as low-signal)\n\n{body}"
+                f"## Findings from `{fp.name}` (WEAK - low content, treat as low-signal)\n\n{body}"
             )
         # MISSING → skip content; still listed in status block
 
@@ -332,7 +332,7 @@ def main() -> int:
         return 2
 
     if args.dry_run:
-        print(f"DRY RUN — would call {args.model_id} @ {args.region}")
+        print(f"DRY RUN - would call {args.model_id} @ {args.region}")
         print(f"Estimated input tokens: {input_tokens_est:,}")
         print(f"Max output tokens:      {args.max_output_tokens:,}")
         print(f"Findings files:")
@@ -356,7 +356,7 @@ def main() -> int:
         )
     except ClientError as e:
         print(f"❌ Failed: Bedrock ClientError: {e.response.get('Error', {}).get('Code')} "
-              f"— {e.response.get('Error', {}).get('Message')}", file=sys.stderr)
+              f"- {e.response.get('Error', {}).get('Message')}", file=sys.stderr)
         return 3
     except Exception as e:
         print(f"❌ Failed: {type(e).__name__}: {e}", file=sys.stderr)
@@ -371,7 +371,7 @@ def main() -> int:
     cost = (in_tokens / 1_000_000) * PRICE_INPUT_PER_1M + \
            (out_tokens / 1_000_000) * PRICE_OUTPUT_PER_1M
 
-    # Citation count — crude but useful
+    # Citation count - crude but useful
     citations = sum(1 for _ in __import__("re").finditer(r"\[\d+\]", text))
 
     print(f"✅ Wrote report to {args.report_path} "

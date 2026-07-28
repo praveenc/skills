@@ -6,7 +6,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-check_api_keys.sh — validate credentials for the research subagents
+check_api_keys.sh - validate credentials for the research subagents
 
 USAGE:
   check_api_keys.sh [SKILL_DIR]

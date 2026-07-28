@@ -1,4 +1,4 @@
-"""Tests for scripts/dispatch.sh — portable subagent dispatch.
+"""Tests for scripts/dispatch.sh - portable subagent dispatch.
 
 These tests never spawn a real model. They drive dispatch.sh in DISPATCH_DRY_RUN
 mode (prints the resolved command, exits 0) and assert on:

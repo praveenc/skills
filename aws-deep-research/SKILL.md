@@ -60,11 +60,11 @@ echo "SKILL_DIR=$SKILL_DIR"   # sanity-check: must match <SKILL_MD_DIR>
 
 The resolver derives `SKILL_DIR` from its own `BASH_SOURCE`, so it pins to the
 exact copy you invoked it from (a `--skill` path, git worktree, `~/.pi/...`, or
-`~/.kiro/...` install). **Verify the echo matches before continuing** — a
+`~/.kiro/...` install). **Verify the echo matches before continuing** - a
 mismatch means every downstream script and reference silently runs a different
 install than the one you loaded.
 
-- `SKILL_DIR` — where this skill lives (scripts, agents, references).
+- `SKILL_DIR` - where this skill lives (scripts, agents, references).
 - `WORK_DIR` - **global** research work root (default `~/.aws-deep-research/work`,
   override via `RESEARCH_WORK_DIR` in `$CONFIG_FILE`).
 - `CONFIG_FILE` - machine-local config outside the skill tree (default
@@ -99,7 +99,7 @@ Agent definitions: `$SKILL_DIR/agents/`. Dispatch details: see
 - Optional: AWS credentials (`AWS_PROFILE` or env vars)
 - Optional: Docker for diagrams (`docker run -d -p 8000:8000 yuzutech/kroki`)
 
-## Step 0 — First-Run Setup (one-time)
+## Step 0 - First-Run Setup (one-time)
 
 Check whether the external config exists and differs from the template:
 ```bash
@@ -113,9 +113,9 @@ fi
 If `NEEDS_SETUP` → read [references/setup-guide.md](references/setup-guide.md)
 and follow the wizard. Otherwise skip to Step 1.
 
-## Step 1 — Analyze Intent & Strategy
+## Step 1 - Analyze Intent & Strategy
 
-### 1a. Classify intent(s) — picks the **default subagent set**
+### 1a. Classify intent(s) - picks the **default subagent set**
 
 For vague queries, read [references/intent-patterns.md](references/intent-patterns.md)
 to decide whether to ask a clarifying question. **Never ask more than one.**
@@ -157,7 +157,7 @@ Read [references/blog-categories.md](references/blog-categories.md) to map
 query to feed URLs. Max 3 feeds. Always include `whatsnew` for `news-updates`
 or features launched in the last 30 days.
 
-### 1d. Select strategy — **modifies** the intent default set
+### 1d. Select strategy - **modifies** the intent default set
 
 Strategy is a depth/scope modifier on top of intent. Intent says *which*
 subagents are candidates; strategy says *which of those to keep* and
@@ -165,10 +165,10 @@ subagents are candidates; strategy says *which of those to keep* and
 
 | Strategy | When | Effect on intent defaults | Decomposition per source |
 |---|---|---|---|
-| `feed-only` | "recent posts", "latest blogs" | **OVERRIDE** — use web-content-researcher only, ignore intent | Skip (no search queries) |
-| `docs-only` | Single service question, API lookup | **NARROW** — keep only aws-mcp-researcher | 2–3 subqueries |
-| `pricing-focused` | Cost, "how much", instance types | **NARROW** — keep only aws-mcp-researcher (with pricing) | 2–3 subqueries |
-| `comprehensive` | Architecture, multi-service, comparisons | **KEEP** — dispatch all intent-default candidates | 2–3 per source, up to 3 facets for complex topics |
+| `feed-only` | "recent posts", "latest blogs" | **OVERRIDE** - use web-content-researcher only, ignore intent | Skip (no search queries) |
+| `docs-only` | Single service question, API lookup | **NARROW** - keep only aws-mcp-researcher | 2-3 subqueries |
+| `pricing-focused` | Cost, "how much", instance types | **NARROW** - keep only aws-mcp-researcher (with pricing) | 2-3 subqueries |
+| `comprehensive` | Architecture, multi-service, comparisons | **KEEP** - dispatch all intent-default candidates | 2-3 per source, up to 3 facets for complex topics |
 
 For `comprehensive` strategy, read [references/search-strategy.md](references/search-strategy.md)
 for web search budget rules and the facet-pair catalog used during
@@ -200,11 +200,11 @@ for format and examples.
 - **Complex** (3+ entities, version constraints) → show contract, ask user to validate
 - **Simple** → proceed silently
 
-## Step 2 — Generate Slug (MANDATORY before Step 3)
+## Step 2 - Generate Slug (MANDATORY before Step 3)
 
 The slug identifies this research session on disk (`$WORK_DIR/<slug>/`) and
-names the final report file (`<slug>-report.md`). Rules in brief: **4–7 words,
-30–60 chars, kebab-case**, encoding primary service(s) + intent + scope; no
+names the final report file (`<slug>-report.md`). Rules in brief: **4-7 words,
+30-60 chars, kebab-case**, encoding primary service(s) + intent + scope; no
 generic stopwords alone (`aws`, `guide`, `research`).
 
 For the full ruleset, worked examples, and the validator snippet, read
@@ -213,16 +213,16 @@ For the full ruleset, worked examples, and the validator snippet, read
 **Declare the slug explicitly in your plan** before dispatching, e.g.
 `Slug: bedrock-llama3-70b-inference-pricing-analysis`.
 
-## Step 3 — Decompose (skip for `feed-only`)
+## Step 3 - Decompose (skip for `feed-only`)
 
 Break query into subqueries using:
-1. **Faceted** — split by dimensions (features, pricing, limits)
-2. **Specificity** — broad + narrow variants
-3. **Synonyms** — alternate terminology
+1. **Faceted** - split by dimensions (features, pricing, limits)
+2. **Specificity** - broad + narrow variants
+3. **Synonyms** - alternate terminology
 
 List all subqueries with assigned subagents before proceeding.
 
-## Step 4 — Dispatch Research
+## Step 4 - Dispatch Research
 
 Create the work dir: `$WORK_DIR/<slug>/`
 
@@ -236,21 +236,21 @@ All **findings files** go into `$WORK_DIR/<slug>/`. Downloads go to
 **Dispatch all applicable subagents, batching into rounds of ≤4** (all
 supported harnesses cap parallel subagents per round).
 
-**Determine the harness first, then dispatch accordingly** — there are two
+**Determine the harness first, then dispatch accordingly** - there are two
 dispatch worlds and picking the wrong one is the classic failure (a pi-hosted
 model improvising into whatever delegate-shaped tool it finds):
 
-- **Kiro** — dispatch **in-session** via the native subagent tool. Detect the
+- **Kiro** - dispatch **in-session** via the native subagent tool. Detect the
   engine first: on **v2** (current default) call `use_subagent` with
   `InvokeSubagents` and a `subagents[]` array; on **v3** name the agents in
-  natural language. Prefer the **generic path** — hand each subagent the role
+  natural language. Prefer the **generic path** - hand each subagent the role
   from `$SKILL_DIR/agents/<name>.md` inline (omit `agent_name`), no
   registration needed. **Do NOT shell out** and **do NOT use any other
   delegate-shaped tool.**
-- **pi / Claude Code** — dispatch as **headless child processes** via
+- **pi / Claude Code** - dispatch as **headless child processes** via
   `scripts/dispatch.sh` (one call per subagent; background several + `wait`
   for a parallel round). **Do NOT reach for any environment delegate tool.**
-- **Ambiguous or unknown harness** — ask the user one question; if they name
+- **Ambiguous or unknown harness** - ask the user one question; if they name
   an untested harness, offer the process-fan-out path as best effort.
 
 Full procedure, detection fingerprints, the `dispatch.sh` contract, and round
@@ -293,14 +293,14 @@ Per-subagent reminders:
   records, never raw page prose, code, comments, prompts, or excerpts. Include
   `feed-urls` and `query-type`. Remind it
   to **use `fetchv2:fetchv2_fetch_batch` (batched, up to 10 URLs per call)
-  with `max_length_per_url: 8000`** and to **re-fetch at 15000–20000** for
+  with `max_length_per_url: 8000`** and to **re-fetch at 15000-20000** for
   any primary source showing a `<!-- Truncated:` marker. Trafilatura is
   fallback only.
 - **aws-mcp-researcher**: on Bedrock queries, tell it to consult
   `references/bedrock-llms-txt.md`. Decompose docs-search into 2 facet
   queries (reference · how-to-use-it is typical).
 
-## Step 5 — Verify Findings (silent-failure detector)
+## Step 5 - Verify Findings (silent-failure detector)
 
 Immediately after each round of subagents reports back, verify each expected
 findings file exists and is non-trivial. Subagents occasionally report `✅`
@@ -321,10 +321,10 @@ done
 - Any file `< 500 bytes` → treat the subagent as having failed silently.
 - Record each `WEAK` entry in the synthesizer dispatch brief (Step 6) so it
   surfaces in the report's **Gaps & Limitations** section.
-- Do NOT read the contents of any findings file in the parent — only check
+- Do NOT read the contents of any findings file in the parent - only check
   size and existence.
 
-## Step 6 — Synthesize
+## Step 6 - Synthesize
 
 After all researchers complete, dispatch `synthesizer` with:
 - Original query and intents
@@ -335,7 +335,7 @@ After all researchers complete, dispatch `synthesizer` with:
 **Do NOT read findings files in the parent.** The synthesizer handles
 everything in its own context.
 
-## Step 7 — Optional Diagram
+## Step 7 - Optional Diagram
 
 Read the report's Executive Summary only (~30 lines). Generate a diagram when
 it describes architecture with 3+ components, a workflow/pipeline, data flow,
@@ -345,7 +345,7 @@ Check Kroki availability from the `check_api_keys.sh` output. If UNAVAILABLE,
 skip silently. Otherwise dispatch `diagram-generator` with the report path
 and a brief describing what to diagram.
 
-## Step 8 — Present Results
+## Step 8 - Present Results
 
 Copy the final report to the global reports directory:
 
@@ -380,11 +380,11 @@ ${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
 - **Work dir is global**: `$WORK_DIR/<slug>/` (default `~/.aws-deep-research/work/<slug>/`),
   never `./output/research/<slug>/`. Override via `RESEARCH_WORK_DIR` in
   `$CONFIG_FILE`.
-- **Slug discipline**: 4–7 words, 30–60 chars (see Step 2). Terse slugs
+- **Slug discipline**: 4-7 words, 30-60 chars (see Step 2). Terse slugs
   make artifacts unrecoverable later.
 - **Parallel fetch**: web-content-researcher MUST use `fetchv2:fetchv2_fetch_batch`
   (up to 10 URLs per call) for page extraction. Trafilatura is a fallback only.
-- **`-o` flag is mandatory** for all search/scraper scripts — without it,
+- **`-o` flag is mandatory** for all search/scraper scripts - without it,
   output goes to wrong location outside the research directory. The `-o`
   target is always `$WORK_DIR/<slug>/downloads/<tool>`.
 - **Domain blocklist**: `$SKILL_DIR/scripts/blocklist.txt` filters URLs
@@ -398,7 +398,7 @@ ${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
 - **AWS credentials**: always pass `--profile 001` to `aws_doc_search.py`
   unless the user specifies otherwise.
 - **Web search budget**: Brave 2K/month, Tavily 1K/month. Never use both for
-  the same subquery. MCP servers are free — prefer them. Usage is persisted
+  the same subquery. MCP servers are free - prefer them. Usage is persisted
   in `~/.aws-deep-research/budget.json`; when a search script's `--json`
   output shows `"budget": {"over_80": true}`, switch to MCP-only and note it
   in the report's Gaps section.

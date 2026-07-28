@@ -28,20 +28,20 @@ Read that file for the canonical list. Key fields you will always receive:
 
 ## Process
 
-1. Read `$SKILL_DIR/references/contract-compliance-rules.md` — follow **Synthesizer** section
-2. **Read `research-contract.md`** in the work dir — this is mandatory and
+1. Read `$SKILL_DIR/references/contract-compliance-rules.md` - follow **Synthesizer** section
+2. **Read `research-contract.md`** in the work dir - this is mandatory and
    must be read before any findings files
 3. For each expected findings file, check status:
    - **OK** → read and incorporate
    - **WEAK** (< 500 bytes) → read anyway but treat as low-signal; record
-     `"<source> returned minimal content — may indicate API failure or
+     `"<source> returned minimal content - may indicate API failure or
      irrelevance"` in the **Gaps & Limitations** section
    - **MISSING** (file absent) → do not attempt to read; record
      `"<source> was not dispatched or failed to produce output"` in **Gaps**
 4. **Cluster, don't just deduplicate.** Group claims by topic across sources.
    Where sources **agree**, collapse to one statement and note the
    corroboration. Where sources **disagree** or a `vendor-claim` lacks
-   independent backing, DO NOT silently pick one — preserve both and route
+   independent backing, DO NOT silently pick one - preserve both and route
    them to the **Consensus & Contradictions** section (see Report Format).
 5. **Weight evidence by tag.** Read the `{authority·date}` tag on each finding
    and apply the Evidence Weighting Order from `contract-compliance-rules.md`.
@@ -72,9 +72,9 @@ Read that file for the canonical list. Key fields you will always receive:
 
 <REQUIRED for comparison / architecture / migration / cost-optimization
 intents; optional but encouraged otherwise. This is the analytical middle
-of the report — it turns facts into judgement. 3-6 bullets, each naming a
+of the report - it turns facts into judgement. 3-6 bullets, each naming a
 real trade-off or decision driver and the second-order implication, e.g.:
-"Rubin CPX optimizes prefill cost via GDDR7 over HBM4 — lowers $/token for
+"Rubin CPX optimizes prefill cost via GDDR7 over HBM4 - lowers $/token for
 long-context workloads but is irrelevant for short-prompt/chat traffic."
 Do NOT restate features here; state what the facts *mean* for a decision.>
 
@@ -87,8 +87,8 @@ Do NOT restate features here; state what the facts *mean* for a decision.>
 
 <REQUIRED whenever sources disagree or when vendor claims are uncorroborated.
 Two short subsections:
-**Consensus** — points where independent sources agree (highest confidence).
-**Contradictions & unverified claims** — where sources disagree, or a
+**Consensus** - points where independent sources agree (highest confidence).
+**Contradictions & unverified claims** - where sources disagree, or a
 `vendor-claim` has no `official`/`third-party` corroboration. For each: state
 both positions, their evidence tags, and which (if either) is better supported.
 Never resolve a contradiction by silently dropping one side.>
@@ -107,7 +107,7 @@ Never resolve a contradiction by silently dropping one side.>
 
 ## References
 [1] [Title](https://url)
-[2] [Title — Blog Name (YYYY-MM-DD)](https://url)
+[2] [Title - Blog Name (YYYY-MM-DD)](https://url)
 ```
 
 ## Citation Rules
@@ -142,20 +142,20 @@ Do NOT use: bare URLs, extra text after links, or inline `([source](url))`.
   facts *mean* for a decision, not re-list features. A report that only
   summarizes sources has failed its job.
 - **Surface disagreement**: Contradictions and uncorroborated vendor claims
-  belong in Consensus & Contradictions — never deduplicate them away.
+  belong in Consensus & Contradictions - never deduplicate them away.
 - **Weight by evidence tag**: When sources conflict, apply the Evidence
   Weighting Order and make the confidence level visible to the reader.
 - **Actionable**: Help someone make a decision or take action.
 - **Surface gaps honestly**: WEAK/MISSING sources go in **Gaps & Limitations**
-  — never paper over them.
-- **Concise**: Target 2,500–6,000 words. Cut redundancy ruthlessly.
+  - never paper over them.
+- **Concise**: Target 2,500-6,000 words. Cut redundancy ruthlessly.
 
 ## Output
 
 Keep the final report under **50 KB** (≈ 8,000 words hard ceiling). If you
 exceed the target word count, tighten prose before dropping content. Findings
-files may be larger than this — you are compressing, not concatenating.
+files may be larger than this - you are compressing, not concatenating.
 
-**Response to parent — TWO lines max:**
+**Response to parent - TWO lines max:**
 - `✅ Wrote report to <path> (<N> chars, <M> citations)`
 - `Sources: <comma-separated list of input files used>`

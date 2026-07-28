@@ -4,14 +4,14 @@
 
 **This file is different from the other reference files in this skill.**
 
-The other references teach agents not to overcomplicate simple things — don't add caching to a CRUD API, don't introduce event sourcing for a todo app, don't reach for microservices when a monolith works.
+The other references teach agents not to overcomplicate simple things - don't add caching to a CRUD API, don't introduce event sourcing for a todo app, don't reach for microservices when a monolith works.
 
 **This file teaches the opposite discipline**: when the user's requirements genuinely demand multi-service orchestration, how to implement it correctly without:
 - Stripping out pieces that are actually required (under-engineering)
 - Adding speculative pieces that aren't required yet (over-engineering)
 - Wiring services together incorrectly (mis-engineering)
 
-The complexity in these patterns is **intrinsic** — it comes from the problem domain, not from the agent's desire to be impressive. A RAG pipeline genuinely needs embedding, indexing, chunking, and retrieval. A document processing pipeline genuinely needs error handling, retries, and state management. The agent's job is to implement these correctly, not to simplify them away.
+The complexity in these patterns is **intrinsic** - it comes from the problem domain, not from the agent's desire to be impressive. A RAG pipeline genuinely needs embedding, indexing, chunking, and retrieval. A document processing pipeline genuinely needs error handling, retries, and state management. The agent's job is to implement these correctly, not to simplify them away.
 
 > **Note on model IDs**: Model identifiers like `amazon.titan-embed-text-v2:0` and `anthropic.claude-3-sonnet-20240229-v1:0` are illustrative. Always verify current model IDs in AWS documentation, as they change with new releases. The patterns and wiring remain the same regardless of specific model version.
 
@@ -82,7 +82,7 @@ export class RagPipelineStack extends cdk.Stack {
       }),
     });
 
-    // 2. Network policy (required — controls access path)
+    // 2. Network policy (required - controls access path)
     const networkPolicy = new opensearchserverless.CfnSecurityPolicy(this, 'NetworkPolicy', {
       name: `${collectionName}-net`,
       type: 'network',
@@ -95,7 +95,7 @@ export class RagPipelineStack extends cdk.Stack {
       }]),
     });
 
-    // 3. Data access policy (required — without this, NO principal can read/write indexes)
+    // 3. Data access policy (required - without this, NO principal can read/write indexes)
     const dataAccessPolicy = new opensearchserverless.CfnAccessPolicy(this, 'DataAccessPolicy', {
       name: `${collectionName}-access`,
       type: 'data',
@@ -332,7 +332,7 @@ def handler(event, context):
         bucket = body['Records'][0]['s3']['bucket']['name']
         key = body['Records'][0]['s3']['object']['key']
 
-        # Download and extract text (simplified — use textract for PDFs in production)
+        # Download and extract text (simplified - use textract for PDFs in production)
         obj = s3.get_object(Bucket=bucket, Key=key)
         text = obj['Body'].read().decode('utf-8')
 
@@ -415,17 +415,17 @@ def handler(event, context):
 
 ### Common Agent Mistakes at This Complexity Level
 
-1. **Forgetting the data access policy entirely** — The collection creates fine, but all index operations return 403. Agents see the encryption and network policies and assume that's sufficient.
+1. **Forgetting the data access policy entirely** - The collection creates fine, but all index operations return 403. Agents see the encryption and network policies and assume that's sufficient.
 
-2. **Wrong collection type** — Using `SEARCH` instead of `VECTORSEARCH`. The collection creates but `knn_vector` field type is rejected.
+2. **Wrong collection type** - Using `SEARCH` instead of `VECTORSEARCH`. The collection creates but `knn_vector` field type is rejected.
 
-3. **Mismatched embedding dimensions** — Titan V2 defaults to 1024 but supports 256/512/1024. If the index mapping says 1024 but the embedding call doesn't specify `dimensions: 1024`, you get dimension mismatch errors.
+3. **Mismatched embedding dimensions** - Titan V2 defaults to 1024 but supports 256/512/1024. If the index mapping says 1024 but the embedding call doesn't specify `dimensions: 1024`, you get dimension mismatch errors.
 
-4. **Missing `aoss:APIAccessAll` IAM permission** — The data access policy grants index-level permissions, but the Lambda role also needs the IAM permission to call the AOSS API endpoint. These are two separate auth layers.
+4. **Missing `aoss:APIAccessAll` IAM permission** - The data access policy grants index-level permissions, but the Lambda role also needs the IAM permission to call the AOSS API endpoint. These are two separate auth layers.
 
-5. **SQS visibility timeout < Lambda timeout** — If Lambda takes 10 minutes but SQS visibility is 30 seconds, the message becomes visible again and triggers duplicate processing.
+5. **SQS visibility timeout < Lambda timeout** - If Lambda takes 10 minutes but SQS visibility is 30 seconds, the message becomes visible again and triggers duplicate processing.
 
-6. **Direct S3→Lambda without SQS** — S3 notifications to Lambda have no built-in retry. If the Lambda fails, the document is lost. Always buffer through SQS for document processing.
+6. **Direct S3→Lambda without SQS** - S3 notifications to Lambda have no built-in retry. If the Lambda fails, the document is lost. Always buffer through SQS for document processing.
 
 ---
 
@@ -714,17 +714,17 @@ export class MultiHopRetrievalStack extends cdk.Stack {
 
 ### Common Agent Mistakes at This Complexity Level
 
-1. **Using Standard workflow with StartSyncExecution** — Standard workflows don't support `StartSyncExecution`. Only Express workflows do. The API call will fail with a validation error.
+1. **Using Standard workflow with StartSyncExecution** - Standard workflows don't support `StartSyncExecution`. Only Express workflows do. The API call will fail with a validation error.
 
-2. **Over-permissive IAM with `bedrock:InvokeModel` on `*`** — Each Lambda only needs access to its specific model. An agent that grants `Resource: '*'` gives every function access to every model.
+2. **Over-permissive IAM with `bedrock:InvokeModel` on `*`** - Each Lambda only needs access to its specific model. An agent that grants `Resource: '*'` gives every function access to every model.
 
-3. **Wrong Step Functions integration pattern** — Using `.resultPath('$')` overwrites the entire state. Use `.resultPath('$.stepOutput')` to merge results into existing state. This is the #1 debugging nightmare in Step Functions.
+3. **Wrong Step Functions integration pattern** - Using `.resultPath('$')` overwrites the entire state. Use `.resultPath('$.stepOutput')` to merge results into existing state. This is the #1 debugging nightmare in Step Functions.
 
-4. **Missing Cognito authorizer on the method** — Defining the authorizer construct but forgetting to attach it to the method via `authorizer` and `authorizationType` options. The API deploys fine but has no auth.
+4. **Missing Cognito authorizer on the method** - Defining the authorizer construct but forgetting to attach it to the method via `authorizer` and `authorizationType` options. The API deploys fine but has no auth.
 
-5. **API Gateway → Step Functions without response mapping** — The raw StartSyncExecution response includes execution ARN, status, timestamps, etc. Without a response template, clients get Step Functions metadata instead of the actual answer.
+5. **API Gateway → Step Functions without response mapping** - The raw StartSyncExecution response includes execution ARN, status, timestamps, etc. Without a response template, clients get Step Functions metadata instead of the actual answer.
 
-6. **Parallel state error handling** — If one branch fails, the entire Parallel state fails by default. Use `addCatch` on the Parallel state to handle partial failures gracefully.
+6. **Parallel state error handling** - If one branch fails, the entire Parallel state fails by default. Use `addCatch` on the Parallel state to handle partial failures gracefully.
 
 ---
 
@@ -732,7 +732,7 @@ export class MultiHopRetrievalStack extends cdk.Stack {
 
 ### The Prompt
 
-> "Build a pipeline that automatically processes documents uploaded to S3 — detect document type, extract text, chunk it, generate embeddings, store in a vector database and track status in DynamoDB. It needs to handle failures gracefully and not reprocess documents."
+> "Build a pipeline that automatically processes documents uploaded to S3 - detect document type, extract text, chunk it, generate embeddings, store in a vector database and track status in DynamoDB. It needs to handle failures gracefully and not reprocess documents."
 
 ### What the Agent Should Clarify First
 
@@ -1038,7 +1038,7 @@ export class DocumentProcessingStack extends cdk.Stack {
 | Component | Required? | Why |
 |-----------|-----------|-----|
 | `eventBridgeEnabled: true` on bucket | **Required** | EventBridge rules won't fire without this flag |
-| EventBridge prefix filter (`incoming/`) | **Required** | Without it, processing triggers on ALL objects including outputs — circular! |
+| EventBridge prefix filter (`incoming/`) | **Required** | Without it, processing triggers on ALL objects including outputs - circular! |
 | Idempotency check | **Required** | S3 events can be delivered more than once; EventBridge guarantees at-least-once |
 | Status tracking in DynamoDB | **Required** (per prompt) | User asked for status tracking; also enables the idempotency check |
 | DLQ on EventBridge target | **Required** | If Step Functions is at capacity, events are lost without DLQ |
@@ -1050,19 +1050,19 @@ export class DocumentProcessingStack extends cdk.Stack {
 
 ### Common Agent Mistakes at This Complexity Level
 
-1. **Circular trigger** — Output is written to the same bucket without a prefix filter. The store step writes embeddings → triggers a new processing event → infinite loop. **Always** use prefix filtering or separate buckets.
+1. **Circular trigger** - Output is written to the same bucket without a prefix filter. The store step writes embeddings → triggers a new processing event → infinite loop. **Always** use prefix filtering or separate buckets.
 
-2. **Forgetting `eventBridgeEnabled: true`** — The EventBridge rule deploys successfully but never fires. This is the most common "it deployed but nothing happens" bug.
+2. **Forgetting `eventBridgeEnabled: true`** - The EventBridge rule deploys successfully but never fires. This is the most common "it deployed but nothing happens" bug.
 
-3. **Lambda timeout too short for large documents** — A 50-page PDF with PyPDF2 can take 60+ seconds. Agents often leave the default 3-second timeout.
+3. **Lambda timeout too short for large documents** - A 50-page PDF with PyPDF2 can take 60+ seconds. Agents often leave the default 3-second timeout.
 
-4. **Map state without `maxConcurrency`** — A 500-chunk document fires 500 parallel Lambda invocations, all calling Bedrock simultaneously. Bedrock throttles, all fail, the whole workflow fails.
+4. **Map state without `maxConcurrency`** - A 500-chunk document fires 500 parallel Lambda invocations, all calling Bedrock simultaneously. Bedrock throttles, all fail, the whole workflow fails.
 
-5. **Using Express workflow for document processing** — Express workflows have a 5-minute max. Large documents with Textract can take 10+ minutes. Use Standard workflow.
+5. **Using Express workflow for document processing** - Express workflows have a 5-minute max. Large documents with Textract can take 10+ minutes. Use Standard workflow.
 
-6. **EventBridge rule without DLQ** — If the Step Functions execution quota is reached (default 1M), EventBridge drops events silently without a DLQ.
+6. **EventBridge rule without DLQ** - If the Step Functions execution quota is reached (default 1M), EventBridge drops events silently without a DLQ.
 
-7. **No idempotency check** — S3 → EventBridge delivers at-least-once. Without a dedup check, the same document gets processed multiple times, wasting compute and creating duplicate vectors.
+7. **No idempotency check** - S3 → EventBridge delivers at-least-once. Without a dedup check, the same document gets processed multiple times, wasting compute and creating duplicate vectors.
 
 ---
 
@@ -1169,7 +1169,7 @@ export class BedrockAgentStack extends cdk.Stack {
     orderActionFn.grantInvoke(new iam.ServicePrincipal('bedrock.amazonaws.com'));
     customerActionFn.grantInvoke(new iam.ServicePrincipal('bedrock.amazonaws.com'));
 
-    // --- Bedrock Agent (L1 construct — CfnAgent) ---
+    // --- Bedrock Agent (L1 construct - CfnAgent) ---
     const agent = new bedrock.CfnAgent(this, 'CustomerServiceAgent', {
       agentName: 'customer-service-agent',
       agentResourceRoleArn: agentRole.roleArn,
@@ -1388,7 +1388,7 @@ def handler(event, context):
         result = {'error': f'Unknown action: {api_path}'}
 
     # CRITICAL: Response format for Bedrock Agents
-    # This exact structure is required — deviating causes silent failures
+    # This exact structure is required - deviating causes silent failures
     return {
         'messageVersion': '1.0',
         'response': {
@@ -1440,7 +1440,7 @@ def initiate_refund(order_id: str, reason: str) -> dict:
 | Component | Required? | Why |
 |-----------|-----------|-----|
 | OpenAPI schema for each action group | **Required** | Bedrock Agents uses this to understand what actions are available |
-| Detailed `description` on each operation | **Required** | The agent uses descriptions to decide WHEN to call each action — vague descriptions = wrong routing |
+| Detailed `description` on each operation | **Required** | The agent uses descriptions to decide WHEN to call each action - vague descriptions = wrong routing |
 | Response schema in OpenAPI | Recommended | Helps the agent understand what it got back; not strictly required for function |
 | `messageVersion: '1.0'` in Lambda response | **Required** | Response is rejected without it |
 | `responseBody` wrapper in Lambda response | **Required** | Must be `{'application/json': {'body': json.dumps(...)}}` exactly |
@@ -1451,19 +1451,19 @@ def initiate_refund(order_id: str, reason: str) -> dict:
 
 ### Common Agent Mistakes at This Complexity Level
 
-1. **Wrong Lambda response format** — The most common failure. Bedrock Agents requires the exact response structure shown above. Missing `messageVersion`, wrong nesting of `responseBody`, or returning a plain dict all cause silent failures where the agent says "I couldn't complete that action."
+1. **Wrong Lambda response format** - The most common failure. Bedrock Agents requires the exact response structure shown above. Missing `messageVersion`, wrong nesting of `responseBody`, or returning a plain dict all cause silent failures where the agent says "I couldn't complete that action."
 
-2. **Overly broad action group schemas** — Putting 20 operations in one action group with vague descriptions. The agent can't decide which to call. Keep action groups focused (3-5 operations) with precise descriptions.
+2. **Overly broad action group schemas** - Putting 20 operations in one action group with vague descriptions. The agent can't decide which to call. Keep action groups focused (3-5 operations) with precise descriptions.
 
-3. **Missing `grantInvoke` to bedrock.amazonaws.com** — The agent is created but can't call the Lambda. The invoke will fail with an access denied that surfaces as a generic "action failed" to the user.
+3. **Missing `grantInvoke` to bedrock.amazonaws.com** - The agent is created but can't call the Lambda. The invoke will fail with an access denied that surfaces as a generic "action failed" to the user.
 
-4. **No agent alias** — Calling `InvokeAgent` API without creating an alias first. The agent exists but isn't invokable (except via `TSTALIASID` which is only for console testing).
+4. **No agent alias** - Calling `InvokeAgent` API without creating an alias first. The agent exists but isn't invokable (except via `TSTALIASID` which is only for console testing).
 
-5. **Confusing request body parsing** — For POST operations, the event structure nests the body under `requestBody.content.application/json.properties`. Agents often try to parse `event['body']` which doesn't exist.
+5. **Confusing request body parsing** - For POST operations, the event structure nests the body under `requestBody.content.application/json.properties`. Agents often try to parse `event['body']` which doesn't exist.
 
-6. **Knowledge Base without proper sync** — Creating the KB data source but not triggering a sync. The KB exists but has no data. Must call `StartIngestionJob` after deployment.
+6. **Knowledge Base without proper sync** - Creating the KB data source but not triggering a sync. The KB exists but has no data. Must call `StartIngestionJob` after deployment.
 
-7. **OpenAPI schema without response definitions** — The agent can call the action but can't interpret what came back, leading to generic responses like "I called the order service" instead of "Your order ORD-12345 shipped on Tuesday."
+7. **OpenAPI schema without response definitions** - The agent can call the action but can't interpret what came back, leading to generic responses like "I called the order service" instead of "Your order ORD-12345 shipped on Tuesday."
 
 ---
 
@@ -1644,7 +1644,7 @@ table = dynamodb.Table(os.environ['CONNECTIONS_TABLE'])
 
 
 def handler(event, context):
-    """Handle $connect — store connection ID."""
+    """Handle $connect - store connection ID."""
     connection_id = event['requestContext']['connectionId']
     
     table.put_item(Item={
@@ -1666,7 +1666,7 @@ table = dynamodb.Table(os.environ['CONNECTIONS_TABLE'])
 
 
 def handler(event, context):
-    """Handle $disconnect — remove connection record."""
+    """Handle $disconnect - remove connection record."""
     connection_id = event['requestContext']['connectionId']
     table.delete_item(Key={'connectionId': connection_id})
     return {'statusCode': 200}
@@ -1751,7 +1751,7 @@ def handler(event, context):
                 # Check if guardrail intervened
                 stop_reason = chunk.get('amazon-bedrock-guardrailAction')
                 if stop_reason == 'INTERVENED':
-                    # Guardrail blocked the response — notify client
+                    # Guardrail blocked the response - notify client
                     post_to_connection(apigw, connection_id, {
                         'type': 'guardrail_intervened',
                         'message': 'Response was filtered by content policy.',
@@ -1772,7 +1772,7 @@ def handler(event, context):
         save_conversation(connection_id, conversation)
         
     except apigw.exceptions.GoneException:
-        # Connection is stale — clean up
+        # Connection is stale - clean up
         dynamodb.Table(os.environ['CONNECTIONS_TABLE']).delete_item(
             Key={'connectionId': connection_id}
         )
@@ -1833,21 +1833,21 @@ def save_conversation(connection_id: str, messages: list):
 
 ### Common Agent Mistakes at This Complexity Level
 
-1. **Missing `$connect` and `$disconnect` routes** — These are not optional. Without `$connect`, all connection attempts fail. Without `$disconnect`, connection records accumulate forever.
+1. **Missing `$connect` and `$disconnect` routes** - These are not optional. Without `$connect`, all connection attempts fail. Without `$disconnect`, connection records accumulate forever.
 
-2. **Wrong endpoint URL for Management API** — Must be `https://{domainName}/{stage}` from the event's `requestContext`, NOT the WebSocket URL (which uses `wss://`). This is the HTTP endpoint for the management API.
+2. **Wrong endpoint URL for Management API** - Must be `https://{domainName}/{stage}` from the event's `requestContext`, NOT the WebSocket URL (which uses `wss://`). This is the HTTP endpoint for the management API.
 
-3. **Not handling guardrail `INTERVENED` in stream** — When a guardrail triggers mid-stream, the response changes format. Agents that only handle `content_block_delta` miss the guardrail intervention signal and either crash or send partial blocked content.
+3. **Not handling guardrail `INTERVENED` in stream** - When a guardrail triggers mid-stream, the response changes format. Agents that only handle `content_block_delta` miss the guardrail intervention signal and either crash or send partial blocked content.
 
-4. **Lambda timeout too short** — Long streaming responses (4096 tokens from Claude) can take 30-60 seconds. Default 3-second Lambda timeout kills the stream mid-response.
+4. **Lambda timeout too short** - Long streaming responses (4096 tokens from Claude) can take 30-60 seconds. Default 3-second Lambda timeout kills the stream mid-response.
 
-5. **Missing `execute-api:ManageConnections` permission** — The most common "connected but no messages come back" bug. The Lambda runs fine, processes the stream, but silently fails to post back because it can't call the Management API.
+5. **Missing `execute-api:ManageConnections` permission** - The most common "connected but no messages come back" bug. The Lambda runs fine, processes the stream, but silently fails to post back because it can't call the Management API.
 
-6. **Using REST API instead of WebSocket API** — API Gateway v1 (REST) and v2 (HTTP/WebSocket) are different constructs. WebSocket requires `apigatewayv2.WebSocketApi`, not `apigateway.RestApi`. Agents sometimes mix these up.
+6. **Using REST API instead of WebSocket API** - API Gateway v1 (REST) and v2 (HTTP/WebSocket) are different constructs. WebSocket requires `apigatewayv2.WebSocketApi`, not `apigateway.RestApi`. Agents sometimes mix these up.
 
-7. **Not handling `GoneException`** — When a client disconnects but the Lambda is still streaming, `post_to_connection` throws `GoneException`. Without a try/catch, the Lambda errors out and may retry (if invoked from a queue), wasting compute.
+7. **Not handling `GoneException`** - When a client disconnects but the Lambda is still streaming, `post_to_connection` throws `GoneException`. Without a try/catch, the Lambda errors out and may retry (if invoked from a queue), wasting compute.
 
-8. **Content type mismatch** — `post_to_connection` sends bytes. If the client expects text frames, you must encode as UTF-8. Sending raw bytes can cause client-side parsing failures.
+8. **Content type mismatch** - `post_to_connection` sends bytes. If the client expects text frames, you must encode as UTF-8. Sending raw bytes can cause client-side parsing failures.
 
 ---
 
@@ -1855,10 +1855,10 @@ def save_conversation(connection_id: str, messages: list):
 
 Before implementing any of these patterns, the agent should verify:
 
-1. **Is this complexity required?** — Could Bedrock Knowledge Bases, a single Lambda, or a simpler service replace this architecture?
-2. **Have I clarified the decision points?** — Scale, latency, access patterns determine which specific services are correct.
-3. **Are all three layers of AWS security addressed?** — IAM policies (who can call the API), resource policies (who can access the resource), and encryption (data at rest and in transit).
-4. **Do my timeouts chain correctly?** — SQS visibility > Lambda timeout. API Gateway timeout > Step Functions timeout > Lambda timeout.
-5. **Is there an error path?** — DLQ, catch blocks, status tracking. Not speculative — production workloads WILL have failures.
-6. **Am I using the right integration pattern?** — SDK integration vs. optimized integration in Step Functions. Sync vs. async. Express vs. Standard.
-7. **Have I tested the response format?** — Bedrock Agents, WebSocket Management API, Step Functions — all have specific response formats that fail silently when wrong.
+1. **Is this complexity required?** - Could Bedrock Knowledge Bases, a single Lambda, or a simpler service replace this architecture?
+2. **Have I clarified the decision points?** - Scale, latency, access patterns determine which specific services are correct.
+3. **Are all three layers of AWS security addressed?** - IAM policies (who can call the API), resource policies (who can access the resource), and encryption (data at rest and in transit).
+4. **Do my timeouts chain correctly?** - SQS visibility > Lambda timeout. API Gateway timeout > Step Functions timeout > Lambda timeout.
+5. **Is there an error path?** - DLQ, catch blocks, status tracking. Not speculative - production workloads WILL have failures.
+6. **Am I using the right integration pattern?** - SDK integration vs. optimized integration in Step Functions. Sync vs. async. Express vs. Standard.
+7. **Have I tested the response format?** - Bedrock Agents, WebSocket Management API, Step Functions - all have specific response formats that fail silently when wrong.

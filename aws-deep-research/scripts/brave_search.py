@@ -564,7 +564,7 @@ Freshness options:
     if budget["over_80"]:
         console.print(
             f"[yellow]⚠ Brave budget at {budget['pct_used']}% "
-            f"({budget['used']}/{budget['cap']}) this month — prefer MCP-only.[/yellow]"
+            f"({budget['used']}/{budget['cap']}) this month - prefer MCP-only.[/yellow]"
         )
 
     # Check for empty results

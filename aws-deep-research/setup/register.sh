@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# register.sh — install the aws-deep-research skill into Kiro CLI
+# register.sh - install the aws-deep-research skill into Kiro CLI
 #
 # Copies:
 #   1. This skill directory -> ~/.kiro/skills/aws-deep-research/

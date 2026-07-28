@@ -8,20 +8,20 @@ Detailed criteria for each of the 10 audit dimensions. Score each as
 ## 1. Frontmatter spec *(00.spec)*
 
 - `name`: ≤64 chars, lowercase `a-z/0-9/-`, no leading/trailing/consecutive hyphens, matches parent directory name.
-- `description`: 1–1024 chars, present and non-empty.
+- `description`: 1-1024 chars, present and non-empty.
 - `compatibility`: ≤500 chars if present.
 - No unknown required fields missing.
 - 🟢 All fields valid and within limits.
-- 🟡 One minor violation (e.g., 1–5 chars over a limit).
+- 🟡 One minor violation (e.g., 1-5 chars over a limit).
 - 🔴 Missing required field, name doesn't match dir, or gross spec violation.
 
 ## 2. Body size / token budget *(01.bp, 01a.claude)*
 
 - SKILL.md under **500 lines** and under **~5000 tokens** (chars/4).
-- Every section earns its tokens — no explaining what the agent already knows.
+- Every section earns its tokens - no explaining what the agent already knows.
 - No redundant preamble ("You are an AI assistant that...").
 - 🟢 Under both limits, content is dense and purposeful.
-- 🟡 Near the ceiling (400–500 lines or 4000–5000 tokens) or has some filler.
+- 🟡 Near the ceiling (400-500 lines or 4000-5000 tokens) or has some filler.
 - 🔴 Exceeds either limit or has significant filler/redundancy.
 
 ## 3. Progressive disclosure *(01.bp, 01a.claude)*
@@ -57,7 +57,7 @@ highest-severity defect a skill can have - never treat it as a nit.
 
 - Concrete, **environment-specific** corrections to mistakes the agent would otherwise make.
 - Live in SKILL.md (loaded before the agent hits the situation).
-- Not generic advice ("be careful with paths") — must be specific to this skill's domain.
+- Not generic advice ("be careful with paths") - must be specific to this skill's domain.
 - Version-stamped or dated where relevant.
 - 🟢 3+ concrete gotchas, environment-specific, in SKILL.md.
 - 🟡 Some gotchas but generic or too few for the complexity.

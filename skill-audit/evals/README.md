@@ -11,14 +11,14 @@ awareness.
 evals/
   evals.json            # the cases (positive / negative / boundary)
   fixtures/
-    clean-skill/        # a well-formed skill — auditor should NOT invent 🔴s
-    flawed-skill/       # one planted defect per dimension — all must be caught
+    clean-skill/        # a well-formed skill - auditor should NOT invent 🔴s
+    flawed-skill/       # one planted defect per dimension - all must be caught
   README.md             # this file
 ```
 
 The fixtures are the key to determinism. Because each fixture has known,
 fixed contents, the assertions in `evals.json` are checkable with plain regex
-against the written audit report — no LLM-as-judge needed for most of them.
+against the written audit report - no LLM-as-judge needed for most of them.
 
 ## Fixtures and their planted defects
 
@@ -26,7 +26,7 @@ against the written audit report — no LLM-as-judge needed for most of them.
 concrete gotchas, an explicit `Do NOT use for...` negative-trigger clause, and a
 non-interactive `normalize.py` with `--help`, documented exit codes, and
 stdout=data / stderr=diagnostics. Its only real gap is a missing `evals/`, so
-dim 9 is 🔴 and, by the report's worst-of rule, overall is 🔴 too — attributed
+dim 9 is 🔴 and, by the report's worst-of rule, overall is 🔴 too - attributed
 solely to the missing evals. That is the intended lesson: even a pristine skill
 is unshippable without evals. The auditor must not invent any other 🔴.
 
@@ -36,7 +36,7 @@ attributable:
 | Dimension | Planted defect |
 |-----------|----------------|
 | 1 Frontmatter      | `name: helper` does not match dir `flawed-skill` |
-| 4 Description      | "helps with data tasks and processing and other things" — vague, no triggers, no negatives |
+| 4 Description      | "helps with data tasks and processing and other things" - vague, no triggers, no negatives |
 | 3 Progressive disc | rigid always-identical 6-step procedure that should be a script |
 | 10 Anti-patterns   | Windows backslash paths (`C:\data\input`, `output\`) |
 | 10 Voodoo constants| `--threshold 0.7 --window 42 --mode 3`, unexplained |
@@ -102,7 +102,7 @@ structured scorecard. The delta in defects-caught is the skill's value.
 
 These cases were authored against pi. Before relying on the skill in another
 harness (Claude Code, Cursor, Kiro CLI, Q), re-run at least the two positive
-cases there — a skill can trigger well in one harness and poorly in another.
+cases there - a skill can trigger well in one harness and poorly in another.
 Record which harness/model a pass rate was measured on.
 
 ## Lifecycle
@@ -116,5 +116,5 @@ these evals when:
 - a new model materially changes what counts as a no-op or a token-budget
   ceiling (the 500-line / 5000-token thresholds are the likeliest to drift).
 
-Keep these evals even if a dimension is later dropped — they double as
+Keep these evals even if a dimension is later dropped - they double as
 regression guards against the rubric silently weakening.

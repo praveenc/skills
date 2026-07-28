@@ -7,7 +7,7 @@
 # ]
 # ///
 """
-Sitemap & Feed Extractor — Smart date-filtered URL extraction from sitemaps, RSS, and Atom feeds
+Sitemap & Feed Extractor - Smart date-filtered URL extraction from sitemaps, RSS, and Atom feeds
 
 Fetches a sitemap.xml (or discovers it from a homepage), extracts <url> entries
 with <lastmod> dates, and returns the most relevant URLs filtered by count or
@@ -139,7 +139,7 @@ class FetchStats:
 
 
 def parse_lastmod(raw: str) -> date | None:
-    """Parse a lastmod string — handles ISO-8601 datetime, date-only, and common variants."""
+    """Parse a lastmod string - handles ISO-8601 datetime, date-only, and common variants."""
     if not raw:
         return None
     raw = raw.strip()
@@ -227,7 +227,7 @@ def fetch_sitemap_bytes(url: str, stats: FetchStats) -> bytes | None:
         try:
             content = gzip.decompress(content)
         except gzip.BadGzipFile:
-            pass  # Not actually gzipped — use raw content
+            pass  # Not actually gzipped - use raw content
 
     console.print(
         f"[green]✓[/green] {url} ({len(content) / 1024:,.1f} KB, {elapsed:.1f}s)",
@@ -431,7 +431,7 @@ def collect_entries_recursive(
         console.print("  ↳ Atom feed detected")
         return _parse_atom_entries(root)
 
-    # Sitemap index — recurse into children
+    # Sitemap index - recurse into children
     if fmt == "sitemap-index":
         child_urls = _get_child_sitemap_urls(root)
         console.print(f"  ↳ Sitemap index with {len(child_urls)} child sitemap(s)")
@@ -440,7 +440,7 @@ def collect_entries_recursive(
             entries.extend(collect_entries_recursive(child_url, stats, depth=depth + 1))
         return entries
 
-    # It's a urlset — parse entries directly from already-parsed root
+    # It's a urlset - parse entries directly from already-parsed root
     entries = []
     for url_el in root.iter(URL_TAG):
         loc_text = _get_el_text(url_el, LOC_TAG)
@@ -637,9 +637,9 @@ def filter_top_n(
     undated = [e for e in entries if e.lastmod is None]
 
     if not dated:
-        # No dates at all — just return first N entries (or all undated)
+        # No dates at all - just return first N entries (or all undated)
         console.print(
-            "[yellow]No <lastmod> dates found — returning first N entries[/yellow]",
+            "[yellow]No <lastmod> dates found - returning first N entries[/yellow]",
         )
         return undated[:n]
 
@@ -672,7 +672,7 @@ def filter_top_n(
         if oldest is not None and ms < date(oldest.year, oldest.month, 1):
             break
     else:
-        # Exhausted months — pad with undated if needed
+        # Exhausted months - pad with undated if needed
         if len(results) < n:
             results.extend(undated[: n - len(results)])
 
@@ -712,10 +712,10 @@ def display_results(entries: list[SitemapEntry]) -> None:
     for i, entry in enumerate(entries, 1):
         row = [
             str(i),
-            str(entry.lastmod) if entry.lastmod else "—",
+            str(entry.lastmod) if entry.lastmod else "-",
         ]
         if has_news:
-            row.append(entry.news_title or "—")
+            row.append(entry.news_title or "-")
         row.append(entry.loc)
         table.add_row(*row)
 
@@ -760,7 +760,7 @@ Examples:
   # Get top 10 most recent posts
   uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10
 
-  # Filter by route — only URLs containing /blog/ in their path
+  # Filter by route - only URLs containing /blog/ in their path
   uv run sitemap/sitemap_feed_extractor.py https://windsurf.com/sitemap.xml --top 10 --route blog
 
   # Get ALL URLs matching a route (no --top needed)
@@ -824,7 +824,7 @@ Examples:
     opts.add_argument(
         "--discover",
         action="store_true",
-        help="Treat URL as homepage — discover sitemaps via robots.txt + common paths",
+        help="Treat URL as homepage - discover sitemaps via robots.txt + common paths",
     )
     opts.add_argument(
         "--start-date",
@@ -898,7 +898,7 @@ def main() -> None:
         from_date = parse_date_arg(args.from_date, "--from")
         to_date = parse_date_arg(args.to_date, "--to") if has_to else today
 
-    # Banner — one compact line
+    # Banner - one compact line
     console.print()
     parts = ["[bold]Sitemap & Feed Extractor[/bold]"]
     if has_top:

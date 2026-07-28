@@ -1,7 +1,7 @@
 # Research Contract Compliance Rules
 
 These rules apply to ALL research subagents and the synthesizer.
-**Read the research contract FIRST — before any searches or file reads.**
+**Read the research contract FIRST - before any searches or file reads.**
 
 ## Contents
 
@@ -11,7 +11,7 @@ These rules apply to ALL research subagents and the synthesizer.
 
 ## For Researchers
 
-1. **Read `research-contract.md` as your very first step** — before running
+1. **Read `research-contract.md` as your very first step** - before running
    any search scripts or reading any files
 2. **Shape your search queries using the contract's constraints:**
    - Entity exclusions become NOT/exclude operators in queries
@@ -27,7 +27,7 @@ These rules apply to ALL research subagents and the synthesizer.
 
 Every discrete finding you write MUST carry a compact evidence tag of the
 form `{authority·date}`. This is the single most important signal the
-synthesizer uses to weight conflicting sources and assign confidence — an
+synthesizer uses to weight conflicting sources and assign confidence - an
 untagged finding is treated as lowest-confidence.
 
 ### Authority levels (pick the most specific that applies)
@@ -57,7 +57,7 @@ Append the tag to the claim, before its citation marker. Examples:
 ```
 
 A single finding may legitimately carry two tags when a claim is corroborated
-by an independent source — e.g. `{vendor-claim·2026-03}{third-party·2026-04}`.
+by an independent source - e.g. `{vendor-claim·2026-03}{third-party·2026-04}`.
 That corroboration is itself high-value signal; keep both tags.
 
 ### Concrete Examples: Contract → Query Transformation
@@ -96,7 +96,7 @@ That corroboration is itself high-value signal; keep both tags.
    against the contract's entity and temporal constraints
 3. Data matching constraints → include as-is
 4. Data for older/different versions → include with explicit ⚠️ label:
-   "⚠️ This data is for Claude 3.5 — current 4.6 pricing may differ"
+   "⚠️ This data is for Claude 3.5 - current 4.6 pricing may differ"
 5. Derived claims (cost ratios, calculated savings, percentages) must
    cite a source or carry a ⚠️ label
 6. If significant proxy data was used, add a "Data Accuracy Notes"
@@ -110,12 +110,12 @@ That corroboration is itself high-value signal; keep both tags.
 
 When two findings conflict, prefer them in this order and say so explicitly:
 
-1. `official` and `third-party` (independent) — highest weight
+1. `official` and `third-party` (independent) - highest weight
 2. `vendor-claim` **corroborated** by an `official`/`third-party` tag
-3. `vendor-claim` uncorroborated — report as a claim, attribute it to the
+3. `vendor-claim` uncorroborated - report as a claim, attribute it to the
    vendor, and label it "vendor-reported, not independently verified"
-4. `community` — useful for real-world signal and reality-checks, but never
+4. `community` - useful for real-world signal and reality-checks, but never
    overrides `official` on a factual point; treat as directional
-5. `undated` / untagged — lowest; use only when nothing better exists
+5. `undated` / untagged - lowest; use only when nothing better exists
 
 A newer date breaks ties within the same authority level (recency wins).

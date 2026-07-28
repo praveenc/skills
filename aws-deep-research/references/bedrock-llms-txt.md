@@ -7,7 +7,7 @@ of direct URL lookup from a structured table of contents.
 
 The file at `https://docs.aws.amazon.com/bedrock/latest/userguide/llms.txt`
 is a structured markdown index of all Amazon Bedrock documentation pages. It
-follows the [llmstxt.org](https://llmstxt.org) convention — a machine-readable
+follows the [llmstxt.org](https://llmstxt.org) convention - a machine-readable
 TOC with titles, descriptions, and direct URLs for every doc page.
 
 ## Why Use It

@@ -74,6 +74,6 @@ search (use sparingly), `--json` for JSON output.
 
 Keep total findings under 15 KB. Focus on repo metadata and relevance.
 
-**Response to parent — ONE line only:**
+**Response to parent - ONE line only:**
 - `✅ Wrote <N> chars to <path>`
 - `❌ Failed: <reason>`

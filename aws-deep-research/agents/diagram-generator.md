@@ -51,9 +51,9 @@ path (.svg/.png), `--format` force format, `--url` explicit Kroki endpoint.
 
 ## Error Handling
 
-If Kroki is unavailable or D2 has syntax errors, skip silently — the report
+If Kroki is unavailable or D2 has syntax errors, skip silently - the report
 is valid without a diagram.
 
-**Response to parent — ONE line only:**
+**Response to parent - ONE line only:**
 - `✅ Generated diagram: <svg-path>`
 - `⚠️ Diagram skipped: <reason>`

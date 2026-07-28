@@ -33,22 +33,22 @@ AWS services, web search becomes the primary source. In this case, use
 
 | Intent | aws-knowledge | aws-pricing | agentcore | github | blog-feeds | web-search |
 |---|---|---|---|---|---|---|
-| service-overview | ✅ Required | — | If AgentCore | — | ✅ Recommended | — |
-| architecture | ✅ Required | — | If AgentCore | Optional | ✅ Recommended | — |
-| pricing | ✅ Supporting | ✅ Required | — | — | — | Optional |
-| comparison | ✅ Required | Optional | — | — | Optional | ✅ Required |
-| troubleshooting | ✅ Required | — | If AgentCore | — | Optional | ✅ Recommended |
-| best-practices | ✅ Required | — | If AgentCore | — | ✅ Recommended | — |
-| agentcore | Optional | — | ✅ Required | Optional | ✅ Recommended | — |
-| code-examples | ✅ Supporting | — | — | ✅ Required | Optional | Optional |
-| news-updates | ✅ Required | — | — | — | ✅ Required | ✅ Recommended |
+| service-overview | ✅ Required | - | If AgentCore | - | ✅ Recommended | - |
+| architecture | ✅ Required | - | If AgentCore | Optional | ✅ Recommended | - |
+| pricing | ✅ Supporting | ✅ Required | - | - | - | Optional |
+| comparison | ✅ Required | Optional | - | - | Optional | ✅ Required |
+| troubleshooting | ✅ Required | - | If AgentCore | - | Optional | ✅ Recommended |
+| best-practices | ✅ Required | - | If AgentCore | - | ✅ Recommended | - |
+| agentcore | Optional | - | ✅ Required | Optional | ✅ Recommended | - |
+| code-examples | ✅ Supporting | - | - | ✅ Required | Optional | Optional |
+| news-updates | ✅ Required | - | - | - | ✅ Required | ✅ Recommended |
 
 Legend:
-- ✅ Required — always query this source
-- ✅ Recommended — query unless budget is exhausted
-- Optional — query only if other sources are insufficient
-- Supporting — query for context but not the primary source
-- — — don't query
+- ✅ Required - always query this source
+- ✅ Recommended - query unless budget is exhausted
+- Optional - query only if other sources are insufficient
+- Supporting - query for context but not the primary source
+- - - don't query
 
 ## Blog Feed Selection
 
@@ -104,12 +104,12 @@ to EKS with Fargate"
 
 Only use web search when ALL of these are true:
 
-1. **The information is unlikely to be in AWS docs** — third-party comparisons,
+1. **The information is unlikely to be in AWS docs** - third-party comparisons,
    community benchmarks, non-AWS service details, very recent announcements
    (< 1 week old)
-2. **MCP server results are insufficient** — you searched aws-knowledge and
+2. **MCP server results are insufficient** - you searched aws-knowledge and
    didn't find what you need
-3. **The query explicitly or implicitly requires external perspective** —
+3. **The query explicitly or implicitly requires external perspective** -
    "vs", "compared to", "alternatives", "community opinion", "benchmark"
 
 ### Skip web search when:
@@ -136,7 +136,7 @@ When web search IS needed:
 ## Site-Scoped Community Search
 
 High-value AWS community sites contain practitioner-written content that
-official docs and blogs often miss — tutorials, architecture comparisons,
+official docs and blogs often miss - tutorials, architecture comparisons,
 real-world experience reports. Use **one** site-scoped search per research
 session to tap into this content efficiently.
 
@@ -144,14 +144,14 @@ session to tap into this content efficiently.
 
 | Site | Content type |
 |---|---|
-| `builder.aws.com` | AWS Builder Center — practitioner articles, tutorials, architecture patterns |
-| `repost.aws` | AWS re:Post — Q&A, knowledge articles, troubleshooting |
-| `community.aws` | AWS Community — blog posts, events, builder content |
+| `builder.aws.com` | AWS Builder Center - practitioner articles, tutorials, architecture patterns |
+| `repost.aws` | AWS re:Post - Q&A, knowledge articles, troubleshooting |
+| `community.aws` | AWS Community - blog posts, events, builder content |
 | `dev.to` | Developer articles (filter with AWS keywords) |
 
 ### How to search (single API call)
 
-**Brave** — use `site:` and `OR` operators directly in the query string:
+**Brave** - use `site:` and `OR` operators directly in the query string:
 
 ```bash
 uv run $SKILL_DIR/scripts/brave_search.py \
@@ -160,7 +160,7 @@ uv run $SKILL_DIR/scripts/brave_search.py \
   -o <output-dir>/downloads/brave
 ```
 
-**Tavily** — use the `--include-domains` parameter:
+**Tavily** - use the `--include-domains` parameter:
 
 ```bash
 uv run $SKILL_DIR/scripts/tavily_search.py \
@@ -172,16 +172,16 @@ uv run $SKILL_DIR/scripts/tavily_search.py \
 
 ### When to use site-scoped search
 
-- **Always** for `comprehensive` strategy — it's a cheap way to find
+- **Always** for `comprehensive` strategy - it's a cheap way to find
   practitioner perspectives alongside official docs
 - **Recommended** for `architecture`, `best-practices`, `troubleshooting`
-  intents — these benefit most from real-world experience
+  intents - these benefit most from real-world experience
 - **Skip** for `feed-only`, `docs-only`, and `pricing-focused` strategies
 
 ### Budget impact
 
 One API call covers all community sites. This costs 1 Brave search or
-1 Tavily credit — efficient because `OR`/`--include-domains` combines
+1 Tavily credit - efficient because `OR`/`--include-domains` combines
 multiple site scopes into a single request.
 
 ## GitHub Search Decision
@@ -219,16 +219,16 @@ prior month's entry, so the file never grows unbounded.
 
 ## Query Decomposition (default for all topics)
 
-A single natural-language question typically hides 2–3 distinct facets (e.g.
+A single natural-language question typically hides 2-3 distinct facets (e.g.
 *"what is X"* + *"how to use X"*, or *"docs"* + *"tutorial"*, or *"capabilities"*
 + *"pricing"*). Running one keyword-compressed string misses most of them.
 
-**Rule: decompose every research topic into 2–3 facet-labeled subqueries
-before dispatching to any search source** — web search, AWS docs MCP,
+**Rule: decompose every research topic into 2-3 facet-labeled subqueries
+before dispatching to any search source** - web search, AWS docs MCP,
 GitHub, or blog-feed search. Applies to AWS topics AND generic topics
 equally; there is no "non-AWS only" exception.
 
-### Facet pairs (pick 2–3 that fit the question)
+### Facet pairs (pick 2-3 that fit the question)
 
 | Facet pair | When it applies | Example for *"How does AWS Bedrock Guardrails compare to NVIDIA NeMo Guardrails?"* |
 |---|---|---|
@@ -240,7 +240,7 @@ equally; there is no "non-AWS only" exception.
 | **primary-source · third-party** | Research centered on one creator/paper/post | `Karpathy LLM knowledge base gist` + `LLM wiki Obsidian implementation community` |
 
 Pick **the facet pair that genuinely splits the question**, not an arbitrary
-one. If no pair fits, craft one that does — the facet is the value, not the
+one. If no pair fits, craft one that does - the facet is the value, not the
 label.
 
 ### Query-adaptive facets (prefer over the catalog)
@@ -248,7 +248,7 @@ label.
 The table above is a **fallback catalog**, not a menu to pick from first.
 Before reaching for it, generate facets tuned to the specific question:
 
-1. Read the actual query and its research contract. Identify the 2–3
+1. Read the actual query and its research contract. Identify the 2-3
    dimensions along which a good answer would genuinely differ (e.g. for
    *"is Aurora Serverless v2 cheaper than provisioned for spiky traffic?"*
    the real axes are **steady-state cost** vs **burst/idle cost**, not a
@@ -256,14 +256,14 @@ Before reaching for it, generate facets tuned to the specific question:
 2. Write subqueries that target those specific dimensions, using the query's
    own entities and constraints as search terms.
 3. **Then** map each hand-crafted facet to the closest catalog label for the
-   transparency printout — the label is just a name; the tuned subquery is
+   transparency printout - the label is just a name; the tuned subquery is
    the value.
 4. Only fall back to a catalog pair verbatim when the query is generic enough
    that a catalog pair already splits it well (e.g. a plain service overview).
 
 The test: read your two subqueries and ask "would these two searches return
 meaningfully different, both-needed results for *this* question?" If they'd
-return near-duplicate results, the split is wrong — re-facet.
+return near-duplicate results, the split is wrong - re-facet.
 
 ### Transparency rule (MANDATORY)
 
@@ -288,20 +288,20 @@ web-search credits per research session.
 | Brave | 2,000 | 0.2% |
 | Tavily | 1,000 | 0.4% |
 
-Cheaper than running a single broad query and missing a facet — a missed
+Cheaper than running a single broad query and missing a facet - a missed
 facet costs a second full research session.
 
 ### What about AWS topics specifically?
 
 For AWS topics, the same 2-query decomposition applies to the `aws_doc_search`
 and blog-feed calls inside `aws-mcp-researcher`. The parent still routes to
-MCP first (per the Source Selection Matrix above) — decomposition governs
+MCP first (per the Source Selection Matrix above) - decomposition governs
 *what queries hit MCP*, not *whether to hit MCP*. Web search stays
-"supplementary" for pure-AWS topics (Tier 2 budget: 0–2 web credits if any
+"supplementary" for pure-AWS topics (Tier 2 budget: 0-2 web credits if any
 comparison is involved).
 
 ### What about "Tier 3 complex" questions?
 
 Complex questions may warrant 3 facets instead of 2 (e.g. build · critique ·
-pricing, or reference · tutorial · community). Cap at 3 — beyond that,
+pricing, or reference · tutorial · community). Cap at 3 - beyond that,
 diminishing returns and the facets start overlapping.

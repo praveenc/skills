@@ -6,7 +6,7 @@
 # ]
 # ///
 """
-GitHub Repository Search — standalone MCP client.
+GitHub Repository Search - standalone MCP client.
 
 Spawns awslabs.git-repo-research-mcp-server as a child process (stdio),
 searches AWS-related GitHub organizations for relevant repositories,
@@ -398,7 +398,7 @@ def format_markdown(findings: list[dict[str, Any]]) -> str:
     for url, name in source_urls:
         if url and url not in seen:
             seen.add(url)
-            lines.append(f"{idx}. {url} — {name}")
+            lines.append(f"{idx}. {url} - {name}")
             idx += 1
 
     lines.append("")
@@ -465,7 +465,7 @@ async def main(args: argparse.Namespace) -> None:
     # Check GITHUB_TOKEN
     if not os.environ.get("GITHUB_TOKEN"):
         console.print(
-            "[yellow]⚠ GITHUB_TOKEN not set — GitHub search may have limited results[/yellow]",
+            "[yellow]⚠ GITHUB_TOKEN not set - GitHub search may have limited results[/yellow]",
         )
 
     logger = ResearchLogger(Path(args.log_dir) if args.log_dir else None)
