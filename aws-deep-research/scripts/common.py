@@ -49,7 +49,10 @@ def load_blocked_domains(path: Path | None = None) -> frozenset[str]:
     for line in p.read_text(encoding="utf-8").splitlines():
         line = line.split("#", 1)[0].strip().lower()
         if line:
-            domains.add(line)
+            # Entries are stored defanged (winbuzzer[.]com) so the file itself
+            # contains no live domain that content scanners flag as a URL.
+            # Un-defang to the real host for matching.
+            domains.add(line.replace("[.]", "."))
     blocked = frozenset(domains)
     _BLOCKLIST_CACHE = (blocked, mtime)
     return blocked
