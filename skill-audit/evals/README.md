@@ -10,25 +10,64 @@ awareness.
 ```
 evals/
   evals.json            # the cases (positive / negative / boundary)
+  run.py                # deterministic validator + --selftest
+  run.sh                # thin wrapper (python3 -> run.py)
   fixtures/
-    clean-skill/        # a well-formed skill - auditor should NOT invent 🔴s
+    clean-skill/        # a well-formed skill WITH evals - auditor should score all 🟢
     flawed-skill/       # one planted defect per dimension - all must be caught
+    legit-trap-skill/   # legit skill sitting ON the traps - false-positive control
+  outputs/              # generated audit reports (gitignored), one per case id
   README.md             # this file
 ```
 
 The fixtures are the key to determinism. Because each fixture has known,
-fixed contents, the assertions in `evals.json` are checkable with plain regex
-against the written audit report - no LLM-as-judge needed for most of them.
+fixed contents, the EVIDENCE a correct audit must cite (the planted defect
+strings) is fixed and checkable with plain regex against the written report -
+no LLM-as-judge for pass/fail. Each case in `evals.json` carries both prose
+`assertions` (human-readable intent) and machine `checks` (graded by `run.py`).
+
+## Running the evals
+
+Two phases (see `how_to_run` in `evals.json`):
+
+1. **Generate.** For each case, start a **fresh agent session** with the
+   skill-audit skill available (cwd in a scratch copy of the skill, see
+   Isolation below), send the case `prompt`, and save the written audit report
+   to `evals/outputs/<case-id>.md`. For `negative` cases, produce **no** report
+   file (the auditor should decline / preflight should fail).
+2. **Validate.** Grade the generated reports deterministically:
+
+```bash
+./run.sh                 # grade every outputs/<id>.md against its checks
+./run.sh --selftest      # validate the check engine, no agent output needed
+./run.sh --case <id>     # grade a single case
+./run.sh --lenient       # missing reports are PENDING, not FAIL
+```
+
+Check types: `regex`, `any_regex` (OR-group over `patterns[]`), `absent`,
+`absent_regex`, `count_regex` (`min`), `report_absent` (negative cases), and
+`judge` (INFO-only, printed for human review, never affects pass/fail).
+`flags` supports `i` (ignorecase) and `s` (dotall).
 
 ## Fixtures and their planted defects
 
-`clean-skill/` is deliberately clean: name matches directory, small body,
-concrete gotchas, an explicit `Do NOT use for...` negative-trigger clause, and a
-non-interactive `normalize.py` with `--help`, documented exit codes, and
-stdout=data / stderr=diagnostics. Its only real gap is a missing `evals/`, so
-dim 9 is 🔴 and, by the report's worst-of rule, overall is 🔴 too - attributed
-solely to the missing evals. That is the intended lesson: even a pristine skill
-is unshippable without evals. The auditor must not invent any other 🔴.
+`clean-skill/` is deliberately clean and complete: name matches directory,
+small body, concrete gotchas, an explicit `Do NOT use for...` negative-trigger
+clause, a non-interactive `normalize.py` with `--help`, documented exit codes,
+and stdout=data / stderr=diagnostics, AND a genuine (if modest) `evals/`
+directory with positive, negative, and boundary cases. There is no real defect
+to find, so a correct audit scores every applicable dimension 🟢 and overall
+🟢. This is the primary **no-false-positives** case: the auditor must not
+fabricate 🔴s or 🟡s on a well-formed skill. (The "pristine-but-no-evals is
+unshippable" lesson is carried by `flawed-skill/` and the `boundary-empty-scripts-dir`
+case, both of which have no `evals/`.)
+
+`legit-trap-skill/` is the **false-positive control**: a legitimately
+well-formed skill that sits directly ON the traps the newer dimensions hunt.
+It has a task-specific description, a real `Do NOT use for...` negative clause,
+and ships its own `evals/` directory. A correct audit scores dim 1, 4, and 9
+🟢 and does **not** fabricate 🔴s. An auditor that reflexively reds everything
+(or flags dim 9 as missing evals when evals/ is present) fails this case.
 
 `flawed-skill/` plants exactly one defect per dimension so each finding is
 attributable:
@@ -52,8 +91,11 @@ this skill, so the auditor cannot reuse context from a prior case's turn. Copy
 the skill to a throwaway dir per run:
 
 ```bash
+# Resolve this skill's root portably (the dir containing this evals/ dir).
+# Adjust SKILL_ROOT if you invoke from elsewhere.
+SKILL_ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # or: the skill-audit dir you cloned
 WORK="$(mktemp -d)"
-cp -R /Users/pchamart/.agents/skills/skill-audit "$WORK/skill-audit"
+cp -R "$SKILL_ROOT" "$WORK/skill-audit"
 # run the agent with cwd="$WORK/skill-audit" and only this one prompt
 ```
 
@@ -64,7 +106,7 @@ copied skill dir. The audit is read-only, but copying also guarantees a clean
 ### Trials (non-determinism)
 
 Agents are non-deterministic. Run the reliability-sensitive positive cases
-(`clean-skill-mostly-green`, `flawed-skill-catches-planted-defects`) **3-6
+(`clean-skill-all-green`, `flawed-skill-catches-planted-defects`) **3-6
 times** each and report a pass rate, not a single pass/fail. Negative and
 boundary cases can run fewer trials but should still be repeated at least twice.
 

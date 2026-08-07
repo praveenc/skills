@@ -6,7 +6,10 @@ description: >
   structure, or compliance with best-practice guidelines. Triggers on: "audit skill",
   "review skill quality", "score this skill", "skill best practices check",
   "evaluate skill structure", "skill compliance". Produces a scorecard + prioritized
-  findings report written to disk.
+  findings report written to disk. Do NOT use for general code review or code-quality
+  assessment, for auditing a directory that has no SKILL.md (not an agent skill), or
+  for fixing/editing a skill - this audit is read-only and skill-scoped, not a linter
+  or refactoring tool.
 compatibility: >
   Requires bash for preflight script execution. Works with any skill directory
   containing a SKILL.md file. The audit is read-only against the target skill.
@@ -20,8 +23,24 @@ compatibility: >
 
 # Skill Audit
 
-Audit an Agent Skill against six best-practice source docs. Produce a
+Audit an Agent Skill against six best-practice source docs (published at
+agentskills.io and Anthropic's docs; see the Sources table in
+`references/scoring-rubric.md` for the full tag-to-URL map). Produce a
 scorecard + prioritized findings report and **write it to disk**.
+
+## Complexity contract
+
+- **Token cost:** the full audit loads this SKILL.md plus
+  `references/scoring-rubric.md` (~2,900 tokens) before reading the target.
+- **Applies to:** an agent-skill directory (has a `SKILL.md`). Not for general
+  code review, arbitrary source trees, or fixing/editing a skill.
+- **Lightweight fallback (use for a trivial one-file skill):** if the target is
+  a single `SKILL.md` with no `references/`, `scripts/`, or `agents/`, you may
+  skip loading the full rubric and spot-check only the four highest-signal
+  dimensions inline - **4 (description & triggers), 1 (frontmatter), 9 (evals),
+  10 (no-ops)** - then write a short findings list in the same report format.
+  Escalate to the full pipeline the moment the skill has bundled resources or
+  the user asks for a complete scorecard. When in doubt, run the full audit.
 
 ## Workflow
 
@@ -166,7 +185,7 @@ findings: <total>  (🔴 <n>  🟡 <n>)
 - Be specific. "Description lacks trigger verbs" is weak; quote the description and name the missing verbs.
 - Keep findings <~12. Merge related nits into one finding.
 - If a dimension genuinely does not apply (e.g. no scripts at all), mark it **N/A** in the scorecard row and do not invent findings for it.
-- Every dimension row must cite its source doc tag (00.spec / 01.bp / 01a.claude / 02.desc / 03.eval / 04.scripts).
+- Every dimension row must cite its source doc tag (00.spec / 01.bp / 01a.claude / 02.desc / 03.eval / 04.scripts) - see the Sources table in `references/scoring-rubric.md` for what each tag resolves to.
 
 ## Gotchas
 

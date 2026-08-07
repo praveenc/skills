@@ -1,22 +1,33 @@
 {
   "skill_name": "skill-audit",
-  "version": "1.1.0",
-  "notes": "Cases run against the fixtures under evals/fixtures/. Fixtures are deterministic so assertions are regex-checkable against the written report. Run each case in an isolated workspace (fresh agent session, cwd = a scratch dir) so the auditor cannot reuse prior-turn context. Reliability-sensitive cases (1, 2) should be run 3-6 times and pass-rate reported. See README.md for the run/ablation/harness protocol.",
+  "version": "1.2.0",
+  "notes": "Cases run against the fixtures under evals/fixtures/. Fixtures are deterministic, so the EVIDENCE a correct audit must cite (planted defect strings) is fixed and checkable by regex against the written report - no LLM-as-judge for pass/fail. Each case carries prose `assertions` (human-readable intent) AND machine `checks` (graded by run.py). Run each case in an isolated workspace (fresh agent session) so the auditor cannot reuse prior-turn context. Reliability-sensitive positive cases should be run 3-6 times and pass-rate reported. See README.md for the generate/validate/ablation/harness protocol.",
+  "how_to_run": {
+    "phase_1_generate": "For each case, start a FRESH agent session with the skill-audit skill available, cwd in a scratch copy of the skill (see README isolation). Send the case `prompt`. Save the written audit report to evals/outputs/<case-id>.md. For `negative` cases, produce NO report file (the auditor should decline / preflight should fail).",
+    "phase_2_validate": "Run `./run.sh` (or `python3 run.py`) to grade every outputs/<id>.md against its `checks`. `./run.sh --selftest` validates the check engine with zero agent output. `./run.sh --case <id>` grades one case. `./run.sh --lenient` treats missing reports as PENDING instead of FAIL.",
+    "checks_reference": "check types: regex, any_regex (OR-group over patterns[]), absent, absent_regex, count_regex (min), report_absent (negative cases), judge (INFO-only, human review). `flags` supports i (ignorecase) and s (dotall)."
+  },
   "cases": [
     {
-      "id": "clean-skill-all-green-except-evals",
+      "id": "clean-skill-all-green",
       "kind": "positive",
       "prompt": "Audit the skill at evals/fixtures/clean-skill and write the report to disk.",
-      "expected_output": "Auditor runs preflight and scores every dimension 🟢 EXCEPT eval scaffolding: the fixture has valid frontmatter (name matches dir), a small body, concrete gotchas, negative-trigger coverage in the description, and a well-formed non-interactive script. Its only real gap is a missing evals/ directory, correctly scored 🔴. Because the report uses worst-of, overall is 🔴 driven solely by dim 9 - which is the intended lesson: even a pristine skill is unshippable without evals. The auditor must NOT invent other 🔴s.",
+      "expected_output": "Auditor runs preflight and scores every applicable dimension 🟢: the fixture has valid frontmatter (name matches dir), a small body, concrete gotchas, negative-trigger coverage in the description, a well-formed non-interactive script, AND a genuine (if modest) evals/ directory with positive + negative + boundary cases. There is no real defect to find, so overall is 🟢. The auditor must NOT fabricate 🔴s or 🟡s on a well-formed skill - this is the primary no-false-positives case.",
       "assertions": [
         "Runs scripts/preflight.sh against evals/fixtures/clean-skill before judging",
         "Frontmatter (dim 1) scored 🟢 - name 'clean-skill' matches directory",
         "Description & triggers (dim 4) scored 🟢 and credits the explicit 'Do NOT use for...' negative-trigger clause",
         "Script design (dim 8) scored 🟢 or 🟡 - normalize.py is non-interactive, has --help, documented exit codes, stdout=data/stderr=diagnostics",
-        "Eval scaffolding (dim 9) scored 🔴 because the fixture has no evals/ directory",
-        "Every dimension other than 9 is 🟢 (or 🟡 for dim 8) - NO fabricated 🔴s",
-        "Overall verdict is 🔴 by worst-of, attributed explicitly and solely to the missing evals",
+        "Eval scaffolding (dim 9) scored 🟢 - the fixture ships a genuine evals/ with positive, negative, and boundary cases",
+        "Overall verdict is 🟢 - NO fabricated 🔴s",
         "Does not write or modify anything inside evals/fixtures/clean-skill"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "clean-skill", "desc": "names the audited skill (clean-skill)"},
+        {"type": "absent_regex", "flags": "i", "pattern": "(no|missing|absent|without)\\s+.{0,4}evals|evals[^.\\n]{0,20}(is\\s+)?(missing|absent)|evals:?\\**\\s*0\\b", "desc": "dim 9 is NOT flagged as missing evals (the fixture HAS evals/)"},
+        {"type": "any_regex", "flags": "i", "patterns": ["do not use", "negative[- ]trigger", "does not"], "desc": "credits the description's negative-trigger clause"},
+        {"type": "count_regex", "pattern": "\ud83d\udfe2", "min": 5, "desc": "most dimensions scored 🟢 (no fabricated reds)"},
+        {"type": "judge", "desc": "overall 🟢; the auditor does not fabricate defects on a well-formed skill (primary no-false-positives case)"}
       ]
     },
     {
@@ -35,6 +46,18 @@
         "Overall verdict is 🔴",
         "Cites concrete path:line evidence for findings, not vague statements",
         "Declines to edit the fixture and states the report is for a context-rich agent to fix"
+      ],
+      "checks": [
+        {"type": "regex", "pattern": "helper", "desc": "dim 1: cites the name 'helper' mismatch"},
+        {"type": "any_regex", "flags": "i", "patterns": ["helps with data tasks", "vague", "no trigger"], "desc": "dim 4: flags the vague description"},
+        {"type": "any_regex", "flags": "i", "patterns": ["backslash", "C:\\\\data", "windows[- ]style path"], "desc": "dim 10: Windows backslash paths"},
+        {"type": "any_regex", "patterns": ["0\\.7", "window 42", "mode 3"], "desc": "dim 10: voodoo constants cited"},
+        {"type": "regex", "flags": "i", "pattern": "no-?op", "desc": "dim 10: no-ops flagged"},
+        {"type": "any_regex", "flags": "i", "patterns": ["(no|missing|absent|without)\\s+.{0,4}evals", "evals[^.\\n]{0,20}(is\\s+)?(missing|absent)", "evals:?\\**\\s*0\\b"], "desc": "dim 9: missing evals/ flagged"},
+        {"type": "any_regex", "flags": "i", "patterns": ["instead of a script", "should be a script", "extract.{0,20}scripts?/", "move .{0,40}scripts?/", "left inline"], "desc": "dim 3: script-extraction opportunity"},
+        {"type": "count_regex", "pattern": "\ud83d\udd34", "min": 3, "desc": "multiple 🔴 findings present"},
+        {"type": "regex", "pattern": ":\\d+", "desc": "cites path:line evidence (a :<number> reference)"},
+        {"type": "judge", "desc": "every planted defect caught; declines to edit; evidence is concrete not vague"}
       ]
     },
     {
@@ -46,28 +69,59 @@
         "Names at least three specific no-op phrases quoted from the fixture",
         "Explains no-ops cost tokens on every invocation while changing nothing",
         "Points to the 'Notes' section ('use good judgment', 'write maintainable code', 'ensure quality') as pure padding"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "no-?op", "desc": "identifies no-ops as the concept"},
+        {"type": "count_regex", "flags": "i", "pattern": "write clean code|be careful|test your changes|good judgment|maintainable|ensure quality", "min": 3, "desc": "quotes at least 3 specific no-op phrases"},
+        {"type": "any_regex", "flags": "i", "patterns": ["every invocation", "each invocation", "cost .* token", "token .* zero", "no behavior change", "without changing"], "desc": "explains the per-invocation token cost / zero behavior change"}
+      ]
+    },
+    {
+      "id": "legit-trap-skill-not-over-flagged",
+      "kind": "positive-negative-control",
+      "prompt": "Audit the skill at evals/fixtures/legit-trap-skill and write the report to disk.",
+      "expected_output": "legit-trap-skill is a legitimately well-formed skill that sits ON the traps the newer dimensions hunt for: it has a real negative-trigger clause, a task-specific description, and its own evals/. The auditor must NOT over-flag it. Frontmatter (dim 1: name matches dir), description (dim 4: has 'Do NOT use for...'), and eval scaffolding (dim 9: evals/ present) should all score 🟢. This is the false-positive control: an auditor that reflexively reds everything fails here.",
+      "assertions": [
+        "Frontmatter (dim 1) 🟢 - name 'legit-trap-skill' matches directory",
+        "Description & triggers (dim 4) 🟢 - task-specific triggers AND a 'Do NOT use for...' negative clause",
+        "Eval scaffolding (dim 9) is NOT 🔴 - the fixture ships its own evals/ directory",
+        "Overall is not reflexively 🔴 - the auditor does not fabricate defects on a legit skill",
+        "Does not write or modify anything inside evals/fixtures/legit-trap-skill"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "legit-trap-skill", "desc": "names the audited skill"},
+        {"type": "any_regex", "flags": "i", "patterns": ["do not use", "negative[- ]trigger", "does not"], "desc": "dim 4: credits the negative-trigger clause"},
+        {"type": "absent_regex", "flags": "i", "pattern": "(no|missing|absent|without)\\s+.{0,4}evals|evals[^.\\n]{0,20}(is\\s+)?(missing|absent)|evals:?\\**\\s*0\\b", "desc": "dim 9 is NOT flagged as missing evals (the fixture HAS evals/)"},
+        {"type": "count_regex", "pattern": "\ud83d\udfe2", "min": 3, "desc": "several dimensions scored 🟢 (not over-flagged)"},
+        {"type": "judge", "desc": "auditor does not fabricate 🔴s on a legitimately well-formed skill (false-positive control)"}
       ]
     },
     {
       "id": "negative-not-a-skill-dir",
       "kind": "negative",
       "prompt": "Audit ~/some/random/project/src - it's a TypeScript service, review the code quality.",
-      "expected_output": "This is NOT an agent-skill audit. The target has no SKILL.md. The auditor's preflight should fail (exit 1), and the agent should report that the path is not an auditable skill and decline, rather than running the skill-authoring rubric against arbitrary source code.",
+      "expected_output": "This is NOT an agent-skill audit. The target has no SKILL.md. The auditor's preflight should fail (exit 1), and the agent should report that the path is not an auditable skill and decline, rather than running the skill-authoring rubric against arbitrary source code. No audit report should be written.",
       "assertions": [
         "Recognizes the target is not an agent skill (no SKILL.md)",
         "Does NOT produce a 10-dimension skill-authoring scorecard for arbitrary source code",
         "Reports the preflight failure / not-a-skill condition and stops",
         "Does not fabricate skill-audit findings for a non-skill directory"
+      ],
+      "checks": [
+        {"type": "report_absent", "desc": "no audit report is produced for a non-skill directory"}
       ]
     },
     {
       "id": "negative-code-review-request",
       "kind": "negative",
       "prompt": "Can you review this pull request and suggest improvements to the error handling?",
-      "expected_output": "This is a general code-review request with no skill directory in scope. The skill-audit skill should NOT trigger; a competent agent handles this as normal code review. If it does engage, it must not emit a skill-authoring scorecard.",
+      "expected_output": "This is a general code-review request with no skill directory in scope. The skill-audit skill should NOT trigger; a competent agent handles this as normal code review. If it does engage, it must not emit a skill-authoring scorecard. No audit report should be written.",
       "assertions": [
         "skill-audit does not trigger - no preflight run, no 10-dimension scorecard produced",
         "Request is handled as ordinary code review, not a skill audit"
+      ],
+      "checks": [
+        {"type": "report_absent", "desc": "skill-audit does not trigger for a general PR code-review request"}
       ]
     },
     {
@@ -79,6 +133,10 @@
         "Proceeds with the audit rather than erroring on the pre-existing report",
         "Either overwrites meta/AUDIT-<today>.md (acknowledging it) or writes to a distinct path",
         "Does not corrupt or append-duplicate into the existing report"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "clean-skill", "desc": "proceeds and produces a fresh report for clean-skill"},
+        {"type": "count_regex", "pattern": "## Scorecard", "min": 1, "desc": "exactly one scorecard (no append-duplication)"}
       ]
     },
     {
@@ -90,6 +148,10 @@
         "Dim 8 (script design) marked N/A when scripts/ is absent, not 🔴",
         "Dim 9 (eval scaffolding) marked 🔴 when evals/ is absent - NOT N/A",
         "No fabricated findings about nonexistent scripts"
+      ],
+      "checks": [
+        {"type": "regex", "flags": "i", "pattern": "N/A", "desc": "dim 8 marked N/A when no scripts/ present"},
+        {"type": "any_regex", "flags": "i", "patterns": ["(no|missing|absent|without)\\s+.{0,4}evals", "evals[^.\\n]{0,20}(is\\s+)?(missing|absent)", "evals:?\\**\\s*0\\b"], "desc": "dim 9 still flagged 🔴 for missing evals/"}
       ]
     }
   ]
