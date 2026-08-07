@@ -52,8 +52,11 @@ this skill, so the auditor cannot reuse context from a prior case's turn. Copy
 the skill to a throwaway dir per run:
 
 ```bash
+# Resolve this skill's root portably (the dir containing this evals/ dir).
+# Adjust SKILL_ROOT if you invoke from elsewhere.
+SKILL_ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # or: the skill-audit dir you cloned
 WORK="$(mktemp -d)"
-cp -R /Users/pchamart/.agents/skills/skill-audit "$WORK/skill-audit"
+cp -R "$SKILL_ROOT" "$WORK/skill-audit"
 # run the agent with cwd="$WORK/skill-audit" and only this one prompt
 ```
 

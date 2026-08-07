@@ -3,6 +3,37 @@
 Detailed criteria for each of the 10 audit dimensions. Score each as
 **🟢 pass / 🟡 partial / 🔴 fail**.
 
+## Contents
+
+- [Sources](#sources)
+- [1. Frontmatter spec](#1-frontmatter-spec-00spec)
+- [2. Body size / token budget](#2-body-size--token-budget-01bp-01aclaude)
+- [3. Progressive disclosure](#3-progressive-disclosure-01bp-01aclaude)
+- [4. Description quality & triggers](#4-description-quality--triggers-02desc)
+- [5. Gotchas](#5-gotchas-01bp)
+- [6. Output templates](#6-output-templates-01bp-01aclaude)
+- [7. Validation / feedback loops](#7-validation--feedback-loops-01bp-01aclaude)
+- [8. Script design](#8-script-design-04scripts)
+- [9. Eval scaffolding & rigor](#9-eval-scaffolding--rigor-03eval)
+- [10. Anti-patterns & no-ops](#10-anti-patterns--no-ops-01aclaude)
+
+## Sources
+
+Each dimension cites a short **source tag** in its heading. The tags map to
+publicly published skill-authoring documentation, so every finding the audit
+emits points at a resolvable authority the reader can open and verify.
+
+| Tag | Source document | URL |
+|-----|-----------------|-----|
+| `00.spec` | Agent Skills - Specification | https://agentskills.io/specification.md |
+| `01.bp` | Agent Skills - Best practices for skill creators | https://agentskills.io/skill-creation/best-practices.md |
+| `01a.claude` | Anthropic - Agent Skills authoring best practices | https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices.md |
+| `02.desc` | Agent Skills - Optimizing skill descriptions | https://agentskills.io/skill-creation/optimizing-descriptions.md |
+| `03.eval` | Agent Skills - Evaluating skill output quality | https://agentskills.io/skill-creation/evaluating-skills.md |
+| `04.scripts` | Agent Skills - Using scripts in skills | https://agentskills.io/skill-creation/using-scripts.md |
+
+The complete agentskills.io index is at https://agentskills.io/llms.txt.
+
 ---
 
 ## 1. Frontmatter spec *(00.spec)*

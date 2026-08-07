@@ -46,6 +46,16 @@ HELP
 
 err() { printf '%s\n' "$*" >&2; }
 
+# json_escape - escape a string for safe inclusion in a JSON string literal.
+# Escapes backslash and double-quote (the two characters that would otherwise
+# produce invalid JSON for a filesystem path). Prints the escaped value.
+json_escape() {
+  local s=$1
+  s=${s//\\/\\\\}   # backslash -> \\  (must run first)
+  s=${s//\"/\\\"}   # double-quote -> \"
+  printf '%s' "$s"
+}
+
 # ── Parse args ─────────────────────────────────────────────────────────────
 
 POSITIONAL=()
@@ -111,4 +121,4 @@ SKILL_NAME="$(basename "$SKILL_DIR")"
 # ── Output structured JSON ─────────────────────────────────────────────────
 
 printf '{"skill_dir": "%s", "output_file": "%s", "skill_name": "%s"}\n' \
-  "$SKILL_DIR" "$OUTPUT_FILE" "$SKILL_NAME"
+  "$(json_escape "$SKILL_DIR")" "$(json_escape "$OUTPUT_FILE")" "$(json_escape "$SKILL_NAME")"
