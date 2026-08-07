@@ -25,7 +25,7 @@
       ],
       "checks": [
         {"type": "regex", "flags": "i", "pattern": "clean-skill", "desc": "names the audited skill (clean-skill)"},
-        {"type": "any_regex", "flags": "i", "patterns": ["no evals/? (directory|dir)", "missing evals", "evals/? (is )?(absent|missing)"], "desc": "dim 9 flags the missing evals/ directory"},
+        {"type": "any_regex", "flags": "i", "patterns": ["(no|missing|absent|without)\\s+.{0,4}evals", "evals[^.\\n]{0,20}(is\\s+)?(missing|absent)", "evals:?\\**\\s*0\\b"], "desc": "dim 9 flags the missing evals/ directory"},
         {"type": "count_regex", "pattern": "\ud83d\udd34", "min": 1, "desc": "at least one 🔴 present (dim 9 / overall)"},
         {"type": "any_regex", "flags": "i", "patterns": ["do not use", "negative[- ]trigger", "does not"], "desc": "credits the description's negative-trigger clause"},
         {"type": "count_regex", "pattern": "\ud83d\udfe2", "min": 4, "desc": "several dimensions scored 🟢 (no fabricated reds)"},
@@ -55,8 +55,8 @@
         {"type": "any_regex", "flags": "i", "patterns": ["backslash", "C:\\\\data", "windows[- ]style path"], "desc": "dim 10: Windows backslash paths"},
         {"type": "any_regex", "patterns": ["0\\.7", "window 42", "mode 3"], "desc": "dim 10: voodoo constants cited"},
         {"type": "regex", "flags": "i", "pattern": "no-?op", "desc": "dim 10: no-ops flagged"},
-        {"type": "any_regex", "flags": "i", "patterns": ["no evals/? (directory|dir)", "missing evals"], "desc": "dim 9: missing evals/ flagged"},
-        {"type": "any_regex", "flags": "i", "patterns": ["script[- ]extract", "should be a script", "extract .* to .*script"], "desc": "dim 3: script-extraction opportunity"},
+        {"type": "any_regex", "flags": "i", "patterns": ["(no|missing|absent|without)\\s+.{0,4}evals", "evals[^.\\n]{0,20}(is\\s+)?(missing|absent)", "evals:?\\**\\s*0\\b"], "desc": "dim 9: missing evals/ flagged"},
+        {"type": "any_regex", "flags": "i", "patterns": ["instead of a script", "should be a script", "extract.{0,20}scripts?/", "move .{0,40}scripts?/", "left inline"], "desc": "dim 3: script-extraction opportunity"},
         {"type": "count_regex", "pattern": "\ud83d\udd34", "min": 3, "desc": "multiple 🔴 findings present"},
         {"type": "regex", "pattern": ":\\d+", "desc": "cites path:line evidence (a :<number> reference)"},
         {"type": "judge", "desc": "every planted defect caught; declines to edit; evidence is concrete not vague"}
@@ -93,7 +93,7 @@
       "checks": [
         {"type": "regex", "flags": "i", "pattern": "legit-trap-skill", "desc": "names the audited skill"},
         {"type": "any_regex", "flags": "i", "patterns": ["do not use", "negative[- ]trigger", "does not"], "desc": "dim 4: credits the negative-trigger clause"},
-        {"type": "absent_regex", "flags": "i", "pattern": "no evals/? (directory|dir)|missing evals", "desc": "dim 9 is NOT flagged as missing evals (the fixture HAS evals/)"},
+        {"type": "absent_regex", "flags": "i", "pattern": "(no|missing|absent|without)\\s+.{0,4}evals|evals[^.\\n]{0,20}(is\\s+)?(missing|absent)|evals:?\\**\\s*0\\b", "desc": "dim 9 is NOT flagged as missing evals (the fixture HAS evals/)"},
         {"type": "count_regex", "pattern": "\ud83d\udfe2", "min": 3, "desc": "several dimensions scored 🟢 (not over-flagged)"},
         {"type": "judge", "desc": "auditor does not fabricate 🔴s on a legitimately well-formed skill (false-positive control)"}
       ]
@@ -153,7 +153,7 @@
       ],
       "checks": [
         {"type": "regex", "flags": "i", "pattern": "N/A", "desc": "dim 8 marked N/A when no scripts/ present"},
-        {"type": "any_regex", "flags": "i", "patterns": ["no evals/? (directory|dir)", "missing evals"], "desc": "dim 9 still flagged 🔴 for missing evals/"}
+        {"type": "any_regex", "flags": "i", "patterns": ["(no|missing|absent|without)\\s+.{0,4}evals", "evals[^.\\n]{0,20}(is\\s+)?(missing|absent)", "evals:?\\**\\s*0\\b"], "desc": "dim 9 still flagged 🔴 for missing evals/"}
       ]
     }
   ]
