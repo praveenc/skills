@@ -28,6 +28,20 @@ agentskills.io and Anthropic's docs; see the Sources table in
 `references/scoring-rubric.md` for the full tag-to-URL map). Produce a
 scorecard + prioritized findings report and **write it to disk**.
 
+## Complexity contract
+
+- **Token cost:** the full audit loads this SKILL.md plus
+  `references/scoring-rubric.md` (~2,900 tokens) before reading the target.
+- **Applies to:** an agent-skill directory (has a `SKILL.md`). Not for general
+  code review, arbitrary source trees, or fixing/editing a skill.
+- **Lightweight fallback (use for a trivial one-file skill):** if the target is
+  a single `SKILL.md` with no `references/`, `scripts/`, or `agents/`, you may
+  skip loading the full rubric and spot-check only the four highest-signal
+  dimensions inline - **4 (description & triggers), 1 (frontmatter), 9 (evals),
+  10 (no-ops)** - then write a short findings list in the same report format.
+  Escalate to the full pipeline the moment the skill has bundled resources or
+  the user asks for a complete scorecard. When in doubt, run the full audit.
+
 ## Workflow
 
 ### Step 0 - Preflight (deterministic)
