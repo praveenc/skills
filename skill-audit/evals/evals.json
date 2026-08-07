@@ -9,27 +9,25 @@
   },
   "cases": [
     {
-      "id": "clean-skill-all-green-except-evals",
+      "id": "clean-skill-all-green",
       "kind": "positive",
       "prompt": "Audit the skill at evals/fixtures/clean-skill and write the report to disk.",
-      "expected_output": "Auditor runs preflight and scores every dimension 🟢 EXCEPT eval scaffolding: the fixture has valid frontmatter (name matches dir), a small body, concrete gotchas, negative-trigger coverage in the description, and a well-formed non-interactive script. Its only real gap is a missing evals/ directory, correctly scored 🔴. Because the report uses worst-of, overall is 🔴 driven solely by dim 9 - which is the intended lesson: even a pristine skill is unshippable without evals. The auditor must NOT invent other 🔴s.",
+      "expected_output": "Auditor runs preflight and scores every applicable dimension 🟢: the fixture has valid frontmatter (name matches dir), a small body, concrete gotchas, negative-trigger coverage in the description, a well-formed non-interactive script, AND a genuine (if modest) evals/ directory with positive + negative + boundary cases. There is no real defect to find, so overall is 🟢. The auditor must NOT fabricate 🔴s or 🟡s on a well-formed skill - this is the primary no-false-positives case.",
       "assertions": [
         "Runs scripts/preflight.sh against evals/fixtures/clean-skill before judging",
         "Frontmatter (dim 1) scored 🟢 - name 'clean-skill' matches directory",
         "Description & triggers (dim 4) scored 🟢 and credits the explicit 'Do NOT use for...' negative-trigger clause",
         "Script design (dim 8) scored 🟢 or 🟡 - normalize.py is non-interactive, has --help, documented exit codes, stdout=data/stderr=diagnostics",
-        "Eval scaffolding (dim 9) scored 🔴 because the fixture has no evals/ directory",
-        "Every dimension other than 9 is 🟢 (or 🟡 for dim 8) - NO fabricated 🔴s",
-        "Overall verdict is 🔴 by worst-of, attributed explicitly and solely to the missing evals",
+        "Eval scaffolding (dim 9) scored 🟢 - the fixture ships a genuine evals/ with positive, negative, and boundary cases",
+        "Overall verdict is 🟢 - NO fabricated 🔴s",
         "Does not write or modify anything inside evals/fixtures/clean-skill"
       ],
       "checks": [
         {"type": "regex", "flags": "i", "pattern": "clean-skill", "desc": "names the audited skill (clean-skill)"},
-        {"type": "any_regex", "flags": "i", "patterns": ["(no|missing|absent|without)\\s+.{0,4}evals", "evals[^.\\n]{0,20}(is\\s+)?(missing|absent)", "evals:?\\**\\s*0\\b"], "desc": "dim 9 flags the missing evals/ directory"},
-        {"type": "count_regex", "pattern": "\ud83d\udd34", "min": 1, "desc": "at least one 🔴 present (dim 9 / overall)"},
+        {"type": "absent_regex", "flags": "i", "pattern": "(no|missing|absent|without)\\s+.{0,4}evals|evals[^.\\n]{0,20}(is\\s+)?(missing|absent)|evals:?\\**\\s*0\\b", "desc": "dim 9 is NOT flagged as missing evals (the fixture HAS evals/)"},
         {"type": "any_regex", "flags": "i", "patterns": ["do not use", "negative[- ]trigger", "does not"], "desc": "credits the description's negative-trigger clause"},
-        {"type": "count_regex", "pattern": "\ud83d\udfe2", "min": 4, "desc": "several dimensions scored 🟢 (no fabricated reds)"},
-        {"type": "judge", "desc": "overall 🔴 attributed SOLELY to missing evals, not to fabricated defects"}
+        {"type": "count_regex", "pattern": "\ud83d\udfe2", "min": 5, "desc": "most dimensions scored 🟢 (no fabricated reds)"},
+        {"type": "judge", "desc": "overall 🟢; the auditor does not fabricate defects on a well-formed skill (primary no-false-positives case)"}
       ]
     },
     {

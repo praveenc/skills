@@ -13,7 +13,7 @@ evals/
   run.py                # deterministic validator + --selftest
   run.sh                # thin wrapper (python3 -> run.py)
   fixtures/
-    clean-skill/        # a well-formed skill - auditor should NOT invent 🔴s
+    clean-skill/        # a well-formed skill WITH evals - auditor should score all 🟢
     flawed-skill/       # one planted defect per dimension - all must be caught
     legit-trap-skill/   # legit skill sitting ON the traps - false-positive control
   outputs/              # generated audit reports (gitignored), one per case id
@@ -51,13 +51,16 @@ Check types: `regex`, `any_regex` (OR-group over `patterns[]`), `absent`,
 
 ## Fixtures and their planted defects
 
-`clean-skill/` is deliberately clean: name matches directory, small body,
-concrete gotchas, an explicit `Do NOT use for...` negative-trigger clause, and a
-non-interactive `normalize.py` with `--help`, documented exit codes, and
-stdout=data / stderr=diagnostics. Its only real gap is a missing `evals/`, so
-dim 9 is 🔴 and, by the report's worst-of rule, overall is 🔴 too - attributed
-solely to the missing evals. That is the intended lesson: even a pristine skill
-is unshippable without evals. The auditor must not invent any other 🔴.
+`clean-skill/` is deliberately clean and complete: name matches directory,
+small body, concrete gotchas, an explicit `Do NOT use for...` negative-trigger
+clause, a non-interactive `normalize.py` with `--help`, documented exit codes,
+and stdout=data / stderr=diagnostics, AND a genuine (if modest) `evals/`
+directory with positive, negative, and boundary cases. There is no real defect
+to find, so a correct audit scores every applicable dimension 🟢 and overall
+🟢. This is the primary **no-false-positives** case: the auditor must not
+fabricate 🔴s or 🟡s on a well-formed skill. (The "pristine-but-no-evals is
+unshippable" lesson is carried by `flawed-skill/` and the `boundary-empty-scripts-dir`
+case, both of which have no `evals/`.)
 
 `legit-trap-skill/` is the **false-positive control**: a legitimately
 well-formed skill that sits directly ON the traps the newer dimensions hunt.
@@ -103,7 +106,7 @@ copied skill dir. The audit is read-only, but copying also guarantees a clean
 ### Trials (non-determinism)
 
 Agents are non-deterministic. Run the reliability-sensitive positive cases
-(`clean-skill-all-green-except-evals`, `flawed-skill-catches-planted-defects`) **3-6
+(`clean-skill-all-green`, `flawed-skill-catches-planted-defects`) **3-6
 times** each and report a pass rate, not a single pass/fail. Negative and
 boundary cases can run fewer trials but should still be repeated at least twice.
 

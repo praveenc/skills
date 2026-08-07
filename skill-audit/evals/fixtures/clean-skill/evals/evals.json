@@ -1,0 +1,52 @@
+{
+  "skill_name": "clean-skill",
+  "version": "1.0.0",
+  "notes": "Modest but genuine eval set for the currency-rate normalizer. Cases run in isolated fresh sessions against fixed input CSVs (item 5, isolation). Positive cases run 3x with pass-rate reported (item 7). Assertions grade the emitted JSON / exit code via deterministic checks (items 3+4, outcome-based and cheap-first). Validated on pi only - single-harness is a known gap (item 8, flagged not satisfied). No ablation or real-trace yet.",
+  "cases": [
+    {
+      "id": "normalizes-valid-rates-csv",
+      "kind": "positive",
+      "prompt": "Normalize this rates CSV to JSON: a file with header `currency,rate` and rows EUR,0.92 and GBP,0.79.",
+      "expected_output": "Runs normalize.py, exits 0, prints a JSON object {\"base\": \"USD\", \"rates\": {\"EUR\": 0.92, \"GBP\": 0.79}} to stdout with a row-count summary on stderr.",
+      "assertions": [
+        "Invokes scripts/normalize.py on the input CSV",
+        "Exit code is 0",
+        "stdout is a JSON object with a 'rates' map containing EUR and GBP",
+        "Does not hand-edit the JSON output"
+      ]
+    },
+    {
+      "id": "rejects-bad-header",
+      "kind": "negative",
+      "prompt": "Normalize a CSV whose header is `symbol,value` (not `currency,rate`).",
+      "expected_output": "The converter rejects the CSV: exit code 1, stderr explains the header mismatch. The agent reports the error and does not fabricate a rates table.",
+      "assertions": [
+        "Exit code is 1 (input error)",
+        "stderr names the expected header 'currency,rate'",
+        "No JSON rates table is fabricated from the mismatched file"
+      ]
+    },
+    {
+      "id": "rejects-percentage-rate",
+      "kind": "negative",
+      "prompt": "Normalize a rates CSV where one rate is written as `5%` instead of a ratio.",
+      "expected_output": "A trailing '%' is rejected because rate columns are ratios, not percentages (per the gotcha): exit 1 with a stderr message about the unparseable rate.",
+      "assertions": [
+        "Exit code is 1",
+        "stderr flags the '%' / unparseable rate",
+        "Does not silently strip the '%' and proceed"
+      ]
+    },
+    {
+      "id": "boundary-duplicate-currency-rows",
+      "kind": "boundary",
+      "prompt": "Normalize a rates CSV that lists EUR twice with different rates.",
+      "expected_output": "Duplicate currency rows fail fast (exit 1) rather than silently taking the last value, per the gotcha. The agent surfaces the duplication rather than guessing which rate is correct.",
+      "assertions": [
+        "Exit code is 1 on duplicate currency rows",
+        "Fails fast rather than silently keeping the last value",
+        "Surfaces the duplicate to the user"
+      ]
+    }
+  ]
+}
