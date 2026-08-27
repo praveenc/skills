@@ -20,7 +20,7 @@ task brief. This reference is the single source of truth - subagent-specific
 
 | Subagent | Extra fields |
 |---|---|
-| `web-content-researcher` | `feed-urls` (list of user-approved blog feed URLs), `fetchv2-max-length` (default 8000; bump to 15000-20000 for known primary sources), `public-web-approved: true` (mandatory explicit consent gate) |
+| `web-content-researcher` | `feed-urls` (list of user-approved blog feed URLs), `direct-urls` (user-supplied URLs to fetch into `direct-fetch.md`; see `references/direct-url-handling.md`), `fetchv2-max-length` (default 8000; bump to 15000-20000 for known primary sources), `public-web-approved: true` (mandatory explicit consent gate) |
 | `aws-mcp-researcher` | `pricing-flag` (true if pricing intent), `region` (default `us-east-1`) |
 | `github-researcher` | `top-n` (default 5) |
 | `agentcore-researcher` | `top-n` (default 3) |
