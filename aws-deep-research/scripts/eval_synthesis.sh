@@ -15,17 +15,25 @@
 #   bash eval_synthesis.sh <slug> [<slug> ...]
 #   bash eval_synthesis.sh --all          # every fixture in synthesis-rubric.json
 #
-# Then score each *.eval.md against evals/synthesis-rubric.json (human or LLM
-# judge). A report scoring < 14/20 should trigger a synthesizer-prompt fix.
+# Then score each *.eval.md against evals/synthesis-rubric.json. The rubric's
+# HARD dimensions (structure, citation integrity, gaps honesty, tightness) are
+# graded mechanically here by scripts/lint_report.py and control this script's
+# exit code. The SOFT dimensions (insight, actionability, contradiction
+# handling) need a judge and stay advisory - a report scoring < 14/20 on those
+# should trigger a synthesizer-prompt review.
 #
 # Env:
 #   RESEARCH_WORK_DIR  work root (default ~/.aws-deep-research/work)
 #   PI_BIN             pi binary (default: pi)
+#
+# Exit codes:
+#   0  every fixture re-synthesized AND passed the mechanical report gate
+#   1  a worker failed, an output is missing, or a report failed a hard check
 set -euo pipefail
 
 case "${1:-}" in
   -h|--help)
-    sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//;s/^#$//'
     exit 0
     ;;
 esac
@@ -104,24 +112,43 @@ for pid in "${pids[@]}"; do
 done
 
 echo
-echo "=== Eval outputs ==="
+echo "=== Eval outputs (mechanical gate) ==="
 for slug in "${slugs[@]}"; do
   out="$WORK_ROOT/$slug/${slug}-report.eval.md"
-  if [ -f "$out" ]; then
-    words=$(wc -w < "$out" | tr -d ' ')
-    has_tensions=$(grep -qE '^## Key Tensions' "$out" && echo yes || echo NO)
-    has_contra=$(grep -qE '^## Consensus & Contradictions' "$out" && echo yes || echo NO)
-    printf "OK   %-55s words=%-6s KeyTensions=%s Consensus&Contradictions=%s\n" \
-      "$slug" "$words" "$has_tensions" "$has_contra"
+  if [ ! -f "$out" ]; then
+    printf 'FAIL %-55s (no output; see %s)\n' "$slug" "$results_dir/$slug.log"
+    fail=1
+    continue
+  fi
+
+  # Fixture intents drive which conditional sections are mandatory.
+  intents=""
+  if command -v jq >/dev/null 2>&1; then
+    intents=$(jq -r --arg s "$slug" \
+      '.regression_fixtures[] | select(.slug==$s) | (.intents // []) | join(",")' \
+      "$RUBRIC" 2>/dev/null || true)
+  fi
+
+  lint_json="$results_dir/$slug.lint.json"
+  if uv run "$SKILL_DIR/scripts/lint_report.py" "$out" \
+       ${intents:+--intents "$intents"} --json >"$lint_json" 2>"$results_dir/$slug.lint.log"; then
+    verdict="PASS"
   else
-    printf "FAIL %-55s (see %s)\n" "$slug" "$results_dir/$slug.log"
+    verdict="FAIL"
     fail=1
   fi
+
+  words=$(wc -w < "$out" | tr -d ' ')
+  hard=$(python3 -c 'import json,sys;print(",".join(json.load(open(sys.argv[1]))["hard_failed"]) or "-")' \
+    "$lint_json" 2>/dev/null || echo "?")
+  printf '%-4s %-55s words=%-6s hard_failed=%s\n' "$verdict" "$slug" "$words" "$hard"
 done
 
 echo
-echo "Next: score each ${WORK_ROOT}/<slug>/<slug>-report.eval.md against"
-echo "      $RUBRIC (pass >= 14/20). Diff against <slug>-report.md for the"
-echo "      pre-change baseline."
+echo "Mechanical results: $results_dir/*.lint.json"
+echo "Next: score the SOFT rubric dimensions (insight_density, actionability,"
+echo "      contradiction_handling, evidence_weighting, coverage, no_fabrication)"
+echo "      in $RUBRIC with a judge. Those are advisory until calibrated."
+echo "      Diff against <slug>-report.md for the pre-change baseline."
 
 exit "$fail"

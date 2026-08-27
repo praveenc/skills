@@ -5,16 +5,19 @@
 Multi-source, parallelized deep research with facet-based query decomposition,
 subagent dispatch, and synthesized citations.
 
-**Optimized for AWS topics** (dispatches specialist subagents against AWS
-Knowledge MCP, AWS Pricing MCP, Bedrock AgentCore docs, AWS blog feeds,
-GitHub, and the open web) **but works equally well on non-AWS / generic
-research queries** - library internals, software architecture patterns,
-methodology deep-dives, cross-vendor comparisons, and primary-source
-research (papers, gists, blog posts).
+**AWS-first** (dispatches specialist subagents against AWS Knowledge MCP,
+AWS Pricing MCP, Bedrock AgentCore docs, AWS blog feeds, GitHub, and the open
+web), and also handles **generic / non-AWS research** the model cannot answer
+from memory - library internals, software architecture patterns, methodology
+deep-dives, cross-vendor comparisons, and primary-source research (papers,
+gists, blog posts).
 
-The skill auto-classifies each query as `aws` or `generic` in Step 1 and
-routes to appropriate sources; non-AWS queries fall through to web search +
-GitHub with the same facet-decomposition and contract-first discipline.
+The skill auto-classifies each query as `aws` or `generic` in Step 1b and
+routes to appropriate sources; generic queries skip the AWS MCP researcher and
+fall through to web search + GitHub with the same facet-decomposition and
+contract-first discipline. It deliberately does **not** activate for code
+authoring, local debugging, AWS CLI operations, or anything answerable from the
+current conversation - see `evals/routing.json` for the frozen boundary.
 
 ## Install
 
@@ -41,8 +44,21 @@ The eight-step flow enforced by `SKILL.md`:
 2. **Facet-labeled decomposition** (2-3 subqueries per source, printed to the user before any API credit is spent)
 3. **Domain blocklist** filters URLs pre-fetch
 4. Up to **4 subagents dispatch in parallel** writing findings to disk (never into the parent's context)
-5. **Size-gate** catches silent failures
+5. **Size gate** (`scripts/verify_findings.sh`) catches silent failures
 6. **Synthesizer** re-reads the contract to ground all citations in the final report
+7. **Report gate** (`scripts/lint_report.py`) checks sections, citation integrity, and size, with one repair attempt
+
+## Testing
+
+```bash
+bash scripts/run_tests.sh          # 147 model-free tests
+bash evals/run.sh --static         # eval-corpus structure gate
+bash evals/run.sh --selftest       # eval check-engine self-test
+```
+
+Trigger, behavior, and fault corpora live in `evals/` - see
+[evals/README.md](./evals/README.md) for the run protocol, isolation rules,
+splits, and release gates.
 
 ## Example queries
 

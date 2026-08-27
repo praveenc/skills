@@ -1,0 +1,50 @@
+name: skills-ci
+
+# Model-free gates only. Everything here is deterministic, cheap, and safe to
+# run on every push: package structure, doc parity, publish hygiene, script
+# behavior, and eval-corpus shape. The agent-driven suites (routing judge,
+# behavior, faults, efficacy ablation) need model access and run before a
+# release or on a schedule - see aws-deep-research/evals/README.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aws-deep-research:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aws-deep-research
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.29"
+
+      - name: Package, parity, hygiene, and script tests
+        run: bash scripts/run_tests.sh
+
+      - name: Eval check-engine self-test
+        run: bash evals/run.sh --selftest
+
+      - name: Eval corpus structure gate
+        run: bash evals/run.sh --static
+
+  skill-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skill-audit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Eval check-engine self-test
+        run: bash evals/run.sh --selftest

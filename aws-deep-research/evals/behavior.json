@@ -1,0 +1,177 @@
+{
+  "skill_name": "aws-deep-research",
+  "suite": "behavior",
+  "description": "End-to-end behavior corpus. Each case runs the skill FORCED-LOADED (bypassing discovery) and grades the ARTIFACTS ON DISK, not the trajectory. Forced load isolates behavior after loading; it cannot measure trigger quality - that is routing.json.",
+  "mode": "forced-load",
+  "isolation": "Fresh work dir per trial (RESEARCH_WORK_DIR=$(mktemp -d)) and a fresh agent session per case. Cases never share state. Set REPORT_OUTPUT_DIR into the same scratch tree so no case writes to the user's real reports dir.",
+  "trials": 3,
+  "grading": "Deterministic checks in `checks[]` are the gate; `expectations[]` are human-readable intent. A trace check inspects the run transcript the runner captured; an artifact check inspects a file the run produced. Grade outcomes and invariants, never a specific read order.",
+  "arms": "For a release comparison run the same cases under `no-skill`, `previous-release`, and `candidate` with identical model, harness, tools, and graders. See efficacy notes in README.md.",
+  "cases": [
+    {
+      "id": "behavior-comprehensive-multi-source",
+      "prompt": "deep research on configuring hierarchical indexing in Amazon OpenSearch Serverless - parent-child relationships, nested fields, efficient query mappings",
+      "strategy": "comprehensive",
+      "intents": ["service-overview", "architecture", "best-practices"],
+      "expectations": [
+        "Selects the comprehensive strategy and keeps the intent-default subagent set",
+        "Dispatches at least two researchers in one round, never more than four",
+        "Prints the decomposed subqueries with facet labels BEFORE dispatching",
+        "Produces <slug>-report.md that passes the mechanical report gate"
+      ],
+      "checks": [
+        {"type": "slug_valid", "desc": "slug is 4-7 tokens, 30-60 chars, kebab-case"},
+        {"type": "artifact_exists", "path": "aws-docs.md", "desc": "aws-mcp-researcher wrote findings"},
+        {"type": "artifact_exists", "path": "web-content.md", "desc": "web-content-researcher wrote findings"},
+        {"type": "report_lint", "intents": "architecture", "desc": "report passes lint_report.py hard checks"},
+        {"type": "max_parallel", "limit": 4, "desc": "never more than 4 subagents per round"},
+        {"type": "trace_regex", "pattern": "facet:", "desc": "facet-labeled subqueries printed before dispatch"},
+        {"type": "no_parent_findings_read", "desc": "parent never read a findings file (context isolation)"},
+        {"type": "judge", "desc": "report contains concrete mapping examples in JSON code blocks"}
+      ]
+    },
+    {
+      "id": "behavior-feed-only-latest-posts",
+      "prompt": "show me the top 5 latest AWS security blog posts",
+      "strategy": "feed-only",
+      "intents": ["news-updates"],
+      "expectations": [
+        "Selects feed-only, which OVERRIDES the intent default set",
+        "Dispatches web-content-researcher only, and skips decomposition entirely",
+        "Maps to the security blog category feed"
+      ],
+      "checks": [
+        {"type": "artifact_exists", "path": "web-content.md", "desc": "feed findings written"},
+        {"type": "artifact_absent", "path": "aws-docs.md", "desc": "aws-mcp-researcher NOT dispatched"},
+        {"type": "artifact_absent", "path": "github-repos.md", "desc": "github-researcher NOT dispatched"},
+        {"type": "trace_absent_regex", "pattern": "(?i)decompos", "desc": "no decomposition step for feed-only"},
+        {"type": "no_parent_findings_read", "desc": "context isolation held"}
+      ]
+    },
+    {
+      "id": "behavior-docs-only-quota",
+      "prompt": "what is the maximum number of knowledge bases you can create per account in Amazon Bedrock?",
+      "strategy": "docs-only",
+      "intents": ["service-overview"],
+      "expectations": [
+        "Selects docs-only, NARROWING to aws-mcp-researcher alone",
+        "Answers with a concrete number and cites an AWS documentation URL"
+      ],
+      "checks": [
+        {"type": "artifact_exists", "path": "aws-docs.md", "desc": "docs findings written"},
+        {"type": "artifact_absent", "path": "web-content.md", "desc": "web-content-researcher NOT dispatched"},
+        {"type": "report_lint", "desc": "report passes the mechanical gate"},
+        {"type": "report_regex", "pattern": "docs\\.aws\\.amazon\\.com", "desc": "cites an official AWS docs URL"},
+        {"type": "report_regex", "pattern": "\\b\\d+\\b", "desc": "answers with a concrete number"},
+        {"type": "no_parent_findings_read", "desc": "context isolation held"}
+      ]
+    },
+    {
+      "id": "behavior-pricing-focused",
+      "prompt": "how much does Amazon Aurora Serverless v2 cost compared to provisioned Aurora? Include ACU pricing, storage, and I/O costs across regions",
+      "strategy": "pricing-focused",
+      "intents": ["pricing"],
+      "expectations": [
+        "Selects pricing-focused, NARROWING to aws-mcp-researcher with the pricing flag",
+        "Report carries a Pricing & Cost Analysis section with specific dollar amounts",
+        "Citations include the pricing query date, since pricing is time-sensitive"
+      ],
+      "checks": [
+        {"type": "artifact_exists", "path": "aws-pricing.md", "desc": "pricing findings written"},
+        {"type": "report_lint", "intents": "pricing", "desc": "Pricing & Cost Analysis section required and present"},
+        {"type": "report_regex", "pattern": "\\$\\s?\\d", "desc": "concrete dollar amounts present"},
+        {"type": "report_regex", "pattern": "\\d{4}-\\d{2}-\\d{2}", "desc": "a query/publication date is recorded"},
+        {"type": "no_parent_findings_read", "desc": "context isolation held"}
+      ]
+    },
+    {
+      "id": "behavior-code-examples-github",
+      "prompt": "research how to build a custom DevOps agent on Amazon Bedrock AgentCore with tool definitions, custom workflows, and deployment patterns",
+      "strategy": "comprehensive",
+      "intents": ["architecture", "code-examples", "agentcore"],
+      "expectations": [
+        "Dispatches github-researcher and agentcore-researcher alongside aws-mcp-researcher",
+        "Report carries a Code Examples & Repositories section"
+      ],
+      "checks": [
+        {"type": "artifact_exists", "path": "github-repos.md", "desc": "github-researcher wrote findings"},
+        {"type": "artifact_exists", "path": "agentcore.md", "desc": "agentcore-researcher wrote findings"},
+        {"type": "report_lint", "intents": "architecture,code-examples", "desc": "conditional sections present"},
+        {"type": "max_parallel", "limit": 4, "desc": "round batching respected"},
+        {"type": "min_citations", "count": 8, "desc": "at least 8 distinct references"},
+        {"type": "no_parent_findings_read", "desc": "context isolation held"}
+      ]
+    },
+    {
+      "id": "behavior-generic-non-aws",
+      "prompt": "research the circuit breaker pattern in distributed systems - production lessons and failure modes",
+      "strategy": "comprehensive",
+      "intents": ["best-practices", "architecture"],
+      "expectations": [
+        "Classifies query-type as generic and passes it to every subagent",
+        "Skips aws-mcp-researcher entirely for a generic query",
+        "Uses web search as the primary source with query expansion"
+      ],
+      "checks": [
+        {"type": "trace_regex", "pattern": "query-type: generic", "desc": "generic classification declared"},
+        {"type": "artifact_exists", "path": "web-content.md", "desc": "web findings written"},
+        {"type": "artifact_absent", "path": "aws-docs.md", "desc": "aws-mcp-researcher skipped for generic"},
+        {"type": "report_lint", "intents": "architecture", "desc": "report passes the mechanical gate"},
+        {"type": "no_parent_findings_read", "desc": "context isolation held"}
+      ]
+    },
+    {
+      "id": "behavior-context-isolation-budget",
+      "prompt": "deep research on Amazon S3 Express One Zone vs standard S3 - performance, pricing, and use cases",
+      "strategy": "comprehensive",
+      "intents": ["comparison", "pricing"],
+      "expectations": [
+        "Subagent return text to the parent is minimal - a one-line write confirmation each",
+        "The parent reads only the finished report, never a findings file",
+        "The report is coherent despite the parent never seeing raw research data"
+      ],
+      "checks": [
+        {"type": "no_parent_findings_read", "desc": "HARD: parent read no findings file"},
+        {"type": "subagent_return_budget", "max_chars": 500, "desc": "combined subagent return text under 500 chars"},
+        {"type": "report_lint", "intents": "comparison,pricing", "desc": "report passes the mechanical gate"},
+        {"type": "artifact_in_work_dir_only", "desc": "no artifact written under the invocation CWD"}
+      ]
+    },
+    {
+      "id": "behavior-direct-url-via-subagent",
+      "prompt": "research what this page says about agent evaluation and how it compares to Bedrock AgentCore Evaluations: https://arxiv.org/abs/2602.12670",
+      "strategy": "comprehensive",
+      "intents": ["comparison", "best-practices"],
+      "expectations": [
+        "Routes the direct URL through web-content-researcher, which writes direct-fetch.md",
+        "The parent never fetches the URL itself and never carries page content in a task string"
+      ],
+      "checks": [
+        {"type": "artifact_exists", "path": "direct-fetch.md", "desc": "direct URL fetched by a subagent, not the parent"},
+        {"type": "no_parent_fetch", "desc": "HARD: parent made no fetch/web tool call"},
+        {"type": "no_parent_findings_read", "desc": "context isolation held"},
+        {"type": "report_lint", "intents": "comparison", "desc": "report passes the mechanical gate"}
+      ]
+    },
+    {
+      "id": "behavior-harness-smoke-native-activation",
+      "prompt": "review best practices for Bedrock Guardrails in production",
+      "strategy": "comprehensive",
+      "intents": ["best-practices"],
+      "harness_matrix": ["pi", "claude-code", "kiro-v2", "kiro-v3"],
+      "expectations": [
+        "The harness is detected and echoed BEFORE any dispatch",
+        "On pi / Claude Code: researchers dispatch as headless child processes via scripts/dispatch.sh",
+        "On Kiro: researchers dispatch in-session via the native subagent tool, no subprocess",
+        "No environment delegate-shaped tool is used on any harness"
+      ],
+      "checks": [
+        {"type": "native_activation", "desc": "HARD: the harness actually loaded this SKILL.md - retain the load event"},
+        {"type": "trace_regex", "pattern": "harness=", "desc": "chosen harness and backend echoed before dispatch"},
+        {"type": "trace_absent_regex", "pattern": "_Delegate|kiro-cli chat --agent", "desc": "no delegate-shaped tool, no kiro subprocess"},
+        {"type": "report_lint", "desc": "report passes the mechanical gate"},
+        {"type": "judge", "desc": "the process disclaimer was printed before a process-fan-out round"}
+      ]
+    }
+  ]
+}
