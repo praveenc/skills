@@ -317,6 +317,31 @@ def test_no_generated_report_is_tracked() -> None:
     assert not offenders, f"generated reports must not be tracked: {offenders}"
 
 
+def test_no_generated_eval_artifact_is_tracked() -> None:
+    """Eval run output is generated; the durable record is the README conclusion.
+
+    A committed per-case JSON dump goes stale the next time the description
+    changes and then misinforms whoever finds it.
+    """
+    offenders = [f for f in tracked_files()
+                 if f.startswith(("evals/outputs/", "evals/results/"))
+                 or f.endswith((".lint.json", ".junit.xml"))]
+    assert not offenders, f"generated eval artifacts must not be tracked: {offenders}"
+
+
+def test_measured_baseline_is_documented() -> None:
+    """Untracking run artifacts is only safe if the conclusion is written down.
+
+    Guards the other half of that trade: the README must still carry the measured
+    numbers, the judge model, and the trial count.
+    """
+    readme = read(EVALS_DIR / "README.md")
+    assert "Measured baseline" in readme
+    for token in ("precision", "recall", "trials per case"):
+        assert token in readme, f"eval README lost the {token!r} record"
+    assert re.search(r"\b0\.\d{3}\b", readme), "eval README records no measured metric"
+
+
 def test_gitignore_covers_secrets_and_caches() -> None:
     ignored = read(SKILL_DIR / ".gitignore")
     for pattern in (".env", "__pycache__", ".DS_Store"):

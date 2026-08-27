@@ -19,8 +19,8 @@ evals/
   eval_synthesis.sh         re-synthesizes retained fixtures, gated by lint_report.py
   extract_behavior_meta.py  builds behavior meta.json from a pi session log
   test_*.py                 the model-free pytest suite (151 tests)
-  results/                  retained measurement runs (committed)
   outputs/                  generated evidence, one dir per case id (gitignored)
+  results/                  generated run artifacts (gitignored; conclusions live below)
 ```
 
 ## What lives where
@@ -115,29 +115,41 @@ model, so raise `--jobs` rather than shrinking the model.
 
 ### Measured baseline
 
-`results/routing-2026-08-27-baseline.json`, skill v6.15, haiku-4-5, 3 trials:
+Skill v6.15, metadata-only judge (`kiro/claude-haiku-4-5`), 3 trials per case,
+canary-verified isolation, measured 2026-08-27:
 
-| Metric | Value |
-|---|---|
-| precision | 1.000 (0 false triggers of 11 negatives) |
-| recall | 0.818 (2 missed positives of 11) |
-| false-selection rate | 0.000 |
-| accuracy | 0.909 - train 13/14, validation 7/8 |
+| Metric | before route-003 fix | after |
+|---|---|---|
+| precision | 1.000 | 1.000 |
+| recall | 0.818 | 0.909 |
+| false-selection rate | 0.000 | 0.000 |
+| accuracy | 0.909 | 0.955 |
+| train split | 13/14 | 14/14 |
 
 Perfect precision is the half that matters most: over-triggering spends four
-CLI cold starts and real API credits on work the base model should just do.
+CLI cold starts and real API credits on work the base model should just do. It
+held across the fix, so the added triggers sharpened the boundary rather than
+widening it.
 
-Two positives missed, both informative:
+Two positives missed in the baseline, both informative:
 
 - `route-003` (train), unanimous 0Y/3N. A service-quota lookup read as a simple
   factual recall. The description had no language separating a STABLE fact the
   model knows from a CURRENT value that must be looked up. Fixed by naming
-  quotas, limits, pricing, and version availability as explicit triggers.
+  quotas, limits, pricing, and version availability as explicit triggers - this
+  is what moved recall to 0.909.
 - `route-008` (validation), 1Y/2N and unstable. The generic-scope boundary case.
   Recorded, deliberately NOT tuned against - editing the description in response
-  to a validation failure would turn validation into training data. Re-measure
-  after the next description change and treat a persistent split as evidence
-  that generic support needs to be more load-bearing in the description.
+  to a validation failure would turn validation into training data. Only the
+  train split was re-measured after the fix. Re-measure validation after the next
+  description change and treat a persistent split as evidence that generic
+  support needs to be more load-bearing in the description.
+
+These numbers are the durable record; regenerate the underlying per-case data
+with `./routing_judge.sh` whenever the description, judge model, or corpus
+changes. Run artifacts are gitignored on purpose - a committed JSON dump goes
+stale the next time the description changes and then misinforms whoever finds
+it. Update this table in the same commit as the change that moved it.
 
 ## Behavior and faults
 

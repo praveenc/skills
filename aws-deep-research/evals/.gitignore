@@ -1,9 +1,12 @@
-# Generated eval evidence - one directory per case id, produced by a live agent
-# run. Never committed: it is machine- and session-specific, can be large, and
-# may contain fetched third-party content.
+# Generated eval evidence - produced by a live agent or judge run. Never
+# committed: it is machine- and session-specific, can be large, and may contain
+# fetched third-party content.
+#
+# results/ is generated too. The DURABLE output of a measurement run is the
+# conclusion, which belongs in README.md under "Measured baseline" where it gets
+# read and reviewed. A committed per-case JSON dump goes stale silently the next
+# time the description changes and then misinforms whoever finds it.
 outputs/
+results/
 *.lint.json
 *.junit.xml
-
-# Retained measurement runs (committed deliberately as results/, not outputs/)
-!results/
