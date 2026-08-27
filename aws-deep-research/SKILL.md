@@ -4,15 +4,17 @@ description: >
   Performs multi-source, parallelized research on AWS topics and synthesizes
   the findings into a cited research report. Dispatches specialized subagents
   against AWS docs, AWS pricing, Bedrock AgentCore docs, AWS blog feeds, GitHub,
-  and the open web. Activates when the user asks to "research", "do a deep
-  dive", "compare", "analyze pricing of", "plan a migration to", or "review
-  best practices for" an AWS service, architecture, or cross-cloud topic.
-  Triggers include: "deep research", "research report", "Well-Architected
-  review", cost/pricing comparison, service limits, troubleshooting a specific
-  AWS error, or comparing AWS against a third-party/other-cloud alternative.
-  Does NOT activate for: simple factual recalls the model already knows,
-  writing AWS code without needing docs, operational AWS CLI commands, or
-  questions that can be answered from the current conversation context.
+  and the open web. Activates when the user asks to "research", "do a deep dive",
+  "compare", "analyze pricing of", "plan a migration to", or "review best
+  practices for" an AWS service, architecture, or cross-cloud topic. Triggers
+  include: "deep research", "research report", "Well-Architected review",
+  cost/pricing comparison, service limits, troubleshooting an AWS error, or AWS
+  vs a third-party alternative. AWS-first, but also handles generic multi-source
+  research the model cannot answer from memory: library internals, architecture
+  patterns, cross-vendor comparisons. Does NOT activate for: factual recalls the
+  model knows, writing or reviewing code, debugging local code or tests, AWS CLI
+  operations, summarizing supplied content, or anything answerable from the
+  current conversation.
 compatibility: >
   Compatible with Kiro CLI, the pi coding-agent harness, and Claude Code (all
   need subagent dispatch; see references/platform-dispatch.md for the
@@ -22,7 +24,7 @@ compatibility: >
   and pricing, Docker-hosted Kroki for diagram rendering.
 metadata:
   author: praveenc
-  version: "6.14"
+  version: "6.15"
 ---
 
 # AWS Deep Researcher
@@ -307,22 +309,19 @@ findings file exists and is non-trivial. Subagents occasionally report `✅`
 while writing an empty/stub file (script crash mid-write, no API key, etc.).
 
 ```bash
-for f in "$WORK_DIR/<slug>"/*.md; do
-  [ "$(basename "$f")" = "research-contract.md" ] && continue
-  sz=$(wc -c < "$f" 2>/dev/null || echo 0)
-  if [ "$sz" -lt 500 ]; then
-    echo "WEAK: $f ($sz bytes)"
-  else
-    echo "OK: $f ($sz bytes)"
-  fi
-done
+bash "$SKILL_DIR/scripts/verify_findings.sh" "$WORK_DIR/<slug>" \
+  --expect aws-docs.md --expect web-content.md   # one --expect per dispatched agent
 ```
 
-- Any file `< 500 bytes` → treat the subagent as having failed silently.
-- Record each `WEAK` entry in the synthesizer dispatch brief (Step 6) so it
-  surfaces in the report's **Gaps & Limitations** section.
-- Do NOT read the contents of any findings file in the parent - only check
-  size and existence.
+Prints one `<file>=STATUS (N bytes)` line per findings file. Statuses: `OK`
+(≥500 bytes), `WEAK` (<500 bytes - treat the subagent as having failed
+silently), `MISSING` (expected but absent), `UNREADABLE`. Exit 1 means no `OK`
+file at all - tell the user and stop; there is nothing worth synthesizing.
+
+- Record every `WEAK`/`MISSING` entry in the synthesizer dispatch brief
+  (Step 6) so it surfaces in the report's **Gaps & Limitations** section.
+- The script reports size and status only - it never prints file contents, so
+  no findings text enters the parent's context.
 
 ## Step 6 - Synthesize
 
@@ -334,6 +333,26 @@ After all researchers complete, dispatch `synthesizer` with:
 
 **Do NOT read findings files in the parent.** The synthesizer handles
 everything in its own context.
+
+### Report gate (one repair attempt)
+
+When the synthesizer returns, gate the report mechanically before it reaches
+the user:
+
+```bash
+uv run "$SKILL_DIR/scripts/lint_report.py" \
+  "$WORK_DIR/<slug>/<slug>-report.md" --intents <comma-separated-intents>
+```
+
+Checks required sections for the declared intents, `[N] [Title](url)`
+reference format, reference sequencing, dangling citations, and the size
+ceiling. It grades structure only - never insight.
+
+On a non-zero exit, re-dispatch the synthesizer **once** with the reported
+failures and the same findings files, then re-run the linter. If it still
+fails, proceed but state the specific defect when presenting the report. Never
+present a report with dangling citations or a missing References section
+without saying so.
 
 ## Step 7 - Optional Diagram
 
@@ -347,7 +366,8 @@ and a brief describing what to diagram.
 
 ## Step 8 - Present Results
 
-Copy the final report to the global reports directory:
+Copy the final report to the global reports directory (default
+`~/.aws-deep-research/outputs/`):
 
 ```bash
 REPORT_OUTPUT_DIR="$(python3 "$SKILL_DIR/scripts/read_env.py" \
