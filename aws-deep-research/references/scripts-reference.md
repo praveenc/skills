@@ -25,5 +25,8 @@ research directory.
 | `resolve_skill_dir.sh` | `eval`-sourced; exports `SKILL_DIR` / `WORK_DIR` pinned to the loaded install |
 | `check_api_keys.sh` | Validates AWS/Brave/Tavily/GitHub/Kroki availability; prints `KEY=STATUS` lines |
 | `dispatch.sh` | Headless subagent dispatch for pi / Claude Code (one process per subagent) |
+| `verify_findings.sh` | Step 5 size gate; prints `<file>=OK\|WEAK\|MISSING\|UNREADABLE`, never contents |
+| `lint_report.py` | Step 6 report gate; sections, citation/reference integrity, size. `--json` for runners |
+| `run_tests.sh` | Runs the full package test suite with the correct `uv` flags |
 | `eval_synthesis.sh` | Re-synthesizes a retained fixture to regression-test the synthesizer prompt |
 | `common.py` | Shared helpers (blocklist matching, output paths) imported by the Python tools |
