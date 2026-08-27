@@ -1,0 +1,189 @@
+{
+  "skill_name": "aws-deep-research",
+  "suite": "routing",
+  "description": "Trigger/activation corpus. Measures whether the frontmatter description expresses the intended scope boundary: AWS-first deep research, plus generic multi-source research the model cannot answer from memory, and NOT code work, local debugging, AWS CLI operations, or anything answerable from context.",
+  "mode": "metadata-only",
+  "isolation": "The judge sees ONLY the skill's `name` and `description` from SKILL.md frontmatter - never the body, references, agents, or this file. Run with file, shell, search, network, and subagent tools DENIED, and with cwd OUTSIDE the skill directory. A prose instruction not to read the files is not isolation.",
+  "trials": 3,
+  "split_policy": "Fixed stratified 60/40 train/validation. Tune the description against `train` only. Never edit the description in response to a `validation` failure - that silently turns validation into training data. After settling on a description, confirm on 5-10 fresh queries not in this file.",
+  "metrics": "precision, recall, false-selection rate, no-selection rate. Report per-class agreement, not one aggregate number.",
+  "native_activation_note": "This corpus diagnoses the SEMANTIC boundary. It does NOT prove the skill invoked. Native activation requires observing the target harness actually load this SKILL.md - see the harness-smoke cases in behavior.json and retain the load event as evidence.",
+  "cases": [
+    {
+      "id": "route-001",
+      "query": "deep research on configuring hierarchical indexing in Amazon OpenSearch Serverless - parent-child relationships, nested fields, efficient query mappings",
+      "should_trigger": true,
+      "split": "train",
+      "tags": ["explicit-verb", "aws-service", "multi-facet"],
+      "rationale": "Explicit 'deep research' verb on a specific AWS service with three facets."
+    },
+    {
+      "id": "route-002",
+      "query": "how much does Amazon Aurora Serverless v2 cost compared to provisioned Aurora across regions?",
+      "should_trigger": true,
+      "split": "train",
+      "tags": ["pricing", "comparison", "live-data"],
+      "rationale": "Pricing comparison needs live pricing data; the model cannot answer from memory."
+    },
+    {
+      "id": "route-003",
+      "query": "what is the maximum number of knowledge bases you can create per account in Amazon Bedrock?",
+      "should_trigger": true,
+      "split": "train",
+      "tags": ["quota", "boundary-positive", "single-fact"],
+      "rationale": "Boundary positive: a single-fact question, but a service quota that changes - needs live docs, not recall."
+    },
+    {
+      "id": "route-004",
+      "query": "I'm getting AccessDeniedException calling bedrock:InvokeModelWithResponseStream from a Lambda in another account - find out what's actually required",
+      "should_trigger": true,
+      "split": "train",
+      "tags": ["troubleshooting", "specific-error", "boundary-positive"],
+      "rationale": "Boundary positive: a specific AWS error needing multi-source troubleshooting, not local code debugging."
+    },
+    {
+      "id": "route-005",
+      "query": "compare AWS Bedrock against Azure OpenAI and Vertex AI for enterprise RAG",
+      "should_trigger": true,
+      "split": "train",
+      "tags": ["cross-cloud", "comparison"],
+      "rationale": "Cross-cloud comparison anchored on AWS."
+    },
+    {
+      "id": "route-006",
+      "query": "review best practices for Bedrock Guardrails in production",
+      "should_trigger": true,
+      "split": "train",
+      "tags": ["best-practices", "explicit-verb"],
+      "rationale": "Named trigger phrase 'review best practices for' on an AWS service."
+    },
+    {
+      "id": "route-007",
+      "query": "disaggregated inference: how do NVIDIA Rubin CPX, Groq LPU, and AWS Trainium actually differ?",
+      "should_trigger": true,
+      "split": "validation",
+      "tags": ["generic", "cross-vendor", "boundary-positive"],
+      "rationale": "Boundary positive under the AWS-first-with-generic scope: cross-vendor hardware research the model cannot answer from memory."
+    },
+    {
+      "id": "route-008",
+      "query": "research the circuit breaker pattern in distributed systems - production lessons and failure modes",
+      "should_trigger": true,
+      "split": "validation",
+      "tags": ["generic", "explicit-verb", "no-aws"],
+      "rationale": "Explicitly supported generic research: multi-source, primary-source-worthy, no AWS anchor."
+    },
+    {
+      "id": "route-009",
+      "query": "plan a migration from self-hosted Kubernetes to EKS Fargate",
+      "should_trigger": true,
+      "split": "validation",
+      "tags": ["migration", "explicit-verb"],
+      "rationale": "Named trigger phrase 'plan a migration to'."
+    },
+    {
+      "id": "route-010",
+      "query": "show me the latest AWS security blog posts",
+      "should_trigger": true,
+      "split": "validation",
+      "tags": ["news-updates", "feed-only", "short-query"],
+      "rationale": "Recency query requiring live feeds. Short and cheap, but not answerable from memory."
+    },
+    {
+      "id": "route-011",
+      "query": "compare FastAPI and Flask for a small internal API",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["near-miss", "bare-verb-compare", "well-known"],
+      "rationale": "Shares the 'compare' verb but is a well-known library choice the model answers directly. No multi-source research needed."
+    },
+    {
+      "id": "route-012",
+      "query": "write CDK code for an S3 bucket with versioning and a lifecycle rule",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["near-miss", "aws-vocabulary", "code-authoring"],
+      "rationale": "Heavy AWS vocabulary, but the request is code authoring. Explicitly excluded."
+    },
+    {
+      "id": "route-013",
+      "query": "run aws ec2 describe-instances and tell me which of my instances are untagged",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["near-miss", "aws-vocabulary", "cli-operation"],
+      "rationale": "An operational AWS CLI task against the user's own account, not research."
+    },
+    {
+      "id": "route-014",
+      "query": "research why my unit test is flaky and suggest a fix",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["near-miss", "bare-verb-research", "local-debug"],
+      "rationale": "Strongest negative: carries the exact trigger verb 'research' but targets local test debugging."
+    },
+    {
+      "id": "route-015",
+      "query": "compare these two Python functions for readability and pick the cleaner one",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["near-miss", "bare-verb-compare", "in-context"],
+      "rationale": "'compare' on content already in context - an in-context code review."
+    },
+    {
+      "id": "route-016",
+      "query": "summarize the attached research report for me",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["near-miss", "research-noun", "in-context"],
+      "rationale": "Contains the word 'research' as a noun, but the source is already supplied. Nothing to retrieve."
+    },
+    {
+      "id": "route-017",
+      "query": "troubleshoot this Python stack trace from my local script",
+      "should_trigger": false,
+      "split": "validation",
+      "tags": ["near-miss", "troubleshoot-verb", "local-debug"],
+      "rationale": "Shares 'troubleshoot' with a positive trigger, but the target is local code, not an AWS service error."
+    },
+    {
+      "id": "route-018",
+      "query": "what is S3?",
+      "should_trigger": false,
+      "split": "validation",
+      "tags": ["near-miss", "aws-service", "factual-recall"],
+      "rationale": "An AWS service name, but a stable fact the model already knows. Explicitly excluded."
+    },
+    {
+      "id": "route-019",
+      "query": "research good restaurants near the Seattle waterfront for a team dinner",
+      "should_trigger": false,
+      "split": "validation",
+      "tags": ["near-miss", "bare-verb-research", "out-of-domain"],
+      "rationale": "Explicit 'research' verb, but consumer/local search - outside technical multi-source research."
+    },
+    {
+      "id": "route-020",
+      "query": "compare these two paragraphs and tell me which is clearer",
+      "should_trigger": false,
+      "split": "validation",
+      "tags": ["near-miss", "bare-verb-compare", "in-context"],
+      "rationale": "'compare' applied to supplied text. Zero retrieval need."
+    },
+    {
+      "id": "route-021",
+      "query": "rename the getUserName function to getUsername across the repo",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["decorative-negative", "refactor"],
+      "rationale": "Low-overlap control. Should never trigger; catches a description so broad it swallows ordinary coding work."
+    },
+    {
+      "id": "route-022",
+      "query": "do a deep dive on how DynamoDB handles hot partitions and what the current mitigations are",
+      "should_trigger": true,
+      "split": "train",
+      "tags": ["explicit-verb", "aws-service", "deep-dive"],
+      "rationale": "Named trigger phrase 'do a deep dive' on AWS internals with a currency requirement."
+    }
+  ]
+}

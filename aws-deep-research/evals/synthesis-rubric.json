@@ -1,8 +1,8 @@
 {
   "skill_name": "aws-deep-research",
   "description": "Scored rubric for synthesis quality, focused on the insight layer (evidence weighting, contradiction surfacing, decision-drivers). Each dimension is scored 0-2 by a judge (human or LLM) reading a finished report against its findings files. Total 20. A report scoring < 14 should be regenerated.",
-  "version": "1.0",
-  "how_to_run": "scripts/eval_synthesis.sh re-synthesizes a retained fixture with the current synthesizer prompt via `pi -p`, then a judge scores the output against this rubric. See that script's header.",
+  "version": "1.1",
+  "how_to_run": "scripts/eval_synthesis.sh re-synthesizes each retained fixture with the current synthesizer prompt via `pi -p`, then runs scripts/lint_report.py on the output. The linter's hard checks gate the exit code; the soft dimensions below are scored by a judge for human review. See that script's header.",
   "dimensions": [
     {
       "id": "coverage",
@@ -12,7 +12,9 @@
         "0": "Major findings from one or more OK source files are absent from the report",
         "1": "Most findings represented; some notable omissions",
         "2": "Every OK findings file is meaningfully represented; nothing load-bearing dropped"
-      }
+      },
+      "gate": "soft",
+      "grader": "judge (advisory until calibrated)"
     },
     {
       "id": "citation_accuracy",
@@ -22,7 +24,9 @@
         "0": "Uncited factual claims, or citations that don't match the source",
         "1": "Mostly cited; a few gaps or format violations",
         "2": "Every factual claim carries [N]; same URL = same number; strict [N] [Title](url) format"
-      }
+      },
+      "gate": "hard",
+      "grader": "lint_report.py: ref_format, ref_sequence, no_dangling, no_orphans"
     },
     {
       "id": "insight_density",
@@ -32,7 +36,9 @@
         "0": "No Key Tensions section, or it just re-lists features with no decision implication",
         "1": "Section present; some bullets state trade-offs, others are restated facts",
         "2": "Section present; every bullet names a real trade-off/driver AND its second-order implication for a decision"
-      }
+      },
+      "gate": "soft",
+      "grader": "judge (advisory until calibrated)"
     },
     {
       "id": "contradiction_handling",
@@ -42,7 +48,9 @@
         "0": "Conflicting sources silently collapsed to one claim; vendor claims stated as fact",
         "1": "Some disagreement surfaced; some uncorroborated vendor claims still stated flatly",
         "2": "Consensus & Contradictions section present; disagreements shown with both sides; uncorroborated vendor claims labeled 'vendor-reported, not independently verified'"
-      }
+      },
+      "gate": "soft",
+      "grader": "judge (advisory until calibrated)"
     },
     {
       "id": "evidence_weighting",
@@ -52,7 +60,9 @@
         "0": "A community/blog claim overrides an official source on a factual point, with no confidence signal",
         "1": "Weighting mostly sensible; confidence rarely made explicit",
         "2": "Higher-authority sources win factual conflicts; confidence levels made visible where it matters; recency breaks ties"
-      }
+      },
+      "gate": "soft",
+      "grader": "judge (advisory until calibrated)"
     },
     {
       "id": "gaps_honesty",
@@ -62,7 +72,9 @@
         "0": "WEAK/MISSING sources papered over or ignored",
         "1": "Some gaps noted; not all WEAK/MISSING sources accounted for",
         "2": "Every WEAK/MISSING source appears in Gaps & Limitations with a follow-up suggestion"
-      }
+      },
+      "gate": "hard",
+      "grader": "lint_report.py: sections (Gaps & Limitations required)"
     },
     {
       "id": "actionability",
@@ -72,7 +84,9 @@
         "0": "Recommendations are generic or absent",
         "1": "Recommendations present but thin or not tied to the findings",
         "2": "3-5 concrete recommendations, each grounded in cited findings and matching query intent"
-      }
+      },
+      "gate": "soft",
+      "grader": "judge (advisory until calibrated)"
     },
     {
       "id": "structure",
@@ -82,7 +96,9 @@
         "0": "Concatenated source dumps, no narrative",
         "1": "Organized by topic; some bridging",
         "2": "Coherent narrative organized by topic, bridging sentences, arc matches the query intent"
-      }
+      },
+      "gate": "hard",
+      "grader": "lint_report.py: title, sections"
     },
     {
       "id": "no_fabrication",
@@ -91,8 +107,10 @@
       "scoring": {
         "0": "Contains claims not traceable to any findings file",
         "1": "One or two soft extrapolations, labeled",
-        "2": "Every claim traces to a findings file; derived numbers carry a source or ⚠️ label"
-      }
+        "2": "Every claim traces to a findings file; derived numbers carry a source or \u26a0\ufe0f label"
+      },
+      "gate": "soft",
+      "grader": "judge (advisory until calibrated)"
     },
     {
       "id": "tightness",
@@ -102,7 +120,9 @@
         "0": "Padded, redundant, or over the 8,000-word ceiling",
         "1": "Slightly long or repetitive in places",
         "2": "2,500-6,000 words, no redundancy, every section earns its place"
-      }
+      },
+      "gate": "hard",
+      "grader": "lint_report.py: size_max, size_min"
     }
   ],
   "pass_threshold": 14,
@@ -110,20 +130,56 @@
     {
       "slug": "g4dn-vs-g6-g6e-bert-inference-comparison",
       "why": "Comparison intent with pricing + web + docs; should exercise Key Tensions and Consensus & Contradictions",
-      "findings": ["aws-docs.md", "aws-docs-g6e.md", "aws-pricing.md", "web-content.md"],
-      "expects": ["Key Tensions & Decision Drivers section present", "cost/perf trade-off stated as a decision driver, not a feature list"]
+      "findings": [
+        "aws-docs.md",
+        "aws-docs-g6e.md",
+        "aws-pricing.md",
+        "web-content.md"
+      ],
+      "expects": [
+        "Key Tensions & Decision Drivers section present",
+        "cost/perf trade-off stated as a decision driver, not a feature list"
+      ],
+      "intents": [
+        "comparison",
+        "pricing"
+      ]
     },
     {
       "slug": "multi-agent-orchestration-task-handoff-patterns",
       "why": "Architecture + code-examples; multiple sources likely to overlap and occasionally disagree",
-      "findings": ["aws-docs.md", "web-content.md", "github-repos.md"],
-      "expects": ["Key Tensions section present", "consensus vs contradiction distinction where sources overlap"]
+      "findings": [
+        "aws-docs.md",
+        "web-content.md",
+        "github-repos.md"
+      ],
+      "expects": [
+        "Key Tensions section present",
+        "consensus vs contradiction distinction where sources overlap"
+      ],
+      "intents": [
+        "architecture",
+        "best-practices"
+      ]
     },
     {
       "slug": "claude-sonnet-5-features-pricing-coding-bedrock",
       "why": "Heavy vendor-claim surface (launch benchmarks) - should be labeled 'vendor-reported'",
-      "findings": ["aws-docs.md", "aws-pricing.md", "web-content.md", "web-content-coding.md"],
-      "expects": ["vendor benchmark claims labeled as vendor-reported", "Consensus & Contradictions section present"]
+      "findings": [
+        "aws-docs.md",
+        "aws-pricing.md",
+        "web-content.md",
+        "web-content-coding.md"
+      ],
+      "expects": [
+        "vendor benchmark claims labeled as vendor-reported",
+        "Consensus & Contradictions section present"
+      ],
+      "intents": [
+        "service-overview",
+        "pricing"
+      ]
     }
-  ]
+  ],
+  "gate_policy": "hard dimensions are graded mechanically by scripts/lint_report.py and fail the release gate. soft dimensions are scored by a judge and stay ADVISORY until that judge is calibrated against human labels per the enterprise eval methodology. The 14/20 threshold is a review trigger, not an automated gate."
 }
