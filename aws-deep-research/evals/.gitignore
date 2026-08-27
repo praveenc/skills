@@ -4,3 +4,6 @@
 outputs/
 *.lint.json
 *.junit.xml
+
+# Retained measurement runs (committed deliberately as results/, not outputs/)
+!results/
