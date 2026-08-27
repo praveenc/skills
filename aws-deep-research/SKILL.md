@@ -6,15 +6,14 @@ description: >
   against AWS docs, AWS pricing, Bedrock AgentCore docs, AWS blog feeds, GitHub,
   and the open web. Activates when the user asks to "research", "do a deep dive",
   "compare", "analyze pricing of", "plan a migration to", or "review best
-  practices for" an AWS service, architecture, or cross-cloud topic. Triggers
-  include: "deep research", "research report", "Well-Architected review",
-  cost/pricing comparison, service limits, troubleshooting an AWS error, or AWS
-  vs a third-party alternative. AWS-first, but also handles generic multi-source
-  research the model cannot answer from memory: library internals, architecture
-  patterns, cross-vendor comparisons. Does NOT activate for: factual recalls the
-  model knows, writing or reviewing code, debugging local code or tests, AWS CLI
-  operations, summarizing supplied content, or anything answerable from the
-  current conversation.
+  practices for" an AWS service, architecture, or cross-cloud topic. Also
+  activates for any CURRENT value that must be looked up rather than recalled:
+  service quotas, limits, pricing, version or model availability. AWS-first, but
+  also handles generic multi-source research the model cannot answer from memory:
+  library internals, architecture patterns, cross-vendor comparisons. Does NOT
+  activate for: stable facts the model already knows, writing or reviewing code,
+  debugging local code or tests, AWS CLI operations, summarizing supplied content,
+  or anything answerable from the current conversation.
 compatibility: >
   Compatible with Kiro CLI, the pi coding-agent harness, and Claude Code (all
   need subagent dispatch; see references/platform-dispatch.md for the

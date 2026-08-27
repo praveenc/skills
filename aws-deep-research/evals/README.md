@@ -8,13 +8,16 @@ as a maintainer and CI artifact.
 
 ```
 evals/
-  routing.json           trigger corpus - 22 cases, should_trigger + split + rationale
-  behavior.json          9 end-to-end cases, forced-load, artifact-graded
-  faults.json            5 model-facing degradation cases
-  synthesis-rubric.json  10 scored dimensions, each classed hard or soft
-  run.py                 the executor: --static, --selftest, grading, JSON/JUnit
-  run.sh                 thin python3 wrapper
-  outputs/               generated evidence, one dir per case id (gitignored)
+  routing.json              trigger corpus - 22 cases, should_trigger + split + rationale
+  behavior.json             9 end-to-end cases, forced-load, artifact-graded
+  faults.json               5 model-facing degradation cases
+  synthesis-rubric.json     10 scored dimensions, each classed hard or soft
+  run.py                    the executor: --static, --selftest, grading, JSON/JUnit
+  run.sh                    thin python3 wrapper
+  routing_judge.sh          generates routing evidence with an isolated judge
+  extract_behavior_meta.py  builds behavior meta.json from a pi session log
+  results/                  retained measurement runs (committed)
+  outputs/                  generated evidence, one dir per case id (gitignored)
 ```
 
 Deterministic mechanics live in `scripts/` as pytest, not here:
@@ -70,6 +73,53 @@ keywords.
 Metrics: precision, recall, false-selection rate, no-selection rate. Report
 per-class results, never one aggregate.
 
+### Generating routing evidence
+
+```bash
+./routing_judge.sh --verify-isolation          # canary check, no cases run
+./routing_judge.sh --trials 3 --jobs 12 --model claude-haiku-4-5
+./run.sh --suite routing                       # grade it
+```
+
+Isolation is verified by CANARY, not self-report: the script extracts the real
+`metadata.version` from SKILL.md and confirms the judge cannot produce it. A
+chatty refusal therefore passes, because the model demonstrably lacks the value.
+Asking a model to declare its own tool access fails on phrasing rather than on
+access, which produced a false abort the first time this ran.
+
+Each case runs `--trials` times and the majority vote decides `triggered`.
+Per-trial votes and a `stable_across_trials` flag are retained, so a case the
+judge is split on stays visible instead of being averaged into a clean number.
+
+Cost is dominated by fixed process startup, roughly 90s per call regardless of
+model, so raise `--jobs` rather than shrinking the model.
+
+### Measured baseline
+
+`results/routing-2026-08-27-baseline.json`, skill v6.15, haiku-4-5, 3 trials:
+
+| Metric | Value |
+|---|---|
+| precision | 1.000 (0 false triggers of 11 negatives) |
+| recall | 0.818 (2 missed positives of 11) |
+| false-selection rate | 0.000 |
+| accuracy | 0.909 - train 13/14, validation 7/8 |
+
+Perfect precision is the half that matters most: over-triggering spends four
+CLI cold starts and real API credits on work the base model should just do.
+
+Two positives missed, both informative:
+
+- `route-003` (train), unanimous 0Y/3N. A service-quota lookup read as a simple
+  factual recall. The description had no language separating a STABLE fact the
+  model knows from a CURRENT value that must be looked up. Fixed by naming
+  quotas, limits, pricing, and version availability as explicit triggers.
+- `route-008` (validation), 1Y/2N and unstable. The generic-scope boundary case.
+  Recorded, deliberately NOT tuned against - editing the description in response
+  to a validation failure would turn validation into training data. Re-measure
+  after the next description change and treat a persistent split as evidence
+  that generic support needs to be more load-bearing in the description.
+
 ## Behavior and faults
 
 Both are forced-load. Grade artifacts, not trajectories - the agent
@@ -91,6 +141,20 @@ Then write evidence to `outputs/<case-id>/`:
 | `trace.txt` | the run transcript (tool calls, printed decisions, dispatch echoes) |
 | `meta.json` | the observed invariants below |
 | `artifacts/` | optional copy of the findings files, if the work dir is gone |
+
+`meta.json` is generated from the run, not written by hand:
+
+```bash
+./extract_behavior_meta.py --latest --work-dir "$RESEARCH_WORK_DIR/<slug>" \
+  -o outputs/<case-id>/meta.json
+```
+
+pi records every `toolCall` in its session JSONL, so all the invariants below
+are recoverable from the parent's own tool record with no instrumentation of the
+skill. The extractor reads that log and reports which findings files the parent
+read, which fetch tools it called, the peak subagents in one round, artifacts
+written outside the work dir, URLs actually retrieved, and Kroki hosts
+contacted.
 
 `meta.json` fields, all optional - a missing field yields PENDING, never a
 false PASS:

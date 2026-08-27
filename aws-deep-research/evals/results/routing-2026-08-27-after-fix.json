@@ -1,0 +1,334 @@
+{
+  "run": "routing-after-route-003-fix",
+  "date": "2026-08-27",
+  "skill_version": "6.15",
+  "description_revision": "post-route-003-fix (quotas/limits/pricing named as explicit triggers)",
+  "mode": "metadata-only",
+  "judge_model": "kiro/claude-haiku-4-5",
+  "trials_per_case": 3,
+  "isolation": "--tools '' --no-session, cwd outside skill tree, canary-verified",
+  "note": "TRAIN split re-measured after the description edit. VALIDATION rows are carried over from the baseline run and were NOT re-judged against the edited description - re-running validation here would leak it into tuning.",
+  "confusion": {
+    "tp": 10,
+    "fn": 1,
+    "tn": 11,
+    "fp": 0
+  },
+  "metrics": {
+    "precision": 1.0,
+    "recall": 0.909,
+    "false_selection_rate": 0.0,
+    "accuracy": 0.955
+  },
+  "train_only": {
+    "correct": 14,
+    "total": 14,
+    "accuracy": 1.0
+  },
+  "failures": [
+    {
+      "id": "route-008",
+      "split": "validation",
+      "expected": true,
+      "triggered": false,
+      "votes": {
+        "yes": 1,
+        "no": 2,
+        "error": 0
+      },
+      "stable": false,
+      "query": "research the circuit breaker pattern in distributed systems - production lessons and failure modes"
+    }
+  ],
+  "unstable": [
+    "route-008"
+  ],
+  "cases": [
+    {
+      "id": "route-001",
+      "split": "train",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "deep research on configuring hierarchical indexing in Amazon OpenSearch Serverless - parent-child relationships, nested fields, efficient query mappings"
+    },
+    {
+      "id": "route-002",
+      "split": "train",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "how much does Amazon Aurora Serverless v2 cost compared to provisioned Aurora across regions?"
+    },
+    {
+      "id": "route-003",
+      "split": "train",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "what is the maximum number of knowledge bases you can create per account in Amazon Bedrock?"
+    },
+    {
+      "id": "route-004",
+      "split": "train",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "I'm getting AccessDeniedException calling bedrock:InvokeModelWithResponseStream from a Lambda in another account - find out what's actually required"
+    },
+    {
+      "id": "route-005",
+      "split": "train",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "compare AWS Bedrock against Azure OpenAI and Vertex AI for enterprise RAG"
+    },
+    {
+      "id": "route-006",
+      "split": "train",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "review best practices for Bedrock Guardrails in production"
+    },
+    {
+      "id": "route-007",
+      "split": "validation",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "disaggregated inference: how do NVIDIA Rubin CPX, Groq LPU, and AWS Trainium actually differ?"
+    },
+    {
+      "id": "route-008",
+      "split": "validation",
+      "expected": true,
+      "triggered": false,
+      "votes": {
+        "yes": 1,
+        "no": 2,
+        "error": 0
+      },
+      "stable": false,
+      "query": "research the circuit breaker pattern in distributed systems - production lessons and failure modes"
+    },
+    {
+      "id": "route-009",
+      "split": "validation",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "plan a migration from self-hosted Kubernetes to EKS Fargate"
+    },
+    {
+      "id": "route-010",
+      "split": "validation",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "show me the latest AWS security blog posts"
+    },
+    {
+      "id": "route-011",
+      "split": "train",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "compare FastAPI and Flask for a small internal API"
+    },
+    {
+      "id": "route-012",
+      "split": "train",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "write CDK code for an S3 bucket with versioning and a lifecycle rule"
+    },
+    {
+      "id": "route-013",
+      "split": "train",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "run aws ec2 describe-instances and tell me which of my instances are untagged"
+    },
+    {
+      "id": "route-014",
+      "split": "train",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "research why my unit test is flaky and suggest a fix"
+    },
+    {
+      "id": "route-015",
+      "split": "train",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "compare these two Python functions for readability and pick the cleaner one"
+    },
+    {
+      "id": "route-016",
+      "split": "train",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "summarize the attached research report for me"
+    },
+    {
+      "id": "route-017",
+      "split": "validation",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "troubleshoot this Python stack trace from my local script"
+    },
+    {
+      "id": "route-018",
+      "split": "validation",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "what is S3?"
+    },
+    {
+      "id": "route-019",
+      "split": "validation",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "research good restaurants near the Seattle waterfront for a team dinner"
+    },
+    {
+      "id": "route-020",
+      "split": "validation",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "compare these two paragraphs and tell me which is clearer"
+    },
+    {
+      "id": "route-021",
+      "split": "train",
+      "expected": false,
+      "triggered": false,
+      "votes": {
+        "yes": 0,
+        "no": 3,
+        "error": 0
+      },
+      "stable": true,
+      "query": "rename the getUserName function to getUsername across the repo"
+    },
+    {
+      "id": "route-022",
+      "split": "train",
+      "expected": true,
+      "triggered": true,
+      "votes": {
+        "yes": 3,
+        "no": 0,
+        "error": 0
+      },
+      "stable": true,
+      "query": "do a deep dive on how DynamoDB handles hot partitions and what the current mitigations are"
+    }
+  ]
+}
