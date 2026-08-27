@@ -7,7 +7,7 @@ mode (prints the resolved command, exits 0) and assert on:
   - guard exits for kiro (in-session, not a subprocess) and untested harnesses
 
 Run:
-  uv run --python 3.13 --with pytest pytest scripts/test_dispatch.py -q
+  uv run --python 3.13 --with pytest pytest evals/test_dispatch.py -q
 """
 
 from __future__ import annotations
@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parent / "dispatch.sh"
-SKILL_DIR = Path(__file__).resolve().parent.parent  # scripts/ -> skill root
+SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "dispatch.sh"
+SKILL_DIR = Path(__file__).resolve().parent.parent  # evals/ -> skill root
 
 
 def run(

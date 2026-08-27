@@ -30,7 +30,7 @@ jobs:
           version: "0.5.29"
 
       - name: Package, parity, hygiene, and script tests
-        run: bash scripts/run_tests.sh
+        run: bash evals/run_tests.sh
 
       - name: Eval check-engine self-test
         run: bash evals/run.sh --selftest

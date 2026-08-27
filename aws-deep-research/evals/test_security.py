@@ -8,8 +8,8 @@ from pathlib import Path
 
 import read_env
 
-SCRIPTS_DIR = Path(__file__).resolve().parent
-SKILL_DIR = SCRIPTS_DIR.parent
+SKILL_DIR = Path(__file__).resolve().parent.parent  # evals/ -> skill root
+SCRIPTS_DIR = SKILL_DIR / "scripts"
 
 
 def test_read_env_treats_shell_syntax_as_literal(tmp_path: Path) -> None:

@@ -323,21 +323,59 @@ def test_gitignore_covers_secrets_and_caches() -> None:
         assert pattern in ignored, f".gitignore does not cover {pattern}"
 
 
+def shipped_shell_scripts() -> list[Path]:
+    """Executable shell entry points in both scripts/ and evals/."""
+    return sorted([*(SKILL_DIR / "scripts").glob("*.sh"), *EVALS_DIR.glob("*.sh")])
+
+
+def python_clis() -> list[Path]:
+    """Python files that are CLIs, so must support --help.
+
+    Excludes test modules (pytest entry points, not CLIs) and the two importable
+    helpers with no argparse surface.
+    """
+    return sorted(
+        p for p in [*(SKILL_DIR / "scripts").glob("*.py"), *EVALS_DIR.glob("*.py")]
+        if not p.name.startswith("test_") and p.name not in {"common.py", "read_env.py"}
+    )
+
+
 def test_every_script_is_executable_or_a_module() -> None:
     """A shipped CLI that is not executable fails on first use."""
-    for p in sorted((SKILL_DIR / "scripts").glob("*.sh")):
+    for p in shipped_shell_scripts():
         assert p.stat().st_mode & 0o111, f"{p.name} is not executable"
 
 
-@pytest.mark.parametrize(
-    "script",
-    sorted(p.name for p in (SKILL_DIR / "scripts").glob("*.py")
-           if not p.name.startswith("test_") and p.name not in {"common.py", "read_env.py"}),
-)
+@pytest.mark.parametrize("script", [str(p.relative_to(SKILL_DIR)) for p in python_clis()])
 def test_python_clis_support_help(script: str) -> None:
     r = subprocess.run(
-        ["uv", "run", "--python", "3.13", str(SKILL_DIR / "scripts" / script), "--help"],
+        ["uv", "run", "--python", "3.13", str(SKILL_DIR / script), "--help"],
         capture_output=True, text=True, check=False, cwd=SKILL_DIR,
     )
     assert r.returncode == 0, f"{script} --help exited {r.returncode}: {r.stderr[-400:]}"
     assert "usage" in r.stdout.lower()
+
+
+def test_no_eval_only_script_lives_in_scripts_dir() -> None:
+    """scripts/ is what the SKILL invokes at runtime; evals/ is what measures it.
+
+    verify_findings.sh and lint_report.py legitimately stay in scripts/ because
+    SKILL.md calls them in Steps 5 and 6 - they are skill tools that evals reuse,
+    not eval tools.
+    """
+    strays = [p.name for p in (SKILL_DIR / "scripts").iterdir()
+              if p.name.startswith("test_")
+              or p.name in {"run_tests.sh", "eval_synthesis.sh", "routing_judge.sh"}]
+    assert not strays, f"eval-only files belong in evals/, not scripts/: {strays}"
+
+
+def test_every_runtime_script_is_actually_referenced() -> None:
+    """Catches the reverse drift: dead code accumulating in the runtime directory."""
+    referenced = read(SKILL_MD)
+    for p in sorted(AGENTS_DIR.glob("*.md")) + sorted((SKILL_DIR / "references").glob("*.md")):
+        referenced += read(p)
+    # Imported by other scripts rather than named in prose.
+    allowed = {"common.py", "read_env.py", ".env.example"}
+    orphans = [p.name for p in (SKILL_DIR / "scripts").iterdir()
+               if p.is_file() and p.name not in allowed and p.name not in referenced]
+    assert not orphans, f"scripts/ entries nothing references: {orphans}"

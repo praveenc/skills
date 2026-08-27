@@ -1,6 +1,6 @@
 """Tests for the persistent web-search budget tracker in common.py.
 
-Run: uv run --python 3.13 --with pytest python -m pytest scripts/test_budget.py -q
+Run: uv run --python 3.13 --with pytest python -m pytest evals/test_budget.py -q
 """
 
 from __future__ import annotations

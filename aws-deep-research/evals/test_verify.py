@@ -15,7 +15,8 @@ from pathlib import Path
 
 import pytest
 
-SCRIPTS_DIR = Path(__file__).resolve().parent
+SKILL_DIR = Path(__file__).resolve().parent.parent  # evals/ -> skill root
+SCRIPTS_DIR = SKILL_DIR / "scripts"
 VERIFY = SCRIPTS_DIR / "verify_findings.sh"
 LINT = SCRIPTS_DIR / "lint_report.py"
 

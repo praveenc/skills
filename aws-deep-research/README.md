@@ -51,7 +51,7 @@ The eight-step flow enforced by `SKILL.md`:
 ## Testing
 
 ```bash
-bash scripts/run_tests.sh          # 147 model-free tests
+bash evals/run_tests.sh           # 151 model-free tests
 bash evals/run.sh --static         # eval-corpus structure gate
 bash evals/run.sh --selftest       # eval check-engine self-test
 ```
