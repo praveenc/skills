@@ -27,6 +27,8 @@ research directory.
 | `dispatch.sh` | Headless subagent dispatch for pi / Claude Code (one process per subagent) |
 | `verify_findings.sh` | Step 5 size gate; prints `<file>=OK\|WEAK\|MISSING\|UNREADABLE`, never contents |
 | `lint_report.py` | Step 6 report gate; sections, citation/reference integrity, size. `--json` for runners |
-| `run_tests.sh` | Runs the full package test suite with the correct `uv` flags |
-| `eval_synthesis.sh` | Re-synthesizes a retained fixture to regression-test the synthesizer prompt |
 | `common.py` | Shared helpers (blocklist matching, output paths) imported by the Python tools |
+
+Test and eval tooling lives in `$SKILL_DIR/evals/`, not here - see
+`evals/README.md`. `verify_findings.sh` and `lint_report.py` are the exception:
+SKILL.md calls them at runtime, so they are skill tools the eval layer reuses.

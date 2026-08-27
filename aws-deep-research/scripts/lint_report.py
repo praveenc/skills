@@ -8,7 +8,7 @@ quality - those stay with the rubric in evals/synthesis-rubric.json and a
 calibrated judge.
 
 Three callers:
-  1. scripts/eval_synthesis.sh  - turns a synthesis regression into an exit code
+  1. evals/eval_synthesis.sh  - turns a synthesis regression into an exit code
   2. evals/run.py               - behavior-case assertions
   3. SKILL.md Step 6            - repair loop before the report reaches the user
 

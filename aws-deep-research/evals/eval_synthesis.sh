@@ -38,11 +38,11 @@ case "${1:-}" in
     ;;
 esac
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+EVALS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_DIR="$(cd "$EVALS_DIR/.." && pwd)"
 WORK_ROOT="${RESEARCH_WORK_DIR:-$HOME/.aws-deep-research/work}"
 PI_BIN="${PI_BIN:-pi}"
-RUBRIC="$SKILL_DIR/evals/synthesis-rubric.json"
+RUBRIC="$EVALS_DIR/synthesis-rubric.json"
 SYNTH_PROMPT="$SKILL_DIR/agents/synthesizer.md"
 
 if ! command -v "$PI_BIN" >/dev/null 2>&1; then

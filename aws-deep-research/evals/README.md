@@ -14,25 +14,44 @@ evals/
   synthesis-rubric.json     10 scored dimensions, each classed hard or soft
   run.py                    the executor: --static, --selftest, grading, JSON/JUnit
   run.sh                    thin python3 wrapper
+  run_tests.sh              the one supported pytest invocation
   routing_judge.sh          generates routing evidence with an isolated judge
+  eval_synthesis.sh         re-synthesizes retained fixtures, gated by lint_report.py
   extract_behavior_meta.py  builds behavior meta.json from a pi session log
+  test_*.py                 the model-free pytest suite (151 tests)
   results/                  retained measurement runs (committed)
   outputs/                  generated evidence, one dir per case id (gitignored)
 ```
 
-Deterministic mechanics live in `scripts/` as pytest, not here:
+## What lives where
+
+`scripts/` is what the SKILL invokes at runtime. `evals/` is what measures it.
+Nothing that only exists to test the skill belongs in `scripts/`, because it
+ships to every user who installs the skill and adds nothing to a research run.
+
+Two files sit in `scripts/` and are also used by evals, which is correct:
+`verify_findings.sh` (SKILL.md Step 5) and `lint_report.py` (SKILL.md Step 6)
+are skill tools the eval layer reuses, not eval tools.
+
+The boundary is enforced in both directions by `test_package.py`:
+`test_no_eval_only_script_lives_in_scripts_dir` fails if a `test_*.py`,
+`run_tests.sh`, or `eval_synthesis.sh` reappears under `scripts/`, and
+`test_every_runtime_script_is_actually_referenced` fails if a `scripts/` entry
+stops being reachable from SKILL.md, an agent, or a reference.
+
+Deterministic mechanics are pytest, not agent-driven cases:
 
 | Surface | Where | Command |
 |---|---|---|
-| dispatch command construction, harness detection, guards | `scripts/test_dispatch.py` | 25 tests |
-| search-budget accounting and thresholds | `scripts/test_budget.py` | 11 tests |
-| config/trust-boundary security | `scripts/test_security.py` | 6 tests |
-| findings size gate + report linter faults | `scripts/test_verify.py` | 36 tests |
-| package structure, doc parity, publish hygiene | `scripts/test_package.py` | structural gate |
+| dispatch command construction, harness detection, guards | `evals/test_dispatch.py` | 25 tests |
+| search-budget accounting and thresholds | `evals/test_budget.py` | 11 tests |
+| config/trust-boundary security | `evals/test_security.py` | 6 tests |
+| findings size gate + report linter faults | `evals/test_verify.py` | 36 tests |
+| package structure, doc parity, publish hygiene | `evals/test_package.py` | structural gate |
 
-Run all of it with `bash scripts/run_tests.sh` - that is the only supported
+Run all of it with `bash evals/run_tests.sh` - that is the only supported
 invocation, because `scripts/common.py` imports `rich` at module level and a
-bare `pytest scripts/` fails at collection.
+bare `pytest evals/` fails at collection.
 
 ## The three modes, kept separate
 
@@ -210,7 +229,7 @@ the synthesis gate agree by construction rather than by convention.
 
 | Layer | Treatment | Model needed |
 |---|---|---|
-| `scripts/run_tests.sh` | hard | no |
+| `evals/run_tests.sh` | hard | no |
 | `run.sh --static` + `--selftest` | hard | no |
 | routing, metadata-only | hard | cheap judge |
 | behavior + faults, deterministic checks | hard | full runs |

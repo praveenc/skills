@@ -1,7 +1,7 @@
 {
   "skill_name": "aws-deep-research",
   "suite": "faults",
-  "description": "Degraded-dependency and partial-failure corpus. Only faults that need a MODEL in the loop live here - the question is whether the agent degrades safely and tells the user, not whether a script returns the right code. Deterministic faults (MISSING/WEAK findings, boundary sizes, unreadable files, malformed reports) are graded model-free in scripts/test_verify.py instead: moving determinism left is cheaper and more reliable than an agent-driven fault corpus.",
+  "description": "Degraded-dependency and partial-failure corpus. Only faults that need a MODEL in the loop live here - the question is whether the agent degrades safely and tells the user, not whether a script returns the right code. Deterministic faults (MISSING/WEAK findings, boundary sizes, unreadable files, malformed reports) are graded model-free in evals/test_verify.py instead: moving determinism left is cheaper and more reliable than an agent-driven fault corpus.",
   "mode": "forced-load",
   "isolation": "Fresh work dir and fresh session per trial. Inject the fault via the documented environment surface (AWS_DEEP_RESEARCH_CONFIG pointing at a scratch config, a scratch budget.json, a blocked URL) - never by editing the skill tree.",
   "trials": 3,
