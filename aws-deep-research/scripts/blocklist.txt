@@ -2,10 +2,9 @@
 # One domain per line. Blank lines and lines starting with # are ignored.
 # Matching is done by suffix: "example.com" also blocks "sub.example.com".
 #
-# Entries are written DEFANGED (winbuzzer[.]com) so this file contains no
-# live domain that a content/security scanner would read as a real URL.
-# The loader (common.py) un-defangs "[.]" back to "." at read time, so
-# matching still works on the real host.
+# Entries are written DEFANGED (bad.example[.]com) so the file carries no
+# live, resolvable host. The loader (common.py) un-defangs "[.]" back to "."
+# at read time, so matching still works on the real host.
 #
 # These domains are filtered out of Brave/Tavily results BEFORE URLs are
 # returned for fetchv2 batch fetching, and also skipped when listed in
@@ -16,9 +15,6 @@
 #   SPAM  - low-signal aggregator, scraped-content mill, or SEO farm
 #   PAY   - hard paywall that adds noise without content
 #   DEAD  - persistently broken / timing out
-
-# --- SEC: blocked by Amazon Security (confirmed 2026-04-26) ---
-winbuzzer[.]com
-
-# --- SPAM: aggregators / content mills frequently surfaced by Brave ---
-# (add entries here as we observe them; keep comment trail)
+#
+# The shipped default is intentionally empty. Add domains to your local copy
+# as you observe SEC/SPAM/PAY/DEAD hits; keep the reason tag in a comment.
