@@ -6,11 +6,15 @@ Run: uv run --python 3.13 --with pytest python -m pytest evals/test_budget.py -q
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from pathlib import Path
 
+import common
 import pytest
 
-import common
+SKILL_DIR = Path(__file__).resolve().parent.parent  # evals/ -> skill root
+BRAVE_SCRIPT = SKILL_DIR / "scripts" / "brave_search.py"
 
 
 @pytest.fixture
@@ -106,3 +110,22 @@ def test_unknown_engine_has_no_cap(budget_path: Path) -> None:
     assert status["cap"] is None
     assert status["remaining"] is None
     assert status["over_80"] is False
+
+
+# --- brave_search.py --count validation -------------------------------------
+#
+# No network access: argparse rejects an out-of-range --count during arg
+# parsing, before brave_search.py ever loads an API key or makes a request.
+
+
+def test_brave_count_over_api_max_is_rejected() -> None:
+    r = subprocess.run(
+        ["uv", "run", "--python", "3.13", str(BRAVE_SCRIPT), "test query", "--count", "100"],
+        capture_output=True,
+        text=True,
+        env=dict(os.environ),
+        check=False,
+        cwd=SKILL_DIR,
+    )
+    assert r.returncode == 2, r.stderr[-400:]
+    assert "20" in r.stderr
