@@ -37,6 +37,7 @@ import argparse
 import asyncio
 import json
 import os
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -134,101 +135,56 @@ async def list_tools(session: ClientSession) -> list[str]:
     return [t.name for t in result.tools]
 
 
-async def discover_services(
-    session: ClientSession,
-    keyword: str,
-) -> list[dict[str, Any]]:
-    """Search for AWS services matching a keyword."""
-    raw = await call_tool(session, "discover_services", {"keyword": keyword})
+# Tools the aws-pricing-mcp-server (awslabs.aws-pricing-mcp-server) actually
+# registers. The prior code called discover_services/get_products/
+# compare_pricing/generate_cost_report(ServiceCode=...), none of which exist on
+# the server, so every run returned zero products while reporting success.
+REQUIRED_TOOLS = {"get_pricing"}
+
+
+async def discover_service_codes(session: ClientSession, keyword: str) -> list[str]:
+    """get_pricing_service_codes(filter=<regex>) → matching AWS service codes."""
+    raw = await call_tool(session, "get_pricing_service_codes", {"filter": keyword})
     if isinstance(raw, list):
-        return raw
+        return [c for c in raw if isinstance(c, str)]
     if isinstance(raw, dict):
-        return raw.get("services", raw.get("results", [raw]))
-    if isinstance(raw, str):
-        # Sometimes returns plain text description
-        return [{"description": raw}]
+        codes = raw.get("service_codes") or raw.get("result") or raw.get("data") or []
+        return [c for c in codes if isinstance(c, str)] if isinstance(codes, list) else []
     return []
 
 
-async def get_pricing_attributes(
+async def get_pricing_data(
     session: ClientSession,
     service_code: str,
-) -> list[dict[str, Any]]:
-    """Get available pricing attributes for a service."""
-    raw = await call_tool(
-        session,
-        "get_attribute_values",
-        {"ServiceCode": service_code, "max_results": 20},
-    )
-    if isinstance(raw, list):
-        return raw
-    if isinstance(raw, dict):
-        return raw.get("attributes", raw.get("results", [raw]))
-    return []
-
-
-async def query_pricing(
-    session: ClientSession,
-    service_code: str,
-    filters: list[dict[str, str]] | None = None,
+    region: str,
     *,
     max_results: int = 15,
-) -> list[dict[str, Any]]:
-    """Query pricing data with optional filters."""
-    args: dict[str, Any] = {
-        "ServiceCode": service_code,
-        "max_results": max_results,
-    }
-    if filters:
-        args["Filters"] = filters
-    raw = await call_tool(session, "get_products", args)
-    if isinstance(raw, list):
-        return raw
-    if isinstance(raw, dict):
-        return raw.get("products", raw.get("results", raw.get("PriceList", [raw])))
-    if isinstance(raw, str):
-        return [{"raw": raw}]
-    return []
-
-
-async def compare_pricing(
-    session: ClientSession,
-    service_code: str,
-    regions: list[str],
-    filters: list[dict[str, str]] | None = None,
+    max_chars: int = 50000,
 ) -> dict[str, Any]:
-    """Compare pricing across regions."""
-    args: dict[str, Any] = {
-        "ServiceCode": service_code,
-        "regions": regions,
-    }
-    if filters:
-        args["Filters"] = filters
-    raw = await call_tool(session, "compare_pricing", args)
-    if isinstance(raw, dict):
-        return raw
-    return {"raw": raw}
+    """get_pricing(...) → {status, service_name, data:[items], ...} or an error dict.
 
-
-async def generate_cost_report(
-    session: ClientSession,
-    service_code: str,
-    usage_params: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Generate a cost analysis report."""
-    args: dict[str, Any] = {"ServiceCode": service_code}
-    if usage_params:
-        args.update(usage_params)
-    raw = await call_tool(session, "generate_cost_report", args)
-    if isinstance(raw, dict):
-        return raw
-    return {"raw": raw}
+    On success the pricing items are under `data`; each item carries the Price
+    List `product.attributes` and `terms.OnDemand...priceDimensions` that
+    _format_product renders into $/unit lines. On empty/too-large/invalid the
+    server returns an error dict with a `message`, which we surface verbatim.
+    """
+    raw = await call_tool(
+        session,
+        "get_pricing",
+        {
+            "service_code": service_code,
+            "region": region,
+            "max_results": max_results,
+            "max_allowed_characters": max_chars,
+        },
+    )
+    return raw if isinstance(raw, dict) else {"status": "error", "raw": raw}
 
 
 # ── Core research logic ─────────────────────────────────────────────────────
 
 
-async def research_pricing(  # noqa: PLR0913
+async def research_pricing(
     session: ClientSession,
     queries: list[str],
     *,
@@ -240,168 +196,124 @@ async def research_pricing(  # noqa: PLR0913
     """Run pricing research for each query. Returns structured findings."""
     all_findings: list[dict[str, Any]] = []
     log = logger.log if logger else lambda *_a, **_kw: None
-    tools = available_tools or []
+    tools = set(available_tools or [])
+    can_discover = "get_pricing_service_codes" in tools
 
     for query in queries:
         console.print(f"[cyan]Researching pricing:[/cyan] {query}")
         finding: dict[str, Any] = {"query": query, "region": region}
         t0 = time.monotonic()
 
-        # Step 1: Discover relevant services
-        # Extract likely service keywords from the query
-        keywords = _extract_service_keywords(query)
-        services_found: list[dict[str, Any]] = []
+        # Step 1: resolve query keywords to AWS service codes. Known names
+        # (ec2 → AmazonEC2) map directly; unknown terms are discovered via
+        # get_pricing_service_codes when the tool is available.
+        service_codes: list[str] = []
+        seen: set[str] = set()
+        for cand in _extract_service_keywords(query)[:3]:
+            if cand in KNOWN_CODES:
+                resolved = [cand]
+            elif can_discover:
+                try:
+                    resolved = (await discover_service_codes(session, cand))[:2]
+                    log("discover", keyword=cand, results_count=len(resolved))
+                except Exception as e:  # noqa: BLE001
+                    console.print(f"  [yellow]Discovery failed for {cand}: {e}[/yellow]")
+                    log("discover_error", keyword=cand, error=str(e))
+                    resolved = []
+            else:
+                resolved = [cand]  # best effort: treat the token as a code
+            for sc in resolved:
+                if sc not in seen:
+                    seen.add(sc)
+                    service_codes.append(sc)
 
-        for kw in keywords[:3]:  # Max 3 keyword searches
-            console.print(f"  [dim]Discovering services for: {kw}[/dim]")
-            try:
-                results = await discover_services(session, kw)
-                services_found.extend(results)
-                log("discover", keyword=kw, results_count=len(results))
-            except Exception as e:  # noqa: BLE001
-                console.print(f"  [yellow]Discovery failed for {kw}: {e}[/yellow]")
-                log("discover_error", keyword=kw, error=str(e))
+        finding["service_codes"] = service_codes
 
-        finding["services_discovered"] = services_found
-
-        # Step 2: Query pricing for discovered services
-        service_codes = _extract_service_codes(services_found)
+        # Step 2: query pricing for each resolved service code.
         pricing_results: list[dict[str, Any]] = []
-
-        for sc in service_codes[:3]:  # Max 3 services per query
+        for sc in service_codes[:3]:
             console.print(f"  [dim]Querying pricing for: {sc}[/dim]")
             try:
-                if "get_products" in tools:
-                    products = await query_pricing(
-                        session,
-                        sc,
-                        max_results=max_results,
-                    )
-                    pricing_results.append(
-                        {
-                            "service_code": sc,
-                            "products": products[:max_results],
-                        },
-                    )
-                    log("pricing", service=sc, products_count=len(products))
-                else:
-                    # Fallback: try discover_services with more detail
-                    detail = await discover_services(session, sc)
-                    pricing_results.append(
-                        {
-                            "service_code": sc,
-                            "info": detail,
-                        },
-                    )
-            except Exception as e:  # noqa: BLE001
-                console.print(f"  [yellow]Pricing query failed for {sc}: {e}[/yellow]")
-                log("pricing_error", service=sc, error=str(e))
+                data = await get_pricing_data(session, sc, region, max_results=max_results)
+                items = data.get("data") if isinstance(data.get("data"), list) else []
+                status = data.get("status", "success" if items else "empty")
                 pricing_results.append(
                     {
                         "service_code": sc,
-                        "error": str(e),
+                        "status": status,
+                        "data": items,
+                        "message": data.get("message") or data.get("error_type") or "",
                     },
                 )
+                log("pricing", service=sc, status=status, products_count=len(items))
+            except Exception as e:  # noqa: BLE001
+                console.print(f"  [yellow]Pricing query failed for {sc}: {e}[/yellow]")
+                log("pricing_error", service=sc, error=str(e))
+                pricing_results.append({"service_code": sc, "status": "error", "data": [], "message": str(e)})
 
         finding["pricing"] = pricing_results
-
-        # Step 3: Try cost report if available
-        if "generate_cost_report" in tools and service_codes:
-            try:
-                console.print("  [dim]Generating cost report...[/dim]")
-                report = await generate_cost_report(session, service_codes[0])
-                finding["cost_report"] = report
-                log("cost_report", service=service_codes[0])
-            except Exception as e:  # noqa: BLE001
-                log("cost_report_error", error=str(e))
-
-        duration_ms = round((time.monotonic() - t0) * 1000)
-        finding["duration_ms"] = duration_ms
-        log("query_done", query=query, duration_ms=duration_ms)
+        finding["products_count"] = sum(len(p["data"]) for p in pricing_results)
+        finding["duration_ms"] = round((time.monotonic() - t0) * 1000)
+        log("query_done", query=query, products=finding["products_count"], duration_ms=finding["duration_ms"])
         all_findings.append(finding)
 
     return all_findings
 
 
+# Common AWS service names → Price List service codes. Values are valid
+# `service_code` inputs to get_pricing; a query term not found here is resolved
+# via get_pricing_service_codes at runtime.
+SERVICE_MAP = {
+    "ec2": "AmazonEC2",
+    "s3": "AmazonS3",
+    "rds": "AmazonRDS",
+    "aurora": "AmazonRDS",
+    "lambda": "AWSLambda",
+    "dynamodb": "AmazonDynamoDB",
+    "ecs": "AmazonECS",
+    "eks": "AmazonEKS",
+    "fargate": "AmazonECS",
+    "bedrock": "AmazonBedrock",
+    "sagemaker": "AmazonSageMaker",
+    "opensearch": "AmazonES",
+    "elasticache": "AmazonElastiCache",
+    "cloudfront": "AmazonCloudFront",
+    "redshift": "AmazonRedshift",
+    "kinesis": "AmazonKinesis",
+    "emr": "ElasticMapReduce",
+    "msk": "AmazonMSK",
+    "neptune": "AmazonNeptune",
+    "documentdb": "AmazonDocDB",
+    "memorydb": "AmazonMemoryDB",
+    "api gateway": "AmazonApiGateway",
+    "step functions": "AWSStepFunctions",
+    "eventbridge": "AmazonEventBridge",
+    "sqs": "AWSQueueService",
+    "sns": "AmazonSNS",
+    "glue": "AWSGlue",
+    "athena": "AmazonAthena",
+}
+KNOWN_CODES = frozenset(SERVICE_MAP.values())
+
+_STOP_WORDS = frozenset({
+    "the", "and", "for", "how", "much", "does", "cost", "pricing",
+    "price", "compare", "between", "aws", "amazon", "region",
+})
+
+
 def _extract_service_keywords(query: str) -> list[str]:
-    """Extract likely AWS service names from a pricing query."""
-    # Common service name patterns
-    service_map = {
-        "ec2": "AmazonEC2",
-        "s3": "AmazonS3",
-        "rds": "AmazonRDS",
-        "aurora": "AmazonRDS",
-        "lambda": "AWSLambda",
-        "dynamodb": "AmazonDynamoDB",
-        "ecs": "AmazonECS",
-        "eks": "AmazonEKS",
-        "fargate": "AmazonECS",
-        "bedrock": "AmazonBedrock",
-        "sagemaker": "AmazonSageMaker",
-        "opensearch": "AmazonES",
-        "elasticache": "AmazonElastiCache",
-        "cloudfront": "AmazonCloudFront",
-        "redshift": "AmazonRedshift",
-        "kinesis": "AmazonKinesis",
-        "emr": "ElasticMapReduce",
-        "msk": "AmazonMSK",
-        "neptune": "AmazonNeptune",
-        "documentdb": "AmazonDocDB",
-        "memorydb": "AmazonMemoryDB",
-        "api gateway": "AmazonApiGateway",
-        "step functions": "AWSStepFunctions",
-        "eventbridge": "AmazonEventBridge",
-        "sqs": "AWSQueueService",
-        "sns": "AmazonSNS",
-        "glue": "AWSGlue",
-        "athena": "AmazonAthena",
-    }
-
+    """Map a pricing query to candidate service codes, else salient keywords."""
     query_lower = query.lower()
-    keywords = []
-
-    for name, code in service_map.items():
-        if name in query_lower:
-            keywords.append(code)
-
-    # If no known service matched, use raw query words as keywords
+    keywords = [code for name, code in SERVICE_MAP.items() if name in query_lower]
     if not keywords:
-        words = [
-            w
-            for w in query.split()
-            if len(w) > 2  # noqa: PLR2004 w.lower() not in
-            and {
-                "the",
-                "and",
-                "for",
-                "how",
-                "much",
-                "does",
-                "cost",
-                "pricing",
-                "price",
-                "compare",
-                "between",
-                "aws",
-                "amazon",
-                "region",
-            }
-        ]
-        keywords = words[:3]
-
+        # No known service matched: fall back to salient query words. The prior
+        # predicate `len(w) > 2 and {set literal}` was always true (a non-empty
+        # set is truthy), so no stop word was ever filtered - fixed here.
+        keywords = [
+            w for w in query.split()
+            if len(w) > 2 and w.lower() not in _STOP_WORDS  # noqa: PLR2004
+        ][:3]
     return keywords
-
-
-def _extract_service_codes(services: list[dict[str, Any]]) -> list[str]:
-    """Extract unique service codes from discovery results."""
-    codes: list[str] = []
-    seen: set[str] = set()
-    for svc in services:
-        code = svc.get("ServiceCode", svc.get("service_code", ""))
-        if code and code not in seen:
-            seen.add(code)
-            codes.append(code)
-    return codes
 
 
 # ── Output formatters ────────────────────────────────────────────────────────
@@ -409,40 +321,24 @@ def _extract_service_codes(services: list[dict[str, Any]]) -> list[str]:
 _COMPACT_JSON_MAX = 1000
 
 
-def _format_services(lines: list[str], services: list[dict[str, Any]]) -> None:
-    """Format discovered services section."""
-    lines.append("### Services Found\n")
-    for svc in services[:5]:
-        code = svc.get("ServiceCode", "")
-        desc = svc.get("description", svc.get("ServiceName", ""))
-        if code:
-            lines.append(f"- **{code}**: {desc}")
-        elif desc:
-            lines.append(f"- {str(desc)[:300]}")
-    lines.append("")
-
-
 def _format_pricing_section(lines: list[str], pricing: list[dict[str, Any]]) -> None:
-    """Format pricing data for all services."""
+    """Format pricing data (the `data` list from get_pricing) per service."""
     for p in pricing:
         sc = p.get("service_code", "Unknown")
         lines.append(f"### Pricing: {sc}\n")
 
-        if "error" in p:
-            lines.append(f"*Error querying pricing: {p['error']}*\n")
+        items = p.get("data", [])
+        if not items:
+            msg = p.get("message") or p.get("status") or "no results"
+            lines.append(f"*No pricing returned ({p.get('status', 'empty')}): {str(msg)[:400]}*\n")
             continue
 
-        products = p.get("products", p.get("info", []))
-        if isinstance(products, list):
-            for prod in products[:10]:
-                if isinstance(prod, dict):
-                    _format_product(lines, prod)
-                else:
-                    lines.append(f"- {str(prod)[:500]}")
-        elif isinstance(products, dict):
-            _format_product(lines, products)
-        else:
-            lines.append(f"{str(products)[:2000]}\n")
+        for prod in items[:10]:
+            if isinstance(prod, dict):
+                _format_product(lines, prod)
+            else:
+                lines.append(f"- {str(prod)[:500]}")
+        lines.append("")
 
 
 def format_markdown(findings: list[dict[str, Any]], region: str) -> str:
@@ -455,26 +351,17 @@ def format_markdown(findings: list[dict[str, Any]], region: str) -> str:
     ]
 
     for finding in findings:
-        query = finding["query"]
-        lines.append(f"## {query}\n")
+        lines.append(f"## {finding['query']}\n")
 
-        services = finding.get("services_discovered", [])
-        if services:
-            _format_services(lines, services)
+        codes = finding.get("service_codes", [])
+        if codes:
+            lines.append(f"**Service codes**: {', '.join(codes)}\n")
 
         pricing = finding.get("pricing", [])
         if pricing:
             _format_pricing_section(lines, pricing)
-
-        report = finding.get("cost_report")
-        if report:
-            lines.append("### Cost Analysis\n")
-            if isinstance(report, dict):
-                lines.append(
-                    f"```json\n{json.dumps(report, indent=2, default=str)[:3000]}\n```\n",
-                )
-            else:
-                lines.append(f"{str(report)[:2000]}\n")
+        else:
+            lines.append("*No service codes resolved for this query.*\n")
 
         lines.append("---\n")
 
@@ -568,7 +455,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-async def main(args: argparse.Namespace) -> None:
+async def main(args: argparse.Namespace) -> int:
     logger = ResearchLogger(Path(args.log_dir) if args.log_dir else None)
     t_start = time.monotonic()
     logger.log("start", queries=args.query, region=args.region)
@@ -584,10 +471,20 @@ async def main(args: argparse.Namespace) -> None:
             console.print("[green]Connected.[/green]")
             logger.log("connected")
 
-            # Discover available tools
             tools = await list_tools(session)
-            console.print(f"  [dim]Available tools: {', '.join(tools)}[/dim]")
             logger.log("tools", tools=tools)
+
+            # Fail fast if the pricing server does not expose the tools we call,
+            # instead of returning zero products while reporting success.
+            missing = REQUIRED_TOOLS - set(tools)
+            if missing:
+                console.print(f"[red]Required tools missing: {sorted(missing)}[/red]")
+                console.print(f"[dim]Available: {', '.join(tools)}[/dim]")
+                logger.log("fatal", reason="missing_tools", missing=sorted(missing), available=tools)
+                logger.close()
+                print(json.dumps({"status": "failed", "reason": "missing_tools",
+                                  "missing": sorted(missing)}))
+                return 1
 
             findings = await research_pricing(
                 session,
@@ -598,36 +495,45 @@ async def main(args: argparse.Namespace) -> None:
                 available_tools=tools,
             )
 
-    # Write output
+    total_products = sum(f.get("products_count", 0) for f in findings)
+
+    # Fail fast on total failure: write no -o file so the size gate reports
+    # MISSING and the subagent writes a SKIPPED note, rather than shipping an
+    # empty pricing file that passes the gate and reads as success.
+    if total_products == 0:
+        console.print("[red]Zero pricing products across all queries.[/red]")
+        logger.log("done", status="failed", queries=len(findings), products=0,
+                   duration_ms=round((time.monotonic() - t_start) * 1000))
+        logger.close()
+        print(json.dumps({"status": "failed", "reason": "no_products",
+                          "queries": len(findings), "products": 0}))
+        return 1
+
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if args.json_output:
-        text = format_json(findings)
-    else:
-        text = format_markdown(findings, args.region)
-
+    text = format_json(findings) if args.json_output else format_markdown(findings, args.region)
     out_path.write_text(text, encoding="utf-8")  # noqa: ASYNC240
     console.print(f"[green]✓ Wrote {len(text):,} chars to {out_path}[/green]")
 
-    # Print brief summary to stdout
-    total_services = sum(len(f.get("pricing", [])) for f in findings)
+    empty = sum(1 for f in findings if f.get("products_count", 0) == 0)
     summary = {
-        "status": "success",
+        "status": "partial" if empty else "success",
         "queries": len(findings),
-        "services_queried": total_services,
+        "products": total_products,
         "region": args.region,
         "output_file": str(out_path),
         "output_size_chars": len(text),
     }
-
-    duration_ms = round((time.monotonic() - t_start) * 1000)
-    logger.log("done", **summary, duration_ms=duration_ms)
+    logger.log("done", **summary, duration_ms=round((time.monotonic() - t_start) * 1000))
     logger.close()
-
     print(json.dumps(summary))
+    return 0
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    asyncio.run(main(args))
+    try:
+        sys.exit(asyncio.run(main(parse_args())))
+    except (ConnectionError, OSError, RuntimeError) as exc:
+        console.print(f"[red]aws_pricing_search failed: {exc}[/red]")
+        print(json.dumps({"status": "failed", "reason": str(exc)}))
+        sys.exit(2)

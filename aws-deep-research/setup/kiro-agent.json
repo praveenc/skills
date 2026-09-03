@@ -27,10 +27,11 @@
     "bedrock-agentcore-mcp-server": {
       "command": "uvx",
       "args": [
-        "bedrock-agentcore-mcp-server@latest"
+        "awslabs.amazon-bedrock-agentcore-mcp-server@latest"
       ],
       "env": {
-        "FASTMCP_LOG_LEVEL": "WARNING"
+        "FASTMCP_LOG_LEVEL": "WARNING",
+        "AGENTCORE_ENABLE_TOOLS": "search_agentcore_docs,fetch_agentcore_doc"
       },
       "timeout": 60000
     }

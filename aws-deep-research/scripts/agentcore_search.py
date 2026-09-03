@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -35,6 +36,9 @@ from mcp.client.stdio import stdio_client
 from rich.console import Console
 
 console = Console(stderr=True)
+
+DEFAULT_MAX_LENGTH = 15000
+REQUIRED_TOOLS = {"search_agentcore_docs", "fetch_agentcore_doc"}
 
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -67,10 +71,17 @@ class ResearchLogger:
             self._fh.close()
 
 
+# AGENTCORE_ENABLE_TOOLS restricts the server (which ships 122 tools, including
+# mutating AWS operations) to just the two read-only docs tools this script
+# uses. Least privilege: a docs researcher never needs to create or delete AWS
+# resources.
 SERVER_PARAMS = StdioServerParameters(
     command="uvx",
     args=["awslabs.amazon-bedrock-agentcore-mcp-server@latest"],
-    env={"FASTMCP_LOG_LEVEL": "ERROR"},
+    env={
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AGENTCORE_ENABLE_TOOLS": "search_agentcore_docs,fetch_agentcore_doc",
+    },
 )
 
 
@@ -91,6 +102,12 @@ async def call_tool(
         return json.loads(text)
     except (json.JSONDecodeError, TypeError):
         return text
+
+
+async def list_tools(session: ClientSession) -> list[str]:
+    """Discover available tools on the AgentCore docs server."""
+    result = await session.list_tools()
+    return [t.name for t in result.tools]
 
 
 async def search_agentcore(
@@ -124,6 +141,7 @@ async def research_queries(
     queries: list[str],
     *,
     top: int = 3,
+    max_length: int = DEFAULT_MAX_LENGTH,
     logger: ResearchLogger | None = None,
 ) -> list[dict[str, Any]]:
     """Run search + fetch for each query. Returns structured findings."""
@@ -164,11 +182,12 @@ async def research_queries(
                 t1 = time.monotonic()
                 content = await fetch_doc(session, url)
                 read_ms = round((time.monotonic() - t1) * 1000)
-                # Truncate very long pages
-                if len(content) > 6000:
-                    content = content[:6000] + "\n\n*[truncated]*"
+                truncated = len(content) > max_length
+                if truncated:
+                    content = content[:max_length] + "\n\n*[truncated]*"
                 entry["content"] = content
-                log("fetch", url=url, chars=len(content), duration_ms=read_ms)
+                entry["truncated"] = truncated
+                log("fetch", url=url, chars=len(content), truncated=truncated, duration_ms=read_ms)
             else:
                 entry["content"] = snippet
 
@@ -259,6 +278,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Results to fetch per query (default: 3)",
     )
     p.add_argument(
+        "--max-length",
+        type=int,
+        default=DEFAULT_MAX_LENGTH,
+        help=f"Max chars per fetched doc before truncation (default: {DEFAULT_MAX_LENGTH})",
+    )
+    p.add_argument(
         "--json",
         action="store_true",
         dest="json_output",
@@ -273,53 +298,83 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-async def main(args: argparse.Namespace) -> None:
+async def main(args: argparse.Namespace) -> int:
     logger = ResearchLogger(Path(args.log_dir) if args.log_dir else None)
     t_start = time.monotonic()
-    logger.log("start", queries=args.query, top=args.top)
+    logger.log("start", queries=args.query, top=args.top, max_length=args.max_length)
 
     console.print("[bold]Connecting to bedrock-agentcore-mcp-server...[/bold]")
 
     async with stdio_client(SERVER_PARAMS) as (read_stream, write_stream):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
-            console.print("[green]Connected.[/green]")
             logger.log("connected")
 
+            tools = await list_tools(session)
+            logger.log("tools", tools=tools)
+
+            # Fail fast if the docs tools are absent (server changed, or the
+            # allowlist filtered them out) instead of writing an empty file.
+            missing = REQUIRED_TOOLS - set(tools)
+            if missing:
+                console.print(f"[red]Required tools missing: {sorted(missing)}[/red]")
+                console.print(f"[dim]Available: {', '.join(tools) or '(none)'}[/dim]")
+                logger.log("fatal", reason="missing_tools", missing=sorted(missing), available=tools)
+                logger.close()
+                print(json.dumps({"status": "failed", "reason": "missing_tools",
+                                  "missing": sorted(missing)}))
+                return 1
+
+            console.print("[green]Connected.[/green]")
             findings = await research_queries(
                 session,
                 args.query,
                 top=args.top,
+                max_length=args.max_length,
                 logger=logger,
             )
 
+    total_pages = sum(len(g["results"]) for g in findings)
+
+    # Fail fast on total failure: no -o file so the size gate reports MISSING.
+    if total_pages == 0:
+        console.print("[red]Zero documents fetched across all queries.[/red]")
+        logger.log("done", status="failed", queries=len(findings), pages_read=0,
+                   duration_ms=round((time.monotonic() - t_start) * 1000))
+        logger.close()
+        print(json.dumps({"status": "failed", "reason": "no_results",
+                          "queries": len(findings), "pages_read": 0}))
+        return 1
+
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
     text = format_json(findings) if args.json_output else format_markdown(findings)
     out_path.write_text(text, encoding="utf-8")
     console.print(f"[green]✓ Wrote {len(text):,} chars to {out_path}[/green]")
 
-    total_pages = sum(len(g["results"]) for g in findings)
     total_sources = len(
         {e["url"] for g in findings for e in g["results"] if e.get("url")},
     )
+    empty_queries = sum(1 for g in findings if not g["results"])
     summary = {
-        "status": "success",
+        "status": "partial" if empty_queries else "success",
         "queries": len(findings),
         "pages_read": total_pages,
         "unique_sources": total_sources,
+        "empty_queries": empty_queries,
         "output_file": str(out_path),
         "output_size_chars": len(text),
     }
-
-    duration_ms = round((time.monotonic() - t_start) * 1000)
-    logger.log("done", **summary, duration_ms=duration_ms)
+    logger.log("done", **summary, duration_ms=round((time.monotonic() - t_start) * 1000))
     logger.close()
-
     print(json.dumps(summary))
+    return 0
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    asyncio.run(main(args))
+    try:
+        sys.exit(asyncio.run(main(parse_args())))
+    except (ConnectionError, OSError, RuntimeError) as exc:
+        console.print(f"[red]agentcore_search failed: {exc}[/red]")
+        print(json.dumps({"status": "failed", "reason": str(exc)}))
+        sys.exit(2)

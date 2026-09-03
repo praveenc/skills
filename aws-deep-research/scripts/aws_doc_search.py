@@ -35,6 +35,7 @@ import argparse
 import asyncio
 import json
 import os
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -110,6 +111,13 @@ def make_server_params(region: str = "us-east-1", profile: str | None = None) ->
 # ── MCP helpers ──────────────────────────────────────────────────────────────
 
 
+# Tools the AWS MCP Server (via mcp-proxy-for-aws) must expose for this script
+# to work. If the proxy dies (e.g. a SigV4/TLS failure) it lists zero tools;
+# guarding on these turns that into a loud exit instead of a silent "no results"
+# file that passes the size gate.
+REQUIRED_TOOLS = {"aws___search_documentation", "aws___read_documentation"}
+
+
 async def call_tool(
     session: ClientSession,
     name: str,
@@ -124,6 +132,12 @@ async def call_tool(
         return json.loads(text)
     except (json.JSONDecodeError, TypeError):
         return text
+
+
+async def list_tools(session: ClientSession) -> list[str]:
+    """Discover available tools on the AWS MCP Server."""
+    result = await session.list_tools()
+    return [t.name for t in result.tools]
 
 
 async def search_docs(
@@ -370,7 +384,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-async def main(args: argparse.Namespace) -> None:
+async def main(args: argparse.Namespace) -> int:
     logger = ResearchLogger(Path(args.log_dir) if args.log_dir else None)
     t_start = time.monotonic()
     logger.log("start", queries=args.query, top=args.top, max_length=args.max_length)
@@ -383,9 +397,25 @@ async def main(args: argparse.Namespace) -> None:
     async with stdio_client(server_params) as (read_stream, write_stream):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
-            console.print("[green]Connected.[/green]")
             logger.log("connected")
 
+            tools = await list_tools(session)
+            logger.log("tools", tools=tools)
+
+            # Fail fast if the proxy did not expose the documentation tools
+            # (dead proxy / SigV4 / TLS failure), instead of silently writing a
+            # "no results" file that passes the size gate.
+            missing = REQUIRED_TOOLS - set(tools)
+            if missing:
+                console.print(f"[red]Required tools missing: {sorted(missing)}[/red]")
+                console.print(f"[dim]Available: {', '.join(tools) or '(none)'}[/dim]")
+                logger.log("fatal", reason="missing_tools", missing=sorted(missing), available=tools)
+                logger.close()
+                print(json.dumps({"status": "failed", "reason": "missing_tools",
+                                  "missing": sorted(missing)}))
+                return 1
+
+            console.print("[green]Connected.[/green]")
             topics_list = [t.strip() for t in args.topics.split(",")] if args.topics else None
 
             findings = await research_queries(
@@ -397,39 +427,48 @@ async def main(args: argparse.Namespace) -> None:
                 logger=logger,
             )
 
-    # Write output
+    total_pages = sum(len(g["results"]) for g in findings)
+
+    # Fail fast on total failure: write no -o file so the size gate reports
+    # MISSING and the subagent writes a SKIPPED note.
+    if total_pages == 0:
+        console.print("[red]Zero documents read across all queries.[/red]")
+        logger.log("done", status="failed", queries=len(findings), pages_read=0,
+                   duration_ms=round((time.monotonic() - t_start) * 1000))
+        logger.close()
+        print(json.dumps({"status": "failed", "reason": "no_results",
+                          "queries": len(findings), "pages_read": 0}))
+        return 1
+
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if args.json_output:
-        text = format_json(findings)
-    else:
-        text = format_markdown(findings)
-
+    text = format_json(findings) if args.json_output else format_markdown(findings)
     out_path.write_text(text, encoding="utf-8")
     console.print(f"[green]✓ Wrote {len(text):,} chars to {out_path}[/green]")
 
-    # Print brief summary to stdout for the calling agent
-    total_pages = sum(len(g["results"]) for g in findings)
     total_sources = len(
         {entry["url"] for g in findings for entry in g["results"] if entry.get("url")},
     )
+    empty_queries = sum(1 for g in findings if not g["results"])
     summary = {
-        "status": "success",
+        "status": "partial" if empty_queries else "success",
         "queries": len(findings),
         "pages_read": total_pages,
         "unique_sources": total_sources,
+        "empty_queries": empty_queries,
         "output_file": str(out_path),
         "output_size_chars": len(text),
     }
-
-    duration_ms = round((time.monotonic() - t_start) * 1000)
-    logger.log("done", **summary, duration_ms=duration_ms)
+    logger.log("done", **summary, duration_ms=round((time.monotonic() - t_start) * 1000))
     logger.close()
-
     print(json.dumps(summary))
+    return 0
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    asyncio.run(main(args))
+    try:
+        sys.exit(asyncio.run(main(parse_args())))
+    except (ConnectionError, OSError, RuntimeError) as exc:
+        console.print(f"[red]aws_doc_search failed: {exc}[/red]")
+        print(json.dumps({"status": "failed", "reason": str(exc)}))
+        sys.exit(2)

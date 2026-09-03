@@ -29,11 +29,12 @@ uv run $SKILL_DIR/scripts/github_search.py \
   -o <findings-file> --log-dir <work-dir> --top 5
 ```
 
-`$SKILL_DIR` is provided in your task instructions by the parent agent.
+`$SKILL_DIR` is provided in your task instructions by the parent agent. This
+queries the GitHub REST search API directly; it needs `GITHUB_TOKEN` in the
+environment (checked in step 2).
 
 Flags: `-q` (repeatable), `-o` findings-file path, `--log-dir` for research.log,
-`--top` max repos per query (default 5), `--deep-index` for semantic code
-search (use sparingly), `--json` for JSON output.
+`--top` max repos per query (default 5), `--json` for JSON output.
 
 ## Process
 
@@ -49,8 +50,7 @@ search (use sparingly), `--json` for JSON output.
    the token from the process environment or the external config as literal
    data without shell evaluation.
 3. Run `github_search.py` with all subqueries
-4. Only use `--deep-index` if user specifically needs code-level analysis
-5. Verify output has useful content
+4. Verify output has useful content
 
 ## Rules
 
