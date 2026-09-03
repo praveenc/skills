@@ -21,28 +21,48 @@ Read that file for the canonical list. Key fields you will always receive:
 `SKILL_DIR`, `work-dir`, `research-contract`, `original-query`,
 `query-type`, `subqueries` (facet-labeled), `findings-file`.
 
-## Primary Tool
+## Primary Tool (llms.txt)
+
+`$SKILL_DIR` is provided in your task instructions by the parent agent. Search
+the AgentCore developer guide via its `llms.txt` index first - it returns full
+pages (no 6 KB truncation) and needs no AWS credentials:
+
+```bash
+uv run $SKILL_DIR/scripts/llmstxt_doc_search.py \
+  -q "subquery 1" -q "subquery 2" \
+  -o <findings-file> --log-dir <work-dir> \
+  --source aws-bedrock-agentcore-devguide --top 3 --max-length 15000
+```
+
+Exit 1 means no results - fall back to the dedicated AgentCore MCP client.
+
+## Fallback Tool (AgentCore MCP)
 
 ```bash
 uv run $SKILL_DIR/scripts/agentcore_search.py \
   -q "subquery 1" -q "subquery 2" \
-  -o <findings-file> --log-dir <work-dir> --top 3
+  -o <findings-file> --log-dir <work-dir> --top 3 --max-length 15000
 ```
 
-`$SKILL_DIR` is provided in your task instructions by the parent agent.
-
 Flags: `-q` (repeatable), `-o` findings-file path, `--log-dir` for research.log,
-`--top` results per query (default 3), `--json` for JSON output.
+`--top` results per query (default 3), `--max-length` chars per page before
+truncation (default 15000), `--json`.
+
+**Truncation recovery**: if a fetched page relevant to a contract factual anchor
+ends in `*[truncated]*`, re-run that query with `--max-length 20000` before
+recording anything as Unknown - the content may simply have been cut short.
 
 ## Process
 
 1. **Read the research contract** (`research-contract.md`) and
    `$SKILL_DIR/references/contract-compliance-rules.md`. Shape your
    `-q` queries using the contract's entity constraints.
-2. Run `agentcore_search.py` with all subqueries as `-q` arguments
-3. Check stdout JSON summary for success/failure
-4. Verify findings file has useful content
-5. Note any subqueries that returned no results
+2. Run `llmstxt_doc_search.py --source aws-bedrock-agentcore-devguide`
+   (PRIMARY) with all subqueries in one invocation. If it exits non-zero, run
+   `agentcore_search.py` (FALLBACK) with the same subqueries.
+3. Check each script's stdout JSON `status` and exit code; a non-zero exit
+   wrote no findings file, so do not treat it as success.
+4. Verify the findings file has useful content
 
 ## Rules
 

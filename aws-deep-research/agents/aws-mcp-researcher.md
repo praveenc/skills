@@ -25,19 +25,43 @@ Read that file for the canonical list. Key fields you will always receive:
 
 `$SKILL_DIR` is provided in your task instructions by the parent agent.
 
-### Documentation Search
+### Documentation Search - PRIMARY (llms.txt)
+
+Use this **first** for AWS / Bedrock / AgentCore / Well-Architected docs. It
+BM25-searches the published `llms.txt` indexes and fetches full pages - fast,
+current, no AWS credentials needed:
+
+```bash
+uv run $SKILL_DIR/scripts/llmstxt_doc_search.py \
+  -q "subquery 1" -q "subquery 2" \
+  -o <findings-file> --log-dir <work-dir> \
+  --top 3 --max-length 15000
+```
+
+Key flags: `-q` (repeatable), `-o` findings-file path, `--top` results per query
+(default 3), `--max-length` chars per page (default 15000), `--source` to scope
+to one index (`aws-bedrock-userguide`, `aws-bedrock-agentcore-devguide`,
+`aws-agentic-ai-lens`; omit to search all). Exit 1 means no source matched or
+zero results - fall back to the AWS MCP proxy below.
+
+### Documentation Search - FALLBACK (AWS MCP proxy, SigV4)
+
+For general `docs.aws.amazon.com` pages that no `llms.txt` covers (EC2, S3,
+DynamoDB service docs, etc.), or when the primary returns nothing:
+
 ```bash
 uv run $SKILL_DIR/scripts/aws_doc_search.py \
   -q "subquery 1" -q "subquery 2" \
   -o <findings-file> --log-dir <work-dir> \
-  --top 3 --max-length 5000 --profile 001
+  --top 3 --max-length 5000
 ```
 
-Key flags: `-q` (repeatable), `-o` findings-file path, `--top` results per
-query (default 3), `--max-length` chars per doc (default 5000), `--profile`
-AWS profile (always `001` unless told otherwise), `--topics` comma-separated
-filter: `reference_documentation`, `current_awareness`, `troubleshooting`,
-`agent_sops`, `general`.
+Key flags: `-q` (repeatable), `-o` findings-file path, `--top` (default 3),
+`--max-length` (default 5000), `--profile` AWS profile (**only** if your
+credentials need a named profile - omit to use the default chain / `AWS_PROFILE`),
+`--topics` filter: `reference_documentation`, `current_awareness`,
+`troubleshooting`, `agent_sops`, `general`. This client uses AWS credentials and
+exits 1 without writing a file if the proxy is unreachable.
 
 ### Pricing Search
 ```bash
@@ -64,16 +88,20 @@ Steps:
    `$SKILL_DIR/references/contract-compliance-rules.md`. Use the contract's
    entity exclusions to shape your `-q` queries - add NOT/exclude terms.
    Example: contract says "Exclude: EFS" → `-q "S3 Files NFS NOT EFS"`
-2. Run `aws_doc_search.py` with all doc subqueries in a single invocation
+2. Run `llmstxt_doc_search.py` (PRIMARY) with all doc subqueries in one
+   invocation. If it exits non-zero (no matching source / zero results), run
+   `aws_doc_search.py` (FALLBACK) with the same subqueries.
 3. If pricing is requested, run `aws_pricing_search.py` with pricing subqueries
-4. Check stdout JSON summaries for success/failure
+4. Check each script's stdout JSON `status` and its exit code. A non-zero exit
+   means it wrote no findings file - do not treat it as success.
 5. Verify findings files have useful content
-6. If any subquery returned no results, note it in the findings file
 
 ### Bedrock Optimization
 
-If the parent's task mentions Bedrock, read `$SKILL_DIR/references/bedrock-llms-txt.md`
-for direct URL lookup - faster and more precise than broad search.
+If the parent's task mentions Bedrock or AgentCore, scope the primary search to
+the matching index for precision:
+`llmstxt_doc_search.py --source aws-bedrock-userguide` (Bedrock) or
+`--source aws-bedrock-agentcore-devguide` (AgentCore).
 
 ## Rules
 

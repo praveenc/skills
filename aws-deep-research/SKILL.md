@@ -414,8 +414,11 @@ ${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
 - **Blog miscategorizations**: OpenSearch is `bigdata` not `databases`, Glue is
   `bigdata` not `databases`, Kendra is `machinelearning` not `bigdata`. Check
   `references/blog-categories.md` when unsure.
-- **AWS credentials**: always pass `--profile 001` to `aws_doc_search.py`
-  unless the user specifies otherwise.
+- **AWS docs source**: `llmstxt_doc_search.py` (llms.txt indexes) is the
+  primary docs tool for Bedrock/AgentCore/Well-Architected; `aws_doc_search.py`
+  (SigV4 proxy) is the fallback for other `docs.aws.amazon.com` pages. No AWS
+  profile is hardcoded - the fallback takes an optional `--profile <name>` (or
+  `AWS_PROFILE`) only when your credentials need one.
 - **Web search budget**: Brave 2K/month, Tavily 1K/month. Never use both for
   the same subquery. MCP servers are free - prefer them. Usage is persisted
   in `~/.aws-deep-research/budget.json`; when a search script's `--json`
