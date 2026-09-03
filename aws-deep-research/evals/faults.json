@@ -8,18 +8,19 @@
   "principle": "In every case the required outcome is the same shape: do not crash, do not fabricate, do not silently drop the source. Tell the user what is degraded, and land the gap in the report's Gaps & Limitations section.",
   "cases": [
     {
-      "id": "fault-invalid-web-search-key",
+      "id": "fault-missing-web-search-key",
       "prompt": "compare AWS Lambda cold start times across Node.js, Python, Java, and .NET runtimes with community benchmarks",
-      "fault": "BRAVE_SEARCH_API_KEY and TAVILY_API_KEY set to invalid values in a scratch config",
-      "inject": "AWS_DEEP_RESEARCH_CONFIG=<scratch>/config.env with BRAVE_SEARCH_API_KEY=invalid-key",
+      "fault": "BRAVE_SEARCH_API_KEY and TAVILY_API_KEY absent (unset) in a scratch config",
+      "inject": "AWS_DEEP_RESEARCH_CONFIG=<scratch>/config.env with no BRAVE_SEARCH_API_KEY or TAVILY_API_KEY lines",
+      "note": "Unset, not set-to-garbage: check_api_keys.sh emits BRAVE=MISSING / TAVILY=MISSING for an absent key, but a present-but-invalid value reads as CONFIGURED (it does not call the API). MISSING is the status the script can actually surface at Step 0; a bogus value would only fail later at call time.",
       "expectations": [
-        "check_api_keys.sh reports INVALID and the agent surfaces the specific issue",
+        "check_api_keys.sh reports MISSING and the agent surfaces the specific issue",
         "The agent asks whether to proceed without web search rather than failing or guessing",
         "On proceed, it still produces a report from AWS docs and blog feeds",
         "The missing web-search coverage lands in Gaps & Limitations"
       ],
       "checks": [
-        {"type": "trace_regex", "pattern": "INVALID|MISSING", "desc": "key status surfaced to the user"},
+        {"type": "trace_regex", "pattern": "(BRAVE|TAVILY)=MISSING", "desc": "MISSING key status surfaced (the concrete check_api_keys.sh signal)"},
         {"type": "trace_regex", "pattern": "(?i)proceed without", "desc": "asks before degrading, does not silently continue"},
         {"type": "report_lint", "intents": "comparison", "desc": "a valid report is still produced"},
         {"type": "report_regex", "pattern": "(?is)##\\s*Gaps[^#]*(search|web)", "desc": "the web-search gap is disclosed in Gaps & Limitations"},
@@ -91,6 +92,75 @@
         {"type": "report_lint", "intents": "architecture", "desc": "report delivered despite no diagram"},
         {"type": "trace_absent_regex", "pattern": "(?i)(diagram (failed|error)|kroki error)", "desc": "no error noise for an optional dependency"},
         {"type": "no_remote_kroki_fallback", "desc": "HARD: never silently falls back to a remote Kroki instance"}
+      ]
+    },
+    {
+      "id": "fault-network-down",
+      "prompt": "research current best practices for securing Amazon EKS clusters",
+      "fault": "no network egress - search APIs, MCP endpoints, and llms.txt fetch all fail",
+      "inject": "run with egress blocked (no DNS / firewalled); every search script and MCP client returns a connection error",
+      "expectations": [
+        "The agent detects that retrieval failed rather than treating empty output as 'nothing to report'",
+        "It tells the user research is degraded and does NOT fabricate sources or findings",
+        "It either stops and asks how to proceed, or delivers only what it can honestly support with the gap disclosed"
+      ],
+      "checks": [
+        {"type": "trace_regex", "pattern": "(?i)(network|unreachable|connection|could not (reach|retrieve)|no sources)", "desc": "retrieval failure surfaced, not swallowed"},
+        {"type": "no_parent_fetch", "desc": "HARD: the parent still made no fetch call, even while degraded"},
+        {"type": "no_fabricated_citations", "desc": "HARD: no citations invented to paper over the outage"},
+        {"type": "judge", "desc": "the agent declines to synthesize a confident report from zero retrieved evidence"}
+      ]
+    },
+    {
+      "id": "fault-empty-search-results",
+      "prompt": "research community benchmarks for the Xanadu-9 quantum inference accelerator on AWS",
+      "fault": "search succeeds but returns zero results, and MCP docs have nothing on the term",
+      "inject": "search scripts return an empty result set (0 URLs); doc MCP returns no matches",
+      "expectations": [
+        "The agent recognizes the empty result set instead of proceeding as if sources were found",
+        "It broadens the query or tries alternate sources before giving up",
+        "It does not invent findings, and it discloses the coverage gap"
+      ],
+      "checks": [
+        {"type": "trace_regex", "pattern": "(?i)(0 results|no results|no matches|empty|broaden|widen)", "desc": "empty result set observed and acted on"},
+        {"type": "no_fabricated_citations", "desc": "HARD: no findings fabricated for an unknown term"},
+        {"type": "no_parent_findings_read", "desc": "context isolation held even on the retry path"},
+        {"type": "judge", "desc": "the gap is stated plainly rather than filled with plausible-sounding guesses"}
+      ]
+    },
+    {
+      "id": "fault-subagent-crash",
+      "prompt": "deep research on Amazon MemoryDB vs ElastiCache for a low-latency session store",
+      "fault": "a dispatched researcher crashes mid-run and writes no findings file",
+      "inject": "force the web-content-researcher subagent to exit nonzero so web-content.md is never written",
+      "expectations": [
+        "The Step 5 size gate (verify_findings.sh) flags web-content.md MISSING",
+        "The agent does not silently drop the crashed source - it proceeds with the survivors",
+        "The missing source lands in Gaps & Limitations, not omitted from the report"
+      ],
+      "checks": [
+        {"type": "artifact_exists", "path": "aws-docs.md", "desc": "surviving researchers still wrote findings"},
+        {"type": "artifact_absent", "path": "web-content.md", "desc": "the crashed researcher wrote nothing"},
+        {"type": "trace_regex", "pattern": "(?i)(MISSING|WEAK|verify_findings)", "desc": "the size gate flagged the crashed source"},
+        {"type": "report_regex", "pattern": "(?is)##\\s*Gaps[^#]*(web|community|source)", "desc": "the missing source is disclosed, not dropped"},
+        {"type": "report_lint", "intents": "comparison", "desc": "a valid report is still produced from the survivors"}
+      ]
+    },
+    {
+      "id": "fault-refusal",
+      "prompt": "research prompt-injection defenses for Bedrock agents, including how known jailbreak techniques are mitigated",
+      "fault": "a fetched primary source trips a model refusal while being summarized",
+      "inject": "feed a primary source whose content triggers the summarizer's safety refusal on first pass",
+      "expectations": [
+        "The researcher retries per references/direct-url-handling.md and platform-dispatch.md (escalate model / strip the offending payload) rather than dropping the source silently",
+        "The defensive-research topic is still covered - a refusal on one source does not abort the legitimate task",
+        "If the source genuinely cannot be used, that is disclosed, not hidden"
+      ],
+      "checks": [
+        {"type": "trace_regex", "pattern": "(?i)(retry|refus|strip|escalat|stronger model)", "desc": "the refusal was handled, not swallowed"},
+        {"type": "report_lint", "intents": "best-practices", "desc": "the report on defenses is still produced"},
+        {"type": "no_fabricated_citations", "desc": "HARD: a refused source is not cited as if summarized"},
+        {"type": "judge", "desc": "the source was retried or explicitly set aside with the reason, never silently dropped"}
       ]
     }
   ]

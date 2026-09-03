@@ -42,6 +42,17 @@ FETCH_TOOLS = re.compile(r"fetch|trafilatura|brave|tavily|scrape", re.IGNORECASE
 SUBAGENT_TOOLS = re.compile(r"subagent|dispatch|task", re.IGNORECASE)
 URL = re.compile(r"https?://[^\s\"'<>)\]]+")
 
+# pi and Claude Code run dispatch and retrieval INSIDE a shell tool call, so the
+# tool NAME is "bash"/"execute_bash" and the real action is in the command
+# string. A search script or curl in a PARENT shell call is a parent fetch (a
+# context-isolation violation); dispatch.sh in a shell call launches subagents.
+DISPATCH_IN_SHELL = re.compile(r"dispatch\.sh")
+FETCH_IN_SHELL = re.compile(
+    r"\b(curl|wget|brave_search\.py|tavily_search\.py|aws_doc_search\.py|"
+    r"aws_pricing_search\.py|github_search\.py|agentcore_search\.py|"
+    r"llmstxt_doc_search\.py|trafilatura_scraper\.py|sitemap_feed_extractor\.py)\b"
+)
+
 
 def iter_tool_calls(path: Path):
     """Yield (name, arg_blob) for every toolCall in a pi session log."""
@@ -130,11 +141,34 @@ def main(argv: list[str]) -> int:
                 if isinstance(val, list):
                     n = max(n, len(val))
             subagent_rounds.append(n if n else 1)
+        # Shell-nested dispatch/fetch (pi, Claude Code backend A): read the blob.
+        dispatched = len(DISPATCH_IN_SHELL.findall(blob))
+        if dispatched:
+            subagent_rounds.append(dispatched)
+        elif FETCH_IN_SHELL.search(blob):
+            fetch_calls.append(FETCH_IN_SHELL.search(blob).group(1))
+            retrieved.update(URL.findall(blob))
         if name in {"write", "fs_write"} and ".md" in blob:
             for candidate in re.findall(r'"(?:path|file_path)"\s*:\s*"([^"]+\.md)"', blob):
                 p = Path(candidate)
                 if FINDINGS.search(candidate) and work_dir not in p.parents:
                     strays.append(candidate)
+
+    # retrieved_urls also come from the findings files the researchers wrote:
+    # on pi / Claude Code the parent's trace never shows the child fetches, so
+    # without this every citation would look fabricated (no_fabricated_citations
+    # would false-fail). ONLY real findings files count (the FINDINGS names) -
+    # not the report, and NOT parent-authored plan.md / brief-*.md /
+    # research-contract.md, which may list REQUESTED-but-never-fetched URLs and
+    # would let a fabricated citation pass as "retrieved."
+    if work_dir.is_dir():
+        for f in sorted(work_dir.glob("*.md")):
+            if not FINDINGS.search(f.name):
+                continue
+            try:
+                retrieved.update(URL.findall(f.read_text(encoding="utf-8", errors="replace")))
+            except OSError:
+                continue
 
     meta = {
         "slug": slug,
@@ -143,6 +177,7 @@ def main(argv: list[str]) -> int:
             n in {"read", "fs_read"} and "SKILL.md" in b for n, b in calls
         ),
         "max_parallel_subagents": max(subagent_rounds) if subagent_rounds else 0,
+        "min_parallel_subagents": min(subagent_rounds) if subagent_rounds else 0,
         "parent_findings_reads": sorted(set(findings_reads)),
         "parent_fetch_calls": sorted(set(fetch_calls)),
         "artifacts_outside_work_dir": sorted(set(strays)),

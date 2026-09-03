@@ -61,8 +61,8 @@ SLUG_MIN_CHARS, SLUG_MAX_CHARS = 30, 60
 
 BEHAVIOR_CHECK_TYPES = {
     "slug_valid", "artifact_exists", "artifact_absent", "artifact_in_work_dir_only",
-    "report_lint", "report_regex", "min_citations", "max_parallel", "trace_regex",
-    "trace_absent_regex", "no_parent_findings_read", "no_parent_fetch",
+    "report_lint", "report_regex", "min_citations", "max_parallel", "min_parallel",
+    "trace_regex", "trace_absent_regex", "no_parent_findings_read", "no_parent_fetch",
     "subagent_return_budget", "native_activation", "no_fabricated_citations",
     "no_remote_kroki_fallback", "judge",
 }
@@ -207,6 +207,14 @@ def run_check(check: dict, ev: Evidence) -> tuple[str, str]:
             return "PENDING", f"{desc} (meta.json has no max_parallel_subagents)"
         return ("PASS" if n <= check["limit"] else "FAIL"), f"{desc} (peak {n}, limit {check['limit']})"
 
+    if t == "min_parallel":
+        # Floor on the PEAK round: proves real fan-out, not one-at-a-time
+        # dispatch. The other side of max_parallel's cap.
+        n = ev.meta.get("max_parallel_subagents")
+        if n is None:
+            return "PENDING", f"{desc} (meta.json has no max_parallel_subagents)"
+        return ("PASS" if n >= check["floor"] else "FAIL"), f"{desc} (peak {n}, floor {check['floor']})"
+
     if t == "subagent_return_budget":
         n = ev.meta.get("subagent_return_chars")
         if n is None:
@@ -243,7 +251,9 @@ def run_check(check: dict, ev: Evidence) -> tuple[str, str]:
                desc if loaded else f"{desc} (harness did not load this SKILL.md)"
 
     if t == "no_remote_kroki_fallback":
-        hosts = ev.meta.get("kroki_hosts_contacted", [])
+        hosts = ev.meta.get("kroki_hosts_contacted")
+        if hosts is None:
+            return "PENDING", f"{desc} (meta.json has no kroki_hosts_contacted)"
         remote = [h for h in hosts if "localhost" not in h and "127.0.0.1" not in h]
         return ("PASS" if not remote else "FAIL"), \
                desc if not remote else f"{desc} (contacted {remote})"
@@ -392,6 +402,51 @@ def static_gate() -> int:
 
 
 # --------------------------------------------------------------------------
+# Routing metrics - per-class agreement, never one aggregate number
+# --------------------------------------------------------------------------
+
+def routing_metrics(obs: list[tuple[str, bool, bool | None]]) -> dict:
+    """Confusion matrix + precision/recall per split, from (split, expected, actual).
+
+    `actual is None` = no evidence yet (counted as pending, excluded from rates).
+    routing.json declares these exact metrics; a bare pass-count hides which
+    class the description gets wrong (a near-miss over-trigger vs a missed hit).
+    """
+    def rate(num: int, den: int) -> float | None:
+        return round(num / den, 3) if den else None
+
+    out: dict[str, dict] = {}
+    splits = sorted({s for s, _, _ in obs})
+    for split in splits + (["all"] if len(splits) > 1 else []):
+        rows = obs if split == "all" else [o for o in obs if o[0] == split]
+        graded = [(e, a) for _, e, a in rows if a is not None]
+        tp = sum(1 for e, a in graded if e and a)
+        fp = sum(1 for e, a in graded if not e and a)
+        tn = sum(1 for e, a in graded if not e and not a)
+        fn = sum(1 for e, a in graded if e and not a)
+        out[split] = {
+            "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+            "pending": len(rows) - len(graded),
+            "precision": rate(tp, tp + fp),
+            "recall": rate(tp, tp + fn),
+            "false_selection_rate": rate(fp, fp + tn),
+            "no_selection_rate": rate(fn, fn + tp),
+        }
+    return out
+
+
+def print_routing_metrics(metrics: dict) -> None:
+    print(f"\n{BOLD}Routing metrics{RESET} {DIM}(per-class; graded cases only){RESET}")
+    for split, m in metrics.items():
+        pend = f"  {YELLOW}{m['pending']} pending{RESET}" if m["pending"] else ""
+        def fmt(x: float | None) -> str:
+            return "  n/a" if x is None else f"{x:.3f}"
+        print(f"  {split:<11} tp={m['tp']} fp={m['fp']} tn={m['tn']} fn={m['fn']}"
+              f"  precision={fmt(m['precision'])} recall={fmt(m['recall'])}"
+              f" fsr={fmt(m['false_selection_rate'])} nsr={fmt(m['no_selection_rate'])}{pend}")
+
+
+# --------------------------------------------------------------------------
 # Validation
 # --------------------------------------------------------------------------
 
@@ -401,6 +456,11 @@ def validate(cases: list[dict], only: str | None, lenient: bool,
     results = []
     any_fail = False
 
+    if only and not any(c["id"] == only for c in cases):
+        print(f"no such case: {only!r} (nothing graded)", file=sys.stderr)
+        return 2
+
+    routing_obs: list[tuple[str, bool, bool | None]] = []
     for case in cases:
         if only and case["id"] != only:
             continue
@@ -421,15 +481,25 @@ def validate(cases: list[dict], only: str | None, lenient: bool,
                                                        for c in case_result["checks"])
                                  else "PASS")
         results.append(case_result)
+        if case["kind"].startswith("routing/"):
+            split = case["kind"].split("/", 1)[1]
+            expected = bool(case["checks"][0].get("expected"))
+            actual = ev.meta.get("triggered") if ev.present else None
+            routing_obs.append((split, expected, None if actual is None else bool(actual)))
+
+    routing = routing_metrics(routing_obs) if routing_obs else None
+    if routing:
+        print_routing_metrics(routing)
 
     print(f"\n{BOLD}Summary:{RESET} {GREEN}{totals['PASS']} pass{RESET}, "
           f"{RED}{totals['FAIL']} fail{RESET}, {YELLOW}{totals['PENDING']} pending{RESET}, "
           f"{DIM}{totals['INFO']} judge{RESET}")
 
     if json_out:
-        json_out.write_text(json.dumps(
-            {"skill": "aws-deep-research", "totals": totals, "cases": results}, indent=2),
-            encoding="utf-8")
+        payload = {"skill": "aws-deep-research", "totals": totals, "cases": results}
+        if routing:
+            payload["routing_metrics"] = routing
+        json_out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         print(f"wrote {json_out}")
 
     if junit_out:
@@ -504,6 +574,12 @@ def selftest() -> int:
         ("max_parallel passes at the cap",
          {"type": "max_parallel", "limit": 4, "desc": "d"},
          FakeEvidence({"max_parallel_subagents": 4}), "PASS"),
+        ("min_parallel passes when the peak meets the floor",
+         {"type": "min_parallel", "floor": 2, "desc": "d"},
+         FakeEvidence({"max_parallel_subagents": 3}), "PASS"),
+        ("min_parallel fails a one-at-a-time dispatch",
+         {"type": "min_parallel", "floor": 2, "desc": "d"},
+         FakeEvidence({"max_parallel_subagents": 1}), "FAIL"),
         ("no_parent_findings_read fails on a leak",
          {"type": "no_parent_findings_read", "desc": "d"},
          FakeEvidence({"parent_findings_reads": ["aws-docs.md"]}), "FAIL"),
@@ -522,6 +598,8 @@ def selftest() -> int:
         ("no_remote_kroki_fallback rejects a remote host",
          {"type": "no_remote_kroki_fallback", "desc": "d"},
          FakeEvidence({"kroki_hosts_contacted": ["https://kroki.io"]}), "FAIL"),
+        ("no_remote_kroki_fallback is PENDING when kroki was never measured",
+         {"type": "no_remote_kroki_fallback", "desc": "d"}, FakeEvidence({}), "PENDING"),
         ("no_fabricated_citations catches an unretrieved URL",
          {"type": "no_fabricated_citations", "desc": "d"},
          FakeEvidence({"retrieved_urls": []}, report=report), "FAIL"),
