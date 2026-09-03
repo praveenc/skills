@@ -20,7 +20,10 @@ from rich.panel import Panel
 # Type aliases
 type URLList = list[str]
 
-console = Console()
+# Progress/status output goes to stderr so a script's `--json` payload on stdout
+# stays parseable. SKILL.md's budget-threshold check parses `--json` output; a
+# "✓ Saved N URLs" line on stdout ahead of the JSON breaks json.load().
+console = Console(stderr=True)
 
 
 # ---------------------------------------------------------------------------

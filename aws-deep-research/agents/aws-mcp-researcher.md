@@ -91,8 +91,15 @@ for direct URL lookup - faster and more precise than broad search.
 
 Keep total findings under 15 KB per file. Trim redundant content if needed.
 
+**On a failed or skipped source:** if a source cannot deliver (no credentials,
+MCP tool missing, network error), write `SKIPPED: <one-line reason>` as the
+**first line of the findings file**. The size gate treats a leading
+`SKIPPED:`/`❌` as a failed source, so it surfaces in the report's Gaps section
+instead of being synthesized as evidence. Never leave the findings file empty.
+
 **Response to parent - ONE line only:**
 - `✅ Wrote <N> chars to <path>`
-- `❌ Failed: <reason>`
+- `⚠️ Partial: <reason>` (findings file starts with `SKIPPED:`)
+- `❌ Failed: <reason>` (no usable findings written)
 
 ALL findings go to the findings file only. Do NOT print findings in your response.

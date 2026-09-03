@@ -14,7 +14,10 @@
 #   dispatch.sh [--harness pi|claude] <agent-name> <task> <outfile>
 #     <agent-name>  base name under $SKILL_DIR/agents/ (e.g. synthesizer)
 #     <task>        literal task string, OR "@/path/to/taskfile" to read a file
-#     <outfile>     where the child's stdout (the findings/report) is written
+#     <outfile>     the findings/report path the child writes with its WRITE
+#                   TOOL (the same path is given to the child in <task>). The
+#                   child's stdout/stderr is captured to <dir>/logs/<agent>.stdout
+#                   - it is NOT redirected onto <outfile> (see the execute block).
 #
 # Environment:
 #   DISPATCH_HARNESS       override detection (same values as --harness)
@@ -49,7 +52,8 @@ USAGE:
 ARGUMENTS:
   <agent-name>  base name under $SKILL_DIR/agents/ (e.g. synthesizer)
   <task>        literal task string, OR "@/path/to/taskfile" to read a file
-  <outfile>     where the child's stdout (findings/report) is written
+  <outfile>     findings/report path the child writes with its write tool;
+                child stdout/stderr goes to <dir>/logs/<agent>.stdout, NOT here
 
 OPTIONS:
   --harness H   force the harness (pi|claude); overrides env detection
@@ -228,6 +232,16 @@ if [ "${DISPATCH_DRY_RUN:-}" = "1" ]; then
   exit 0
 fi
 
-# --- execute: child writes findings to $OUTFILE -----------------------------
-mkdir -p "$(dirname "$OUTFILE")"
-"${CMD[@]}" > "$OUTFILE"
+# --- execute -----------------------------------------------------------------
+# The child writes its findings/report to $OUTFILE with its *write tool* (the
+# path is handed to it in <task>). dispatch.sh must NOT also redirect the
+# child's stdout onto $OUTFILE: the shell holds that fd at offset 0, so the
+# child's final status line ("✅ Wrote N chars ...") overwrites the head of the
+# file the write tool just filled - two writers on one path, corrupting the H1
+# and first record of every findings file. Capture stdout+stderr to a sibling
+# log instead; the write tool owns $OUTFILE alone.
+OUTDIR="$(dirname "$OUTFILE")"
+LOGDIR="$OUTDIR/logs"
+mkdir -p "$OUTDIR" "$LOGDIR"
+LOGFILE="$LOGDIR/${AGENT}.stdout"
+"${CMD[@]}" > "$LOGFILE" 2>&1

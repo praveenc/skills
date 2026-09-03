@@ -135,12 +135,17 @@ scripts/dispatch.sh [--harness pi|claude] <agent-name> <task> <outfile>
 
 - `<agent-name>` - base name under `$SKILL_DIR/agents/` (e.g. `synthesizer`)
 - `<task>` - literal task string, or `@/path/to/taskfile` to read from a file
-- `<outfile>` - where the child's findings/report are written
+- `<outfile>` - the findings/report path the child writes **with its write
+  tool** (the same path is handed to the child inside `<task>`). The child's
+  stdout/stderr is captured to `<outfile-dir>/logs/<agent>.stdout`, **not**
+  redirected onto `<outfile>` - two writers on one path corrupt the head of
+  every findings file.
 
 The shim loads `$SKILL_DIR/agents/<agent-name>.md` as the child's system
 prompt, maps tool names per-CLI (pi `read,write,bash`; claude `Read Write
 Bash`), echoes the exact command, prints the process disclaimer once, then
-runs the child with stdout redirected to `<outfile>`.
+runs the child, capturing its stdout/stderr to
+`<outfile-dir>/logs/<agent>.stdout`. The write tool owns `<outfile>` alone.
 
 ### Run a parallel round (≤4 subagents)
 

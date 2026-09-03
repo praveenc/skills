@@ -58,6 +58,13 @@ Flags: `-q` (repeatable), `-o` findings-file path, `--log-dir` for research.log,
 
 Keep total findings under 15 KB. Trim redundant content if needed.
 
+**On a failed or skipped source:** if the AgentCore docs MCP cannot deliver
+(tool missing, network error, zero results), write `SKIPPED: <one-line reason>`
+as the **first line of the findings file**. The size gate treats a leading
+`SKIPPED:`/`❌` as a failed source, so it surfaces in Gaps instead of being
+synthesized as evidence. Never leave the findings file empty.
+
 **Response to parent - ONE line only:**
 - `✅ Wrote <N> chars to <path>`
-- `❌ Failed: <reason>`
+- `⚠️ Partial: <reason>` (findings file starts with `SKIPPED:`)
+- `❌ Failed: <reason>` (no usable findings written)

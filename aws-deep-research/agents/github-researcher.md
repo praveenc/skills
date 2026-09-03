@@ -44,9 +44,10 @@ search (use sparingly), `--json` for JSON output.
    ```bash
    bash "$SKILL_DIR/scripts/check_api_keys.sh" "$SKILL_DIR" | grep '^GITHUB='
    ```
-   If not `GITHUB=200`, write a skip note to the findings file and exit
-   gracefully. The search script reads the token from the process environment
-   or the external config as literal data without shell evaluation.
+   If not `GITHUB=200`, write `SKIPPED: GITHUB token not configured` as the
+   first line of the findings file and exit gracefully. The search script reads
+   the token from the process environment or the external config as literal
+   data without shell evaluation.
 3. Run `github_search.py` with all subqueries
 4. Only use `--deep-index` if user specifically needs code-level analysis
 5. Verify output has useful content
@@ -74,6 +75,13 @@ search (use sparingly), `--json` for JSON output.
 
 Keep total findings under 15 KB. Focus on repo metadata and relevance.
 
+**On a failed or skipped source:** if GitHub search cannot deliver (no
+`GITHUB=200`, network error, zero results), write `SKIPPED: <one-line reason>`
+as the **first line of the findings file**. The size gate treats a leading
+`SKIPPED:`/`❌` as a failed source, so it surfaces in Gaps instead of being
+synthesized as evidence. Never leave the findings file empty.
+
 **Response to parent - ONE line only:**
 - `✅ Wrote <N> chars to <path>`
-- `❌ Failed: <reason>`
+- `⚠️ Partial: <reason>` (findings file starts with `SKIPPED:`)
+- `❌ Failed: <reason>` (no usable findings written)

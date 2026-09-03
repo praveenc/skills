@@ -20,13 +20,14 @@
 #   --json           emit a JSON object instead of KEY=STATUS lines
 #
 # Statuses:
-#   OK          >= min-bytes, readable
-#   WEAK        < min-bytes - treat the subagent as having failed silently
+#   OK          >= min-bytes, readable, no leading failure marker
+#   WEAK        < min-bytes, OR first line is a failure/skip note
+#               (❌.../SKIPPED.../FAILED...) - treat the subagent as failed
 #   MISSING     declared via --expect but not present on disk
 #   UNREADABLE  present but cannot be read (permissions, dangling symlink)
 #
-# Non-findings files are skipped: research-contract.md, *-report.md,
-# *.eval.md, *.log, and anything under downloads/.
+# Non-findings files are skipped: research-contract.md, brief-*.md, plan.md,
+# *-report.md, *.eval.md, *.log, and anything under downloads/.
 #
 # Exit codes:
 #   0  at least one OK findings file - safe to dispatch the synthesizer
@@ -67,10 +68,13 @@ done
 [ -n "$WORK_DIR" ] || { err "verify_findings.sh: missing <work-dir>"; print_help >&2; exit 2; }
 [ -d "$WORK_DIR" ] || { err "verify_findings.sh: not a directory: $WORK_DIR"; exit 2; }
 
-# is_findings <basename> - false for contracts, prior reports, logs.
+# is_findings <basename> - false for contracts, briefs, prior reports, logs.
+# brief-*.md are dispatch inputs the orchestrator writes (paths + subqueries),
+# never evidence; counting them as findings lets the gate pass on a dir that
+# has no real research in it.
 is_findings() {
   case "$1" in
-    research-contract.md|*-report.md|*-report.old.md|*.eval.md|*.log) return 1 ;;
+    research-contract.md|brief-*.md|plan.md|*-report.md|*-report.old.md|*.eval.md|*.log) return 1 ;;
     *.md) return 0 ;;
     *) return 1 ;;
   esac
@@ -78,13 +82,22 @@ is_findings() {
 
 # classify <path> -> prints "STATUS BYTES"
 classify() {
-  local f="$1" sz
+  local f="$1" sz first
   [ -e "$f" ] || { printf 'MISSING 0'; return; }
   if [ ! -r "$f" ] || ! sz=$(wc -c < "$f" 2>/dev/null); then
     printf 'UNREADABLE 0'; return
   fi
   sz=${sz//[[:space:]]/}
-  if [ "$sz" -lt "$MIN_BYTES" ]; then printf 'WEAK %s' "$sz"; else printf 'OK %s' "$sz"; fi
+  if [ "$sz" -lt "$MIN_BYTES" ]; then printf 'WEAK %s' "$sz"; return; fi
+  # A file over the size floor can still be a failure/skip note the subagent
+  # wrote in place of findings (e.g. "❌ Failed: docs MCP exposed zero tools").
+  # A leading failure marker means the source did not deliver: report WEAK so it
+  # lands in Gaps instead of being handed to the synthesizer as evidence.
+  first="$(head -n 1 "$f" 2>/dev/null)"
+  case "$first" in
+    '❌'*|SKIPPED*|FAILED*) printf 'WEAK %s' "$sz"; return ;;
+  esac
+  printf 'OK %s' "$sz"
 }
 
 names=()

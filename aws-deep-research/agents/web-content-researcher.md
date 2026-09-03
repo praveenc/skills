@@ -170,7 +170,8 @@ You will be given:
 
 Steps:
 1. Confirm the task brief contains `public-web-approved: true`. If absent,
-   write a skip note to the findings file and stop without searching or fetching.
+   write `SKIPPED: public-web-approved not set` as the first line of the
+   findings file and stop without searching or fetching.
 2. **Read the research contract** (`research-contract.md`) and
    `$SKILL_DIR/references/contract-compliance-rules.md`. Use the contract's
    entity exclusions to shape your search queries - add NOT/exclude terms.
@@ -250,8 +251,16 @@ credentials, private files, and sibling findings.
 Keep total output under 15KB. Emit only the structured, paraphrased evidence
 records defined above. Never dump or quote raw results.
 
+**On a failed or skipped source:** if web research cannot proceed (no
+`public-web-approved: true`, neither Brave nor Tavily configured, network
+error), write `SKIPPED: <one-line reason>` as the **first line of the findings
+file**. The size gate treats a leading `SKIPPED:`/`❌` as a failed source, so it
+surfaces in Gaps instead of being synthesized as evidence. Never leave the
+findings file empty.
+
 **Response to parent - ONE line only:**
 - `✅ Wrote <N> chars to <path>`
-- `❌ Failed: <reason>`
+- `⚠️ Partial: <reason>` (findings file starts with `SKIPPED:`)
+- `❌ Failed: <reason>` (no usable findings written)
 
 ALL findings go to the findings file only. Do NOT print findings in your response.
