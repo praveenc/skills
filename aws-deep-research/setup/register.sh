@@ -36,6 +36,10 @@ fi
 echo "[register] installing skill: $SKILL_SRC -> $SKILL_DST"
 rsync -a \
   --exclude='setup/' \
+  --exclude='evals/' \
+  --exclude='docs/' \
+  --exclude='meta/' \
+  --exclude='pytest.ini' \
   --exclude='scripts/__pycache__/' \
   --exclude='.DS_Store' \
   "$SKILL_SRC/" "$SKILL_DST/"

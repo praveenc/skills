@@ -33,11 +33,11 @@ search results.
 
 1. Check each URL's domain against `$SKILL_DIR/scripts/blocklist.txt`. Skip
    blocked domains and record the skip.
-2. Try `fetchv2:fetchv2_fetch_llms_txt` on `https://<domain>/llms.txt`.
+2. Try `fetchv2:fetch_llms_txt` on `https://<domain>/llms.txt`.
 3. If found → parse the structured index, then
-   `fetchv2:fetchv2_fetch_batch` the most relevant linked pages (max 5).
-4. If 404 → `fetchv2:fetchv2_fetch` the direct URL(s), or
-   `fetchv2:fetchv2_discover_links` then `fetch_batch` the top results.
+   `fetchv2:fetch_batch` the most relevant linked pages (max 5).
+4. If 404 → `fetchv2:fetch` the direct URL(s), or
+   `fetchv2:discover_links` then `fetch_batch` the top results.
 5. Re-fetch at `max_length_per_url` 15000-20000 for any primary source whose
    response carries a `<!-- Truncated:` marker.
 6. Write paraphrased evidence records (never raw page prose) to

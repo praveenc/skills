@@ -14,17 +14,10 @@ unified, high-quality report with proper inline citations.
 
 ## Input
 
-You will be given: original query, detected intents, work dir path,
-list of expected findings files with OK/WEAK/MISSING status from the parent,
-research contract file path.
-
-## Task Inputs from Parent
-
-The parent agent passes all task fields per the **shared subagent task-input
-contract**: [subagent-task-contract.md](../references/subagent-task-contract.md).
-Read that file for the canonical list. Key fields you will always receive:
-`SKILL_DIR`, `work-dir`, `research-contract`, `original-query`,
-`query-type`, `subqueries` (facet-labeled), `findings-file`.
+You will be given: `SKILL_DIR`, the original query, detected intents, the work
+dir path, the list of expected findings files with OK/WEAK/MISSING status from
+the parent, and the research contract file path. (Unlike a researcher, you do
+NOT receive `subqueries` or a single `findings-file` - you read all of them.)
 
 ## Process
 

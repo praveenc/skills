@@ -1,19 +1,18 @@
 ---
 name: aws-deep-research
 description: >
-  Performs multi-source, parallelized research on AWS topics and synthesizes
-  the findings into a cited research report. Dispatches specialized subagents
-  against AWS docs, AWS pricing, Bedrock AgentCore docs, AWS blog feeds, GitHub,
-  and the open web. Activates when the user asks to "research", "do a deep dive",
-  "compare", "analyze pricing of", "plan a migration to", or "review best
-  practices for" an AWS service, architecture, or cross-cloud topic. Also
-  activates for any CURRENT value that must be looked up rather than recalled:
-  service quotas, limits, pricing, version or model availability. AWS-first, but
-  also handles generic multi-source research the model cannot answer from memory:
-  library internals, architecture patterns, cross-vendor comparisons. Does NOT
-  activate for: stable facts the model already knows, writing or reviewing code,
-  debugging local code or tests, AWS CLI operations, summarizing supplied content,
-  or anything answerable from the current conversation.
+  Performs multi-source, parallelized research on AWS (and cross-vendor or
+  generic) topics and synthesizes the findings into a cited research report.
+  Activates when the user asks to "research", "do a deep dive", "compare",
+  "analyze pricing of", "plan a migration to", or "review best practices for" a
+  service, architecture, or cross-cloud topic. Also activates for any CURRENT
+  value that must be looked up rather than recalled: service quotas, limits,
+  pricing, version or model availability. AWS-first, but also handles generic
+  research the model cannot answer from memory (library internals, architecture
+  patterns, cross-vendor comparisons). Does NOT activate for: stable facts the
+  model already knows; writing, reviewing, or debugging code or tests; AWS CLI
+  operations; summarizing supplied content; anything answerable from the current
+  conversation; or building on / debugging Bedrock itself (use amazon-bedrock).
 compatibility: >
   Runs on Kiro CLI, Claude Code / Claude Agent SDK (native Agent tool), and the
   pi harness (headless process fan-out); see references/platform-dispatch.md.
@@ -23,7 +22,7 @@ compatibility: >
   the docs/pricing fallback, Docker-hosted Kroki for diagrams.
 metadata:
   author: praveenc
-  version: "6.15"
+  version: "7.0"
 ---
 
 # AWS Deep Researcher
@@ -52,23 +51,18 @@ so a later `bash "$SKILL_DIR/..."` expands to `bash /...` and fails. Two safe
 options: **(a)** copy the three printed paths and paste them literally, or
 **(b)** prefix each command with the `eval` below.
 
-**Use the directory THIS `SKILL.md` was loaded from.** You just read this file
-via an absolute path (e.g. `read /path/to/aws-deep-research/SKILL.md`); the skill
-root is that file's parent directory. Run the resolver from that same directory
-so the whole session stays pinned to the install you actually loaded. Do NOT
-substitute a `~/.kiro/...` or `~/.pi/...` path from memory:
+**Use the directory THIS `SKILL.md` was loaded from** (its parent is the skill
+root); do NOT substitute a `~/.kiro/...` or `~/.pi/...` path from memory:
 
 ```bash
 # Replace <SKILL_MD_DIR> with the directory you just read this SKILL.md from.
 eval "$(bash <SKILL_MD_DIR>/scripts/resolve_skill_dir.sh)"
-echo "SKILL_DIR=$SKILL_DIR"   # sanity-check: must match <SKILL_MD_DIR>
+echo "SKILL_DIR=$SKILL_DIR"   # must match <SKILL_MD_DIR>
 ```
 
-The resolver derives `SKILL_DIR` from its own `BASH_SOURCE`, so it pins to the
-exact copy you invoked it from (a `--skill` path, git worktree, `~/.pi/...`, or
-`~/.kiro/...` install). **Verify the echo matches before continuing** - a
-mismatch means every downstream script and reference silently runs a different
-install than the one you loaded.
+The resolver self-locates via `BASH_SOURCE`, pinning to the exact copy you
+invoked. **Verify the echo matches before continuing** - a mismatch means every
+downstream script runs a different install than the one you loaded.
 
 - `SKILL_DIR` - where this skill lives (scripts, agents, references).
 - `WORK_DIR` - **global** research work root (default `~/.aws-deep-research/work`,
@@ -327,6 +321,13 @@ file at all - tell the user and stop; there is nothing worth synthesizing.
 - The script reports size and status only - it never prints file contents, so
   no findings text enters the parent's context.
 
+### Step 5b - Optional targeted gap-fill (max one extra round)
+
+If a `WEAK`/`MISSING` file - or an `OK` file whose unknowns name a **contract
+factual anchor** (a required entity, version, or number) - can plausibly be
+filled by a narrower query, dispatch ONE more targeted round for just those
+gaps, then repeat Step 5. Cap at **two research rounds total** - do not loop.
+
 ## Step 6 - Synthesize
 
 After all researchers complete, dispatch `synthesizer` with:
@@ -396,12 +397,10 @@ Read ONLY `$WORK_DIR/<slug>/<slug>-report.md` and present:
 **Always display at the end:**
 > 📄 **Report saved to**: `<REPORT_DIR>/<slug>-report.md`
 
-Then ask: **"Would you like to open the report in your editor?"**
-
-If yes:
-```bash
-${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
-```
+In an **interactive** session, offer (don't block waiting on an answer) to open
+it: `${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"`. In a **headless
+/ `-p` / SDK** run, skip the offer entirely - print the saved path and finish so
+the run terminates without an unanswered question.
 
 ## Gotchas
 
@@ -411,12 +410,12 @@ ${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
   `$CONFIG_FILE`.
 - **Slug discipline**: 4-7 words, 30-60 chars (see Step 2). Terse slugs
   make artifacts unrecoverable later.
-- **Parallel fetch**: web-content-researcher MUST use `fetchv2:fetchv2_fetch_batch`
+- **Parallel fetch**: web-content-researcher MUST use `fetchv2:fetch_batch`
   (up to 10 URLs per call) for page extraction. Trafilatura is a fallback only.
 - **Domain blocklist**: `$SKILL_DIR/scripts/blocklist.txt` filters URLs
   from Brave/Tavily results automatically. When a subagent constructs a
   URL by hand (not from search), it must still check against the blocklist
-  before calling `fetchv2:fetchv2_fetch_batch`. Add domains to the list as
+  before calling `fetchv2:fetch_batch`. Add domains to the list as
   new SEC/DEAD/SPAM hits are observed.
 - **Blog miscategorizations**: some services sit in a non-obvious feed category
   (OpenSearch/Glue are `bigdata`, Kendra is `machinelearning`). Check

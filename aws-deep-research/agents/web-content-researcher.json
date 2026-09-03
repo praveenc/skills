@@ -1,8 +1,16 @@
 {
   "name": "web-content-researcher",
   "description": "Searches the web and AWS blog feeds for supplementary research. Uses Brave/Tavily for web search and sitemap_feed_extractor for blog feeds. Covers third-party comparisons, community opinions, benchmarks, tutorials, and recent blog posts.",
-  "prompt": "file://agents/web-content-researcher.md",
-  "tools": ["*"],
-  "allowedTools": ["@builtin"],
+  "prompt": "file://./web-content-researcher.md",
+  "mcpServers": {
+    "fetchv2": {
+      "command": "uvx",
+      "args": ["fetchv2-mcp-server@latest"],
+      "disabled": false,
+      "autoApprove": ["fetch", "fetch_batch", "discover_links"]
+    }
+  },
+  "tools": ["@builtin", "@fetchv2"],
+  "allowedTools": ["@builtin", "@fetchv2"],
   "toolsSettings": {}
 }
