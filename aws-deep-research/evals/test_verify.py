@@ -363,11 +363,13 @@ def test_orphan_reference_is_soft_but_strict_promotes_it(tmp_path: Path) -> None
     assert not strict["passed"]
 
 
-def test_leaked_evidence_tag_is_soft(tmp_path: Path) -> None:
+def test_leaked_evidence_tag_is_hard(tmp_path: Path) -> None:
+    """F13: internal {authority·date} tags are synthesizer input, not reader
+    output - leaking them into prose now fails the gate."""
     text = GOOD_REPORT.replace("A claim with", "A claim {official·2026-03} with")
     out = lint_text(tmp_path, text, "--min-bytes", "100")
-    assert out["passed"]
-    assert "no_raw_tags" in out["soft_failed"]
+    assert not out["passed"]
+    assert "no_raw_tags" in out["hard_failed"]
 
 
 def test_stub_report_trips_size_floor(tmp_path: Path) -> None:

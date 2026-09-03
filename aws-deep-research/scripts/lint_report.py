@@ -21,10 +21,10 @@ Checks (hard = fails the gate, soft = reported, never fails):
   hard  ref_sequence   reference numbers start at 1 and increase by 1
   hard  no_dangling    every [N] cited in the body has a reference entry
   hard  size_max       report is under the size ceiling (default 50 KB)
+  hard  no_raw_tags    {authority-date} evidence tags did not leak into prose
   soft  no_orphans     every reference entry is cited somewhere in the body
   soft  size_min       report is above a floor that suggests a stub
   soft  no_bare_urls   body prose does not carry bare http(s) URLs
-  soft  no_raw_tags    {authority-date} evidence tags did not leak into prose
 
 Usage:
   lint_report.py <report.md> [--intents comparison,pricing] [--json]
@@ -184,10 +184,14 @@ def lint(text: str, intents: list[str], max_bytes: int, min_bytes: int) -> list[
     add("soft", "no_bare_urls", not bare,
         f"{len(bare)} bare URL(s) in prose: {bare[:2]}" if bare else "no bare URLs in prose")
 
+    # Hard: internal {authority·date} tags are synthesizer INPUT, not reader
+    # output. Leaking them means the reader must decode internal notation to
+    # tell an official fact from a vendor claim - the synthesizer must translate
+    # them to a confidence label instead.
     leaked = EVIDENCE_TAG.findall(body)
-    add("soft", "no_raw_tags", not leaked,
-        f"{len(leaked)} raw evidence tag(s) leaked into prose" if leaked
-        else "no raw evidence tags in prose")
+    add("hard", "no_raw_tags", not leaked,
+        f"{len(leaked)} raw evidence tag(s) leaked into prose - translate to a "
+        f"confidence label" if leaked else "no raw evidence tags in prose")
 
     return findings
 

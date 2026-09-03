@@ -34,7 +34,7 @@ current, no AWS credentials needed:
 ```bash
 uv run $SKILL_DIR/scripts/llmstxt_doc_search.py \
   -q "subquery 1" -q "subquery 2" \
-  -o <findings-file> --log-dir <work-dir> \
+  -o <work-dir>/downloads/aws-docs-raw.md --log-dir <work-dir> \
   --top 3 --max-length 15000
 ```
 
@@ -52,7 +52,7 @@ DynamoDB service docs, etc.), or when the primary returns nothing:
 ```bash
 uv run $SKILL_DIR/scripts/aws_doc_search.py \
   -q "subquery 1" -q "subquery 2" \
-  -o <findings-file> --log-dir <work-dir> \
+  -o <work-dir>/downloads/aws-docs-raw.md --log-dir <work-dir> \
   --top 3 --max-length 5000
 ```
 
@@ -67,7 +67,7 @@ exits 1 without writing a file if the proxy is unreachable.
 ```bash
 uv run $SKILL_DIR/scripts/aws_pricing_search.py \
   -q "subquery 1" -q "subquery 2" \
-  -o <findings-file> --log-dir <work-dir> \
+  -o <work-dir>/downloads/aws-pricing-raw.md --log-dir <work-dir> \
   --region us-east-1
 ```
 
@@ -88,13 +88,18 @@ Steps:
    `$SKILL_DIR/references/contract-compliance-rules.md`. Use the contract's
    entity exclusions to shape your `-q` queries - add NOT/exclude terms.
    Example: contract says "Exclude: EFS" → `-q "S3 Files NFS NOT EFS"`
-2. Run `llmstxt_doc_search.py` (PRIMARY) with all doc subqueries in one
-   invocation. If it exits non-zero (no matching source / zero results), run
-   `aws_doc_search.py` (FALLBACK) with the same subqueries.
-3. If pricing is requested, run `aws_pricing_search.py` with pricing subqueries
-4. Check each script's stdout JSON `status` and its exit code. A non-zero exit
-   means it wrote no findings file - do not treat it as success.
-5. Verify findings files have useful content
+2. Run `llmstxt_doc_search.py` (PRIMARY), writing raw output to
+   `<work-dir>/downloads/aws-docs-raw.md`. If it exits non-zero (no matching
+   source / zero results), run `aws_doc_search.py` (FALLBACK) to the same path.
+3. If pricing is requested, run `aws_pricing_search.py` to
+   `<work-dir>/downloads/aws-pricing-raw.md`.
+4. Check each script's stdout JSON `status` and exit code. A non-zero exit
+   wrote no file - do not treat it as success.
+5. **Read the raw file(s) and write evidence records to `<findings-file>`** -
+   one record per doc/price: a one-line claim, its URL, an `{official·<date>}`
+   tag, and the facet. **Keep exact IAM policies, pricing numbers, and quotas
+   verbatim** in fenced blocks - never paraphrase those. Never copy a whole raw
+   file into the findings file.
 
 ### Bedrock Optimization
 
