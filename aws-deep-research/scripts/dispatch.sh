@@ -26,13 +26,18 @@
 #                          once at round level after printing it yourself)
 #   SKILL_DIR              skill root; auto-resolved if unset
 #   DISPATCH_MODEL         optional model override passed to the child CLI
+#                          (on pi, encode effort here too, e.g. sonnet:high)
+#   DISPATCH_EFFORT        optional reasoning effort for claude (--effort);
+#                          default medium for researchers, high for synthesizer
+#   DISPATCH_TIMEOUT       seconds before the child is killed (default 900)
 #
 # Exit codes:
 #   0  success (or dry-run)
 #   2  usage error
 #   3  harness could not be determined (caller must ask the user, pass --harness)
 #   4  harness is known but not supported by this script (e.g. kiro, or an
-#      untested harness) - caller must handle per SKILL.md
+#      untested harness), OR the child CLI is not on PATH
+#   124 child exceeded DISPATCH_TIMEOUT (from `timeout`)
 set -euo pipefail
 
 # --- tiny helpers -----------------------------------------------------------
@@ -63,7 +68,9 @@ ENVIRONMENT:
   DISPATCH_HARNESS        same as --harness
   DISPATCH_DRY_RUN=1      print the resolved command and exit 0; spawn nothing
   DISPATCH_BANNER_SHOWN=1 suppress the per-call process disclaimer
-  DISPATCH_MODEL          optional model override passed to the child CLI
+  DISPATCH_MODEL          optional model override (on pi, encode effort here)
+  DISPATCH_EFFORT         optional reasoning effort for claude (--effort)
+  DISPATCH_TIMEOUT        seconds before the child is killed (default 900)
   SKILL_DIR               skill root; auto-resolved from this script if unset
 
 EXAMPLES:
@@ -79,10 +86,11 @@ EXAMPLES:
   wait
 
 EXIT CODES:
-  0  success (or dry-run)
-  2  usage error
-  3  harness could not be determined (ask the user, pass --harness)
-  4  harness known but unsupported here (kiro is in-session; or untested CLI)
+  0   success (or dry-run)
+  2   usage error
+  3   harness could not be determined (ask the user, pass --harness)
+  4   harness unsupported here (kiro is in-session; untested CLI); or child CLI not on PATH
+  124 child exceeded DISPATCH_TIMEOUT
 EOF
 }
 
@@ -125,8 +133,10 @@ case "$TASK_RAW" in
 esac
 
 # --- harness detection ------------------------------------------------------
-# Returns exactly one of pi|claude|codex|kiro when a single fingerprint matches,
-# or empty string when zero or more-than-one match (ambiguous → caller asks).
+# Returns exactly one of pi|claude|kiro when a single fingerprint matches, or
+# empty string when zero or more-than-one match (ambiguous → caller asks). On
+# Claude Code the PREFERRED path is the native Agent tool (Backend C in
+# references/platform-dispatch.md); this shim is the process-fan-out fallback.
 detect_harness() {
   local matches="" n=0
   if [ "${PI_CODING_AGENT:-}" = "true" ] || [ -n "${PI_CODING_AGENT:-}" ]; then
@@ -134,9 +144,6 @@ detect_harness() {
   fi
   if [ -n "${CLAUDECODE:-}${CLAUDE_CODE_ENTRYPOINT:-}${CLAUDE_CODE_USE_BEDROCK:-}" ]; then
     matches="$matches claude"; n=$((n+1))
-  fi
-  if [ -n "${CODEX_SANDBOX:-}${CODEX_HOME:-}" ]; then
-    matches="$matches codex"; n=$((n+1))
   fi
   if [ -n "${KIRO_AGENT:-}${KIRO_CLI:-}${KIRO_VERSION:-}" ]; then
     matches="$matches kiro"; n=$((n+1))
@@ -155,7 +162,7 @@ else
 fi
 
 [ -n "$HARNESS" ] || die 3 "could not determine the harness from the environment. \
-Ask the user which coding agent is running (pi, claude, codex, kiro) and re-invoke with --harness."
+Ask the user which coding agent is running (pi, claude, kiro) and re-invoke with --harness."
 
 # --- backend + per-harness command construction -----------------------------
 # Tool names differ per CLI; the researchers need read + write + shell only
@@ -164,24 +171,33 @@ BACKEND=""
 build_cmd() {
   # populates global arrays CMD (real argv) and CMD_DISPLAY (readable argv,
   # role prompt shown as @<file> instead of 8KB of text).
+  # Children get read+write+bash+edit: bash runs `uv run scripts/*.py` (all
+  # network work); edit lets the synthesizer/diagram step make targeted edits
+  # instead of rewriting a whole file (Fable 5.1 leans toward full rewrites).
+  local outdir; outdir="$(dirname "$OUTFILE")"
   case "$HARNESS" in
     pi)
       BACKEND="process-fanout"
-      CMD=( pi -p --no-session --tools "read,write,bash" )
+      # pi encodes reasoning effort in the model spec (e.g. sonnet:high), so
+      # pass effort via DISPATCH_MODEL rather than a separate flag.
+      CMD=( pi -p --no-session --tools "read,write,bash,edit" )
       [ -n "${DISPATCH_MODEL:-}" ] && CMD+=( --model "$DISPATCH_MODEL" )
       CMD+=( --append-system-prompt "$ROLE" "$TASK" )
-      CMD_DISPLAY=( pi -p --no-session --tools "read,write,bash" )
+      CMD_DISPLAY=( pi -p --no-session --tools "read,write,bash,edit" )
       [ -n "${DISPATCH_MODEL:-}" ] && CMD_DISPLAY+=( --model "$DISPATCH_MODEL" )
       CMD_DISPLAY+=( --append-system-prompt "@${ROLE_FILE#"$SKILL_DIR"/}" "$TASK" )
       ;;
     claude|claude-code)
       HARNESS="claude"
       BACKEND="process-fanout"
-      CMD=( claude -p --append-system-prompt "$ROLE" --allowedTools "Read Write Bash" --add-dir "$SKILL_DIR" )
-      [ -n "${DISPATCH_MODEL:-}" ] && CMD+=( --model "$DISPATCH_MODEL" )
+      # --add-dir the findings dir so Write/Edit can reach $OUTFILE (outside cwd).
+      CMD=( claude -p --append-system-prompt "$ROLE" --allowedTools "Read Write Bash Edit" --add-dir "$SKILL_DIR" --add-dir "$outdir" )
+      [ -n "${DISPATCH_MODEL:-}" ]  && CMD+=( --model "$DISPATCH_MODEL" )
+      [ -n "${DISPATCH_EFFORT:-}" ] && CMD+=( --effort "$DISPATCH_EFFORT" )
       CMD+=( "$TASK" )
-      CMD_DISPLAY=( claude -p --append-system-prompt "@${ROLE_FILE#"$SKILL_DIR"/}" --allowedTools "Read Write Bash" --add-dir "$SKILL_DIR" )
-      [ -n "${DISPATCH_MODEL:-}" ] && CMD_DISPLAY+=( --model "$DISPATCH_MODEL" )
+      CMD_DISPLAY=( claude -p --append-system-prompt "@${ROLE_FILE#"$SKILL_DIR"/}" --allowedTools "Read Write Bash Edit" --add-dir "$SKILL_DIR" --add-dir "$outdir" )
+      [ -n "${DISPATCH_MODEL:-}" ]  && CMD_DISPLAY+=( --model "$DISPATCH_MODEL" )
+      [ -n "${DISPATCH_EFFORT:-}" ] && CMD_DISPLAY+=( --effort "$DISPATCH_EFFORT" )
       CMD_DISPLAY+=( "$TASK" )
       ;;
     kiro)
@@ -232,6 +248,14 @@ if [ "${DISPATCH_DRY_RUN:-}" = "1" ]; then
   exit 0
 fi
 
+# --- CLI existence check ----------------------------------------------------
+# A missing child CLI must fail with guidance, not exit 127 and leave an empty
+# findings file that reads as a silent failure downstream.
+command -v "${CMD[0]}" >/dev/null 2>&1 || \
+  die 4 "child CLI '${CMD[0]}' is not on PATH. Install it, or dispatch on a \
+harness whose CLI is available (on Claude Code prefer the native Agent tool - \
+Backend C in references/platform-dispatch.md - which needs no child CLI)."
+
 # --- execute -----------------------------------------------------------------
 # The child writes its findings/report to $OUTFILE with its *write tool* (the
 # path is handed to it in <task>). dispatch.sh must NOT also redirect the
@@ -244,4 +268,12 @@ OUTDIR="$(dirname "$OUTFILE")"
 LOGDIR="$OUTDIR/logs"
 mkdir -p "$OUTDIR" "$LOGDIR"
 LOGFILE="$LOGDIR/${AGENT}.stdout"
-"${CMD[@]}" > "$LOGFILE" 2>&1
+
+# Bound the child so a hung auth prompt or stuck fetch cannot block a round
+# indefinitely (DISPATCH_TIMEOUT seconds, default 900; `timeout` exits 124).
+# The child's exit code propagates via set -e so the caller sees failures.
+if command -v timeout >/dev/null 2>&1; then
+  timeout "${DISPATCH_TIMEOUT:-900}" "${CMD[@]}" > "$LOGFILE" 2>&1
+else
+  "${CMD[@]}" > "$LOGFILE" 2>&1
+fi

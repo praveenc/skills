@@ -50,7 +50,10 @@ uv run $SKILL_DIR/scripts/sitemap_feed_extractor.py "<feed_url>" --top 50 --json
 
 Prefer `fetchv2:fetchv2_fetch_batch` (see next section) for page extraction.
 Use `trafilatura_scraper.py` only when fetchv2 fails (JS-rendered content,
-auth walls, unusual encodings):
+auth walls, unusual encodings) - **or for every URL when this session has no
+`fetchv2` tool at all** (e.g. pi, which has no MCP). Check once at the start
+whether `fetchv2` is available; if it is not, trafilatura per URL is the
+sanctioned path and the no-loop rule below does not apply.
 
 ```bash
 uv run $SKILL_DIR/scripts/trafilatura_scraper.py --url "<url>" \
@@ -225,7 +228,9 @@ credentials, private files, and sibling findings.
 - **NEVER use `curl`, `wget`, or raw HTTP to fetch web pages.** Use
   `fetchv2:fetchv2_fetch_batch` (primary) or `trafilatura_scraper.py`
   (fallback) only.
-- **NEVER loop trafilatura over many URLs.** Batch via fetchv2 instead.
+- **Do NOT loop trafilatura over many URLs *when fetchv2 is available*** - batch
+  via fetchv2 instead. When no fetchv2 tool exists in this session (pi), running
+  trafilatura once per URL IS the sanctioned path.
 - **Respect `$SKILL_DIR/scripts/blocklist.txt`** - a list of domains to
   exclude (Amazon-Security-blocked, persistent 5xx, spam aggregators, etc.).
   Brave/Tavily scripts filter automatically, but if you construct a URL

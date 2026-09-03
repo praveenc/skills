@@ -15,12 +15,12 @@ description: >
   debugging local code or tests, AWS CLI operations, summarizing supplied content,
   or anything answerable from the current conversation.
 compatibility: >
-  Compatible with Kiro CLI, the pi coding-agent harness, and Claude Code (all
-  need subagent dispatch; see references/platform-dispatch.md for the
-  per-harness mechanism). Requires uv for Python scripts and the fetchv2 MCP
-  server for batched web content extraction. Optional: Brave/Tavily API keys
-  for web search, GITHUB_TOKEN for GitHub repo search, AWS credentials for docs
-  and pricing, Docker-hosted Kroki for diagram rendering.
+  Runs on Kiro CLI, Claude Code / Claude Agent SDK (native Agent tool), and the
+  pi harness (headless process fan-out); see references/platform-dispatch.md.
+  Requires uv (Python scripts) and Node (npx, for the llmstxt docs client).
+  fetchv2 MCP does batched web fetch on Kiro/Claude Code; pi falls back to
+  trafilatura. Optional: Brave/Tavily keys, GITHUB_TOKEN, AWS credentials for
+  the docs/pricing fallback, Docker-hosted Kroki for diagrams.
 metadata:
   author: praveenc
   version: "6.15"
@@ -45,7 +45,12 @@ finished report to present to the user.
 
 ## Resolve Skill + Work Directories
 
-Run once and reuse `SKILL_DIR` and `WORK_DIR` in all subsequent commands.
+Resolve the directories once, then **use the printed absolute paths literally**
+in every later command. Shell state (env vars) does **not** persist between
+separate command invocations on Claude Code - each tool call is a fresh shell -
+so a later `bash "$SKILL_DIR/..."` expands to `bash /...` and fails. Two safe
+options: **(a)** copy the three printed paths and paste them literally, or
+**(b)** prefix each command with the `eval` below.
 
 **Use the directory THIS `SKILL.md` was loaded from.** You just read this file
 via an absolute path (e.g. `read /path/to/aws-deep-research/SKILL.md`); the skill
@@ -223,6 +228,14 @@ Break query into subqueries using:
 
 List all subqueries with assigned subagents before proceeding.
 
+**Write `$WORK_DIR/<slug>/plan.md`** recording: slug, harness, intents,
+strategy, query-type, the subqueries, and one row per subagent
+(`<findings-file> | pending`). This is the resumable state - rounds take minutes
+and Claude Code compacts long sessions. **If this work dir already exists** for
+the slug, do not re-decompose: run Step 5 first and re-dispatch only the
+`WEAK`/`MISSING` researchers, so a resumed run does not re-spend Brave/Tavily
+credits. Update the statuses after Step 5.
+
 ## Step 4 - Dispatch Research
 
 Create the work dir: `$WORK_DIR/<slug>/`
@@ -234,32 +247,35 @@ mkdir -p "$WORK_DIR/<slug>/downloads"
 All **findings files** go into `$WORK_DIR/<slug>/`. Downloads go to
 `$WORK_DIR/<slug>/downloads/`. **Never write under the invocation CWD.**
 
-**Dispatch all applicable subagents, batching into rounds of ≤4** (all
-supported harnesses cap parallel subagents per round).
+**Determine the harness first, then dispatch accordingly** - there are three
+backends and picking the wrong one is the classic failure (a model improvising
+into whatever delegate-shaped tool it finds). One round covers all applicable
+researchers; the parallel cap is **per-harness** (Kiro 4, Claude Code ~20, pi ≤4):
 
-**Determine the harness first, then dispatch accordingly** - there are two
-dispatch worlds and picking the wrong one is the classic failure (a pi-hosted
-model improvising into whatever delegate-shaped tool it finds):
+- **Kiro** - dispatch **in-session** via the native subagent tool (`use_subagent`
+  on v2, `subagent` on v3). Prefer the **generic path**: hand each subagent the
+  role from `$SKILL_DIR/agents/<name>.md` inline (omit `agent_name`). **Do NOT
+  shell out** and **do NOT use any other delegate-shaped tool.**
+- **Claude Code / Claude Agent SDK** - dispatch via the native **`Agent` tool**:
+  one call per researcher, all in a **single turn**, backgrounded.
+  `subagent_type: general-purpose`; prompt = *"Read `$SKILL_DIR/agents/<name>.md`
+  and act as that agent"* + the brief. Subagents inherit the session's MCP (so
+  `fetchv2` works). Prepare the synthesizer brief while they run. **Do NOT shell
+  out to `claude -p` for a normal round** - that is the fallback only.
+- **pi** - dispatch as **headless child processes** via `scripts/dispatch.sh`
+  (one call per subagent; background several + per-PID `wait`). pi has no MCP, so
+  the web researcher uses trafilatura, not fetchv2.
+- **Ambiguous or unknown harness** - ask the user one question; use its native
+  subagent tool if any, else `dispatch.sh` best effort.
 
-- **Kiro** - dispatch **in-session** via the native subagent tool. Detect the
-  engine first: on **v2** (current default) call `use_subagent` with
-  `InvokeSubagents` and a `subagents[]` array; on **v3** name the agents in
-  natural language. Prefer the **generic path** - hand each subagent the role
-  from `$SKILL_DIR/agents/<name>.md` inline (omit `agent_name`), no
-  registration needed. **Do NOT shell out** and **do NOT use any other
-  delegate-shaped tool.**
-- **pi / Claude Code** - dispatch as **headless child processes** via
-  `scripts/dispatch.sh` (one call per subagent; background several + `wait`
-  for a parallel round). **Do NOT reach for any environment delegate tool.**
-- **Ambiguous or unknown harness** - ask the user one question; if they name
-  an untested harness, offer the process-fan-out path as best effort.
+Full procedure, detection fingerprints, the `Agent`-tool round shape, the
+`dispatch.sh` contract, and per-harness limits:
+[references/platform-dispatch.md](references/platform-dispatch.md).
 
-Full procedure, detection fingerprints, the `dispatch.sh` contract, and round
-batching: [references/platform-dispatch.md](references/platform-dispatch.md).
-
-Before any process-fan-out round, print the bold disclaimer: **each subagent
-launches a full, separate CLI process (its own model context + auth round-trip;
-a 4-researcher round = 4 CLI cold starts).** `dispatch.sh` prints this for you.
+Before any **process-fan-out (pi)** round, print the bold disclaimer: **each
+subagent launches a full, separate CLI process (its own model context + auth
+round-trip).** `dispatch.sh` prints this for you. The Claude Code `Agent` tool
+and Kiro subagents run in-session - no cold start, no disclaimer needed.
 
 | Subagent | Findings file | When |
 |---|---|---|
@@ -319,6 +335,12 @@ file at all - tell the user and stop; there is nothing worth synthesizing.
 
 - Record every `WEAK`/`MISSING` entry in the synthesizer dispatch brief
   (Step 6) so it surfaces in the report's **Gaps & Limitations** section.
+- **Refusal vs failure**: a findings file whose first line is
+  `SKIPPED: safeguard - ...` is a subagent *decline* (a safeguard false positive
+  on benign `security-compliance` research), not an API failure. Re-dispatch
+  that researcher **once** on Opus (`DISPATCH_MODEL=claude-opus-5`, or the
+  `Agent` tool's `model: opus`); if it still declines, record the decline and
+  the retry model in the synthesizer brief so it lands in Gaps.
 - The script reports size and status only - it never prints file contents, so
   no findings text enters the parent's context.
 
@@ -403,9 +425,6 @@ ${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"
   make artifacts unrecoverable later.
 - **Parallel fetch**: web-content-researcher MUST use `fetchv2:fetchv2_fetch_batch`
   (up to 10 URLs per call) for page extraction. Trafilatura is a fallback only.
-- **`-o` flag is mandatory** for all search/scraper scripts - without it,
-  output goes to wrong location outside the research directory. The `-o`
-  target is always `$WORK_DIR/<slug>/downloads/<tool>`.
 - **Domain blocklist**: `$SKILL_DIR/scripts/blocklist.txt` filters URLs
   from Brave/Tavily results automatically. When a subagent constructs a
   URL by hand (not from search), it must still check against the blocklist

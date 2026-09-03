@@ -74,12 +74,47 @@ def test_claude_command_construction():
     out = r.stdout
     assert out.startswith("claude -p")
     assert "--append-system-prompt @agents/synthesizer.md" in out
-    assert '--allowedTools "Read Write Bash"' in out
+    assert '--allowedTools "Read Write Bash Edit"' in out
     assert f"--add-dir {SKILL_DIR}" in out
+    assert "--add-dir /tmp" in out  # findings dir added so Write/Edit can reach $OUTFILE
     assert "> /tmp/report.md" in out
     # claude must NOT carry pi-only flags
     assert "--no-session" not in out
     assert "--tools read,write,bash" not in out
+
+
+def test_edit_tool_is_granted_both_harnesses():
+    """F18: children need an edit tool for targeted edits (repair, diagram)."""
+    pi = run(["--harness", "pi", "synthesizer", "t", "/tmp/r.md"],
+             env={"DISPATCH_DRY_RUN": "1"}).stdout
+    assert "--tools read,write,bash,edit" in pi
+    cl = run(["--harness", "claude", "synthesizer", "t", "/tmp/r.md"],
+             env={"DISPATCH_DRY_RUN": "1"}).stdout
+    assert '--allowedTools "Read Write Bash Edit"' in cl
+
+
+def test_effort_threads_through_claude():
+    """F23: DISPATCH_EFFORT maps to --effort on claude."""
+    r = run(["--harness", "claude", "synthesizer", "t", "/tmp/r.md"],
+            env={"DISPATCH_DRY_RUN": "1", "DISPATCH_EFFORT": "high"})
+    assert "--effort high" in r.stdout
+    # pi carries no --effort (effort rides on the model spec there)
+    p = run(["--harness", "pi", "synthesizer", "t", "/tmp/r.md"],
+            env={"DISPATCH_DRY_RUN": "1", "DISPATCH_EFFORT": "high"})
+    assert "--effort" not in p.stdout
+
+
+def test_missing_child_cli_exits_4(tmp_path: Path):
+    """F32: a supported harness whose child CLI is absent must exit 4, not 127."""
+    # Real execute (no dry-run) with a PATH that has coreutils but no `claude`.
+    r = run(
+        ["--harness", "claude", "synthesizer", "t", str(tmp_path / "r.md")],
+        env={"PATH": "/usr/bin:/bin", "DISPATCH_BANNER_SHOWN": "1"},
+        clean_env=True,
+    )
+    assert r.returncode == 4, r.stderr
+    assert "not on PATH" in r.stderr
+    assert not (tmp_path / "r.md").exists()
 
 
 def test_claude_code_alias_normalizes_to_claude():
