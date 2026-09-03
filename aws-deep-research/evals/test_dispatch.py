@@ -267,3 +267,51 @@ def test_every_registered_agent_dispatches(agent: str):
     )
     assert r.returncode == 0, r.stderr
     assert f"@agents/{agent}.md" in r.stdout
+
+
+# --- F1 regression: child stdout must not clobber the findings file ---------
+
+
+def test_child_stdout_goes_to_log_not_findings(tmp_path: Path):
+    """F1: the child writes findings with its write tool; dispatch.sh sends the
+    child's stdout to <dir>/logs/<agent>.stdout, NOT onto the findings file.
+
+    Reproduction with a fake `claude` on PATH that (a) writes real findings to
+    the outfile and (b) prints a status line to stdout - exactly the two writers
+    that used to corrupt the head of every findings file.
+    """
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    fake = bindir / "claude"
+    fake.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -eu\n"
+        '# emulate the write tool filling the findings file\n'
+        'printf "# Findings\\n\\n- record one\\n" > "$FAKE_FINDINGS_PATH"\n'
+        'head -c 600 /dev/zero | tr "\\0" x >> "$FAKE_FINDINGS_PATH"\n'
+        'printf "\\n" >> "$FAKE_FINDINGS_PATH"\n'
+        '# the final status line the model prints to stdout (used to clobber)\n'
+        'printf "STATUS wrote 640 chars to %s\\n" "$FAKE_FINDINGS_PATH"\n'
+    )
+    fake.chmod(0o755)
+
+    work = tmp_path / "work"
+    work.mkdir()
+    outfile = work / "aws-docs.md"
+    r = run(
+        ["--harness", "claude", "aws-mcp-researcher", "write findings", str(outfile)],
+        env={
+            "PATH": f"{bindir}:{os.environ.get('PATH', '')}",
+            "FAKE_FINDINGS_PATH": str(outfile),
+            "DISPATCH_BANNER_SHOWN": "1",
+        },
+    )
+    assert r.returncode == 0, r.stderr
+
+    content = outfile.read_text(encoding="utf-8")
+    assert content.startswith("# Findings"), content[:80]
+    assert "STATUS wrote" not in content  # stdout did NOT leak into findings
+
+    log = work / "logs" / "aws-mcp-researcher.stdout"
+    assert log.exists(), "child stdout log was not created"
+    assert "STATUS wrote 640 chars" in log.read_text(encoding="utf-8")

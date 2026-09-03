@@ -112,6 +112,46 @@ def test_all_weak_exits_nonzero(tmp_path: Path) -> None:
     assert "do not synthesize" in r.stderr
 
 
+def test_briefs_only_dir_exits_nonzero(tmp_path: Path) -> None:
+    """F4: brief-*.md are dispatch inputs, not findings. A dir with only a
+    contract and briefs has nothing to synthesize and must exit 1."""
+    write_bytes(tmp_path / "research-contract.md", 700)
+    write_bytes(tmp_path / "brief-aws.md", 700)
+    write_bytes(tmp_path / "brief-web.md", 700)
+    write_bytes(tmp_path / "brief-synth.md", 700)
+    r = run_verify(str(tmp_path))
+    assert r.returncode == 1, r.stdout
+    assert "=OK" not in r.stdout
+    assert "brief-aws.md" not in r.stdout
+
+
+def test_plan_file_is_not_findings(tmp_path: Path) -> None:
+    write_bytes(tmp_path / "plan.md", 700)
+    write_bytes(tmp_path / "aws-docs.md", MIN_BYTES)
+    r = run_verify(str(tmp_path))
+    assert "aws-docs.md=OK" in r.stdout
+    assert "plan.md" not in r.stdout
+
+
+def test_leading_failure_marker_is_weak_despite_size(tmp_path: Path) -> None:
+    """F4: a 2 KB file that starts with ❌ is a failure note, not evidence."""
+    (tmp_path / "aws-docs.md").write_text(
+        "❌ Failed: AWS docs MCP exposed zero tools\n" + "x" * 2000, encoding="utf-8"
+    )
+    write_bytes(tmp_path / "web-content.md", MIN_BYTES)  # a real OK so exit 0
+    r = run_verify(str(tmp_path))
+    assert "aws-docs.md=WEAK" in r.stdout, r.stdout
+
+
+def test_leading_skipped_marker_is_weak_despite_size(tmp_path: Path) -> None:
+    (tmp_path / "aws-docs.md").write_text(
+        "SKIPPED: safeguard - subquery declined\n" + "x" * 2000, encoding="utf-8"
+    )
+    write_bytes(tmp_path / "web-content.md", MIN_BYTES)
+    r = run_verify(str(tmp_path))
+    assert "aws-docs.md=WEAK" in r.stdout, r.stdout
+
+
 def test_empty_work_dir_exits_nonzero(tmp_path: Path) -> None:
     r = run_verify(str(tmp_path))
     assert r.returncode == 1
@@ -333,6 +373,25 @@ def test_leaked_evidence_tag_is_soft(tmp_path: Path) -> None:
 def test_stub_report_trips_size_floor(tmp_path: Path) -> None:
     out = lint_text(tmp_path, GOOD_REPORT)  # default floor 2000 > this fixture
     assert "size_min" in out["soft_failed"]
+
+
+def test_lint_writes_sidecar_by_default(tmp_path: Path) -> None:
+    """F5: the gate must leave a durable record that it ran."""
+    p = tmp_path / "slug-report.md"
+    p.write_text(GOOD_REPORT, encoding="utf-8")
+    run_lint(str(p), "--intents", "comparison", "--min-bytes", "100")
+    sidecar = tmp_path / "slug-report.lint.json"
+    assert sidecar.exists()
+    data = json.loads(sidecar.read_text(encoding="utf-8"))
+    assert data["passed"] is True
+    assert data["report"] == str(p)
+
+
+def test_lint_no_sidecar_flag_suppresses_it(tmp_path: Path) -> None:
+    p = tmp_path / "slug-report.md"
+    p.write_text(GOOD_REPORT, encoding="utf-8")
+    run_lint(str(p), "--min-bytes", "100", "--no-sidecar")
+    assert not (tmp_path / "slug-report.lint.json").exists()
 
 
 def test_unreadable_report_is_usage_error() -> None:
