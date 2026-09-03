@@ -32,14 +32,17 @@ console = Console(stderr=True)
 # ---------------------------------------------------------------------------
 
 _BLOCKLIST_PATH = Path(__file__).resolve().parent / "blocklist.txt"
-_BLOCKLIST_CACHE: tuple[frozenset[str], float] | None = None
+_BLOCKLIST_CACHE: tuple[Path, frozenset[str], float] | None = None
 
 
 def load_blocked_domains(path: Path | None = None) -> frozenset[str]:
     """Read ``blocklist.txt`` and return the set of blocked domains (lowercase).
 
-    Caches on mtime so repeated calls within a session don't re-read the file.
-    Returns an empty frozenset if the file does not exist.
+    Caches on (path, mtime) so repeated calls within a session don't re-read the
+    file. Keying on path as well as mtime matters: the blocklist gates every web
+    fetch, so an mtime-only key could return a *different* file's domains when
+    two files share a modification time. Returns an empty frozenset if the file
+    does not exist.
     """
     global _BLOCKLIST_CACHE
     p = path or _BLOCKLIST_PATH
@@ -47,8 +50,9 @@ def load_blocked_domains(path: Path | None = None) -> frozenset[str]:
         mtime = p.stat().st_mtime
     except FileNotFoundError:
         return frozenset()
-    if _BLOCKLIST_CACHE is not None and _BLOCKLIST_CACHE[1] == mtime:
-        return _BLOCKLIST_CACHE[0]
+    if (_BLOCKLIST_CACHE is not None
+            and _BLOCKLIST_CACHE[0] == p and _BLOCKLIST_CACHE[2] == mtime):
+        return _BLOCKLIST_CACHE[1]
     domains: set[str] = set()
     for line in p.read_text(encoding="utf-8").splitlines():
         line = line.split("#", 1)[0].strip().lower()
@@ -58,7 +62,7 @@ def load_blocked_domains(path: Path | None = None) -> frozenset[str]:
             # for matching.
             domains.add(line.replace("[.]", "."))
     blocked = frozenset(domains)
-    _BLOCKLIST_CACHE = (blocked, mtime)
+    _BLOCKLIST_CACHE = (p, blocked, mtime)
     return blocked
 
 
