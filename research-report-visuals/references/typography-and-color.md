@@ -21,6 +21,18 @@ Every visual uses exactly two (occasionally three) typefaces:
 3. **Mono font** (optional) - Used for data, numbers, code, and technical
    identifiers. Signals precision.
 
+Use local system font stacks. Do not fetch font files or stylesheets at
+runtime. Treat the named faces below as art-direction references. If a named
+face is not installed, use the nearest stack:
+
+```css
+:root {
+  --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+```
+
 ### Recommended Pairings
 
 Pick ONE pairing per visual. Do not mix across visuals for the same project.
@@ -32,6 +44,7 @@ demands a different register.
 | **Default** (editorial) | Newsreader | DM Sans | JetBrains Mono | Most reports. Best breathing room. |
 | **Editorial serif** (most readable) | Fraunces | Newsreader | JetBrains Mono | Prose-heavy explainers, field manuals, concept/decision guides. Serif body at 18px/1.65-1.7 with oldstyle numerals reads warmest. |
 | Technical/engineering | Space Grotesk | Inter | Fira Code | Protocol specs, API docs, dense reference |
+| Technical decision guide | Martian Mono for hero, Geist for sections | Geist | Geist Mono | Technical comparisons where endpoint names, decisions, and compact labels carry the story |
 | Warm/accessible | Fraunces | DM Sans | DM Mono | Non-technical, narrative-heavy |
 | Product/modern | Instrument Sans | Geist | Geist Mono | Product comparisons, vendor analysis |
 | Research/academic | Newsreader | Source Sans 3 | Source Code Pro | Papers, citations-heavy |
@@ -42,6 +55,17 @@ sizing for a genuinely editorial feel:
 body { font-feature-settings: "kern", "liga", "onum", "pnum"; }
 h1, h2 { font-optical-sizing: auto; }
 ```
+
+For modern local fonts such as Geist, enable the browser's text rendering:
+
+```css
+body {
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+```
+
 A serif display used italic for a key word or a pull-quote is a strong
 editorial signature (Fraunces italic). Guard descenders: keep line-height
 >= 1.3 on italic display so `g y p q j` are not clipped.
@@ -50,9 +74,9 @@ editorial signature (Fraunces italic). Guard descenders: keep line-height
 
 | Element | Size | Weight | Line-height |
 |---------|------|--------|-------------|
-| Hero title | 40-50px | 400-600 (serif) or 700 (sans) | 1.1-1.2 |
-| Section title | 26-30px | 400-600 (serif) or 700 (sans) | 1.18-1.2 |
-| Body text | 16px (sans) / 17-18px (serif) | 400 | 1.8 (sans) / 1.65-1.7 (serif) |
+| Hero title | 34-64px | 400-600 (serif) or 700 (sans/display) | 1.02-1.2 |
+| Section title | 25-34px | 400-600 (serif) or 600-700 (sans) | 1.12-1.2 |
+| Body text | 17px | 400 | 1.65-1.8 based on the face |
 | Card title | 16-18px | 600-700 | 1.3 |
 | Label/eyebrow | 11-12px | 600 | 1.4 |
 | Table text | 14px | 400 | 1.5 |
@@ -71,12 +95,14 @@ editorial signature (Fraunces italic). Guard descenders: keep line-height
 ### Non-Negotiable Rules
 
 - Body text MUST be at minimum `#2d2d2d` on light backgrounds
-- Body line-height MUST be generous for readability: **1.8 for a sans body**,
-  **1.65-1.7 for a serif body** (serif x-height and letterforms read
-  comfortably tighter; 1.8 on serif looks loose). Never below these floors.
-- Maximum body line length: 720px (prevents eye fatigue)
+- Body line-height MUST match the face: **1.65-1.75 for high-x-height modern
+  sans faces such as Geist**, **1.75-1.8 for softer sans faces**, and
+  **1.65-1.7 for serif bodies**. Never use less than 1.6.
+- Maximum body line length: 680-720px (prevents eye fatigue)
 - Headings use negative letter-spacing; body uses none
 - Never use more than 3 font sizes on a single screen (excluding data)
+- Use a display mono only for the hero or a short signature phrase. Never set
+  paragraphs or long section descriptions in monospace.
 
 ### Breathing Room (Vertical Rhythm)
 

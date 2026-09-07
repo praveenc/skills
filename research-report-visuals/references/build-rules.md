@@ -22,9 +22,9 @@ Rules for constructing the final HTML output file.
 
 ## File Structure
 
-Single self-contained HTML file. No external dependencies except Google Fonts
-and optionally a CDN charting library. Must open correctly as `file://` in
-any modern browser.
+Single self-contained HTML file. Do not load fonts, scripts, stylesheets,
+images, or charting libraries at runtime. The file must remain usable offline
+when opened with `file://` in a modern browser.
 
 ```html
 <!DOCTYPE html>
@@ -33,21 +33,38 @@ any modern browser.
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>[Report Title]</title>
-  <!-- Google Fonts (2-3 families max) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=..." rel="stylesheet">
-  <!-- Optional: charting library from CDN (only if charts needed) -->
   <style>
-    /* All CSS inline. No external stylesheets. */
+    /* All CSS inline. Use system font stacks. */
   </style>
 </head>
 <body>
-  <!-- Content -->
+  <header>
+    <!-- Masthead and hero -->
+  </header>
+  <main>
+    <!-- Narrative sections -->
+  </main>
+  <footer class="footer">
+    <!-- Sources and attribution -->
+  </footer>
   <script>
     /* Minimal JS for interactivity. At end of body. */
   </script>
 </body>
 </html>
+```
+
+The `<header>`, `<main>`, and `<footer>` elements are required landmarks.
+Classes named `header`, `main`, or `footer` are not substitutes.
+
+Add the browser rendering properties to the body rule:
+
+```css
+body {
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
 ```
 
 ## Standard Header (Masthead)
@@ -81,8 +98,7 @@ Category/type on the left, date on the right, same line:
 
 The `masthead-type` reflects the report classification (e.g., "Technical
 Strategy", "Migration Guide", "Security Analysis"). The `masthead-date`
-uses the report's publication date. This pattern is NON-NEGOTIABLE and
-appears in every visual.
+uses the report's publication date. This pattern is required in every visual.
 
 ## Standard Footer
 
@@ -420,19 +436,10 @@ The distinction: quotes are inline content elements, cards are containers.
 
 ## Charting Libraries (when needed)
 
-Only include a charting library when the report has quantitative data that
-genuinely benefits from a chart (not a table). Options:
-
-| Library | CDN | When |
-|---------|-----|------|
-| Highcharts 12.x | `cdn.jsdelivr.net/npm/highcharts@12.1.2/` | Complex charts, multiple series, interactivity |
-| Chart.js 4.x | `cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js` | Simple charts (bar, line, pie) |
-| None (CSS/SVG) | N/A | Diagrams, flows, timelines, comparisons |
-
-**Default to no library.** Most research reports are better served by
-styled tables, big numbers, SVG diagrams, and CSS-only visualizations.
-Only pull in a charting library when you have 3+ data series that need
-axis scales, tooltips, or responsive reflow.
+Do not load a charting library at runtime. Use styled tables, inline SVG, and
+CSS for charts, diagrams, flows, timelines, and comparisons. If a requested
+chart cannot be represented clearly without a library, ask the user before
+creating a non-self-contained deliverable.
 
 ## SVG Diagrams
 
@@ -448,20 +455,76 @@ SVG rules:
 - Use the same font-family as the page (via `font-family` attribute on text)
 - Use the same color variables (reference them as literal values in SVG)
 - Keep SVG simple: boxes, arrows, text. Not illustrations.
+- Add `role="img"` and an accessible `<title>` or `aria-labelledby`
+- Prefer diagrams that explain a decision, sequence, relationship, or system
 
 ## Content Rules
 
 - **No em dashes** (`&#8212;`) or en dashes (`&#8211;`) anywhere in the output.
   Use commas, colons, semicolons, or periods instead.
+  Before the single file write, audit the complete HTML string and replace
+  every literal `—` and `–`. This includes prose, dates, ranges, labels, CSS
+  `content`, comments, and accessibility text.
+  Do not use dash glyphs as table placeholders. Use an explicit label such as
+  `Not reported` or `Not applicable`.
 - **No Lorem ipsum.** All content comes from the source report.
+- **Escape report-derived content.** Do not insert source text as raw HTML.
+  Escape at least `&`, `<`, `>`, `"`, and `'` before placing report text in
+  HTML. Source markup remains text unless the user separately supplied and
+  authorized that markup.
 - **Attribute sources.** Include a footer with hyperlinked source references.
-  If the research report includes URLs in its citations, link them:
+  Parse each source URL and create a link only when its scheme is `http:` or
+  `https:`. Render other schemes as plain text. If the research report includes
+  an allowed URL in its citations, link it:
   ```html
-  <a href="https://..." target="_blank" rel="noopener">Source Name (2026)</a>
+  <a href="https://..." target="_blank"
+     rel="noopener noreferrer">Source Name (2026)</a>
   ```
-  Sources must ALWAYS be clickable when URLs are available in the report.
-- **Prioritize ruthlessly.** A 5000-word report becomes a 1500-word visual.
-  Cut supporting detail; keep key findings, numbers, and verdicts.
+  Allowed source URLs must remain clickable.
+- **Prioritize ruthlessly.** A long report usually becomes 700-900 visible
+  words in the primary layer. Cut repetition, not evidence.
+- **Preserve meaning.** Do not change numbers, negation, modal strength,
+  conditions, exceptions, identifiers, code, or quotations.
+- **Show evidence state where it matters.** Use Confirmed, Cross-checked,
+  Verify current, Contradiction, or Hypothesis next to affected claims.
+- **Do not use decorative generated images.** Prefer inline SVG diagrams,
+  meaningful icons, source images, and charts that encode report information.
+
+## Progressive Disclosure
+
+Use native `<details>` for supporting material that would otherwise crowd the
+main narrative:
+
+```html
+<details>
+  <summary>Authentication and permissions</summary>
+  <p>Supporting detail from the report.</p>
+</details>
+```
+
+Good candidates:
+
+- Full model, vendor, or Region lists
+- Authentication and permission details
+- Quota mechanics
+- Methodology and limitations
+- Secondary contradictions
+
+Keep the verdict, decision path, required warnings, and core evidence visible
+without interaction. Native `<details>` works without JavaScript and remains
+keyboard accessible.
+
+## Evidence Labels
+
+Evidence labels must use text plus an icon or shape. Color alone is not enough.
+Place the label in the same card, row, or callout as the affected claim.
+
+```html
+<span class="evidence-status verified">
+  <i data-lucide="badge-check"></i>
+  Cross-checked
+</span>
+```
 
 ## Interactivity Patterns
 

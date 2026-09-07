@@ -1,39 +1,26 @@
 # Icons and Visual Accents Reference
 
 ## Contents
-- Icon Library: Lucide
-- Fallback: Font Awesome 6
+- Semantic Inline SVG
+- Brand Marks
 - Anti-Patterns: Generic Visual Accents
 - Icon Sizing Convention
 
-## Icon Library: Lucide
+## Semantic Inline SVG
 
-Use **Lucide Icons** as the primary icon library. Clean, consistent, 24x24
-SVG-based icons with excellent coverage of technical and abstract concepts.
+Use small inline SVG icons with a consistent 24x24 coordinate system. Keep the
+geometry simple and use the same stroke width throughout the page. Do not load
+an icon library or execute remote JavaScript.
 
-### CDN Include
-
-```html
-<!-- Pinned to a specific version with the explicit UMD path (do NOT use
-     @latest: a breaking release can silently drop every icon). Version
-     live-verified against the npm registry at build time, not just dated.
-     The explicit /dist/umd/ path avoids relying on unpkg's bare-URL redirect
-     and guarantees the global `lucide.createIcons()` used below is exposed. -->
-<script src="https://unpkg.com/lucide@1.27.0/dist/umd/lucide.min.js"></script>
-```
-
-Place in `<head>` or before closing `</body>`. Then call:
+### Accessible Pattern
 
 ```html
-<script>lucide.createIcons();</script>
-```
-
-### Usage
-
-```html
-<i data-lucide="shield-check" class="icon"></i>
-<i data-lucide="database" class="icon"></i>
-<i data-lucide="network" class="icon"></i>
+<svg class="icon" viewBox="0 0 24 24" role="img"
+     aria-labelledby="icon-security-title">
+  <title id="icon-security-title">Security</title>
+  <circle cx="12" cy="12" r="9"></circle>
+  <path d="M8 12h8M12 8v8"></path>
+</svg>
 ```
 
 ### Styling Icons
@@ -42,7 +29,11 @@ Place in `<head>` or before closing `</body>`. Then call:
 .icon {
   width: 20px;
   height: 20px;
-  stroke-width: 1.5;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   color: var(--secondary); /* or semantic color */
 }
 .icon-lg {
@@ -117,17 +108,11 @@ Choose icons that represent the CONCEPT, not generic decoration.
 
 ---
 
-## Fallback: Font Awesome 6
+## Brand Marks
 
-When Lucide lacks a specific icon (rare), use Font Awesome:
-
-```html
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<i class="fa-solid fa-aws"></i>
-```
-
-Font Awesome has brand icons (`fa-brands fa-aws`, `fa-brands fa-docker`)
-that Lucide does not. Use for brand logos only.
+Do not recreate a brand logo from memory and do not fetch one at runtime. Use
+a text label or a local image that the user supplied. If you embed a local
+image, place its bytes in the HTML as a data URL and preserve its alt text.
 
 ---
 
@@ -147,7 +132,7 @@ that Lucide does not. Use for brand logos only.
 
 5. **Generic card grids** where every card looks identical except the text.
    Cards must be visually differentiated by their CONTENT:
-   - Different icon per card (representing the topic)
+   - Different inline SVG icon per card (representing the topic)
    - Tag/badge showing category
    - Key metric or date pulled out as a visual anchor
 
@@ -182,7 +167,7 @@ Key services: IAM, KMS, Route 53       Certifications: SOC 2, C5, ISO 27001
 ```
 
 Each card has:
-- A Lucide icon representing the topic (not decoration)
+- An inline SVG icon representing the topic (not decoration)
 - A category badge (colored by theme, not randomly)
 - A "key detail" strip at the bottom that's different per card
 - A link to the source

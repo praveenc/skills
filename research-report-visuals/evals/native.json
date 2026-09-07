@@ -1,0 +1,52 @@
+{
+  "skill_name": "research-report-visuals",
+  "suite": "native",
+  "mode": "native-discovery",
+  "description": "Production-catalog smoke cases. Evidence must come from the target harness's actual selected-skill and SKILL.md load events.",
+  "isolation": "Run each case in a fresh session with the exact model, catalog, ordering, tools, and permissions that will ship. The no-skill arm must make research-report-visuals physically unavailable.",
+  "trials": 3,
+  "arms": ["no-skill", "released", "candidate"],
+  "evidence": "Each trial writes meta.json with selected_skills[] and load_events[]. A load event is a harness record, not a model claim.",
+  "cases": [
+    {
+      "id": "native-001-target-explicit",
+      "route_case": "route-001",
+      "expected_skills": ["research-report-visuals"]
+    },
+    {
+      "id": "native-002-target-implicit",
+      "route_case": "route-007",
+      "expected_skills": ["research-report-visuals"]
+    },
+    {
+      "id": "native-003-compose-diagram",
+      "route_case": "route-006",
+      "expected_skills": ["research-report-visuals", "aws-architecture-diagram"]
+    },
+    {
+      "id": "native-004-compose-research",
+      "route_case": "route-009",
+      "expected_skills": ["aws-deep-research", "research-report-visuals"]
+    },
+    {
+      "id": "native-005-adjacent-dashboard",
+      "route_case": "route-013",
+      "expected_skills": ["lieflat-charts"]
+    },
+    {
+      "id": "native-006-adjacent-architecture",
+      "route_case": "route-017",
+      "expected_skills": ["aws-architecture-diagram"]
+    },
+    {
+      "id": "native-007-no-skill-summary",
+      "route_case": "route-011",
+      "expected_skills": []
+    },
+    {
+      "id": "native-008-no-skill-findings",
+      "route_case": "route-020",
+      "expected_skills": []
+    }
+  ]
+}
