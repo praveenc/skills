@@ -27,6 +27,7 @@ Usage:
   ./run.py --case <id>     validate a single case
   ./run.py --selftest      validate the check engine against inline fixtures
 """
+from html.parser import HTMLParser
 import json
 import os
 import re
@@ -50,6 +51,75 @@ def _flags(spec):
     return f
 
 
+class _VisibleTextParser(HTMLParser):
+    """Collect readable page text while excluding code and implementation."""
+
+    _SKIP = {"head", "style", "script", "svg", "pre", "code", "template"}
+    _BLOCK = {
+        "article", "aside", "blockquote", "div", "figcaption", "footer",
+        "h1", "h2", "h3", "h4", "h5", "h6", "header", "li", "main",
+        "p", "section", "summary", "td", "th",
+    }
+
+    def __init__(self):
+        super().__init__()
+        self._skip_depth = 0
+        self._closed_details = 0
+        self._details_stack = []
+        self._summary_depth = 0
+        self._parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "details":
+            is_open = any(name == "open" for name, _ in attrs)
+            self._details_stack.append(is_open)
+            if not is_open:
+                self._closed_details += 1
+        elif tag == "summary":
+            self._summary_depth += 1
+            self._parts.append("\n")
+        elif tag in self._SKIP:
+            self._skip_depth += 1
+        elif self._is_visible() and tag in self._BLOCK:
+            self._parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag == "details":
+            if self._details_stack and not self._details_stack.pop():
+                self._closed_details = max(0, self._closed_details - 1)
+        elif tag == "summary":
+            self._parts.append("\n")
+            self._summary_depth = max(0, self._summary_depth - 1)
+        elif tag in self._SKIP:
+            self._skip_depth = max(0, self._skip_depth - 1)
+        elif self._is_visible() and tag in self._BLOCK:
+            self._parts.append("\n")
+
+    def handle_data(self, data):
+        if self._is_visible():
+            self._parts.append(data)
+
+    def _is_visible(self):
+        return not self._skip_depth and (
+            self._closed_details == 0 or self._summary_depth > 0
+        )
+
+    def blocks(self):
+        text = "".join(self._parts)
+        return [re.sub(r"\s+", " ", block).strip()
+                for block in text.splitlines() if block.strip()]
+
+
+def _visible_blocks(html):
+    parser = _VisibleTextParser()
+    parser.feed(html)
+    return parser.blocks()
+
+
+def _words(text):
+    return re.findall(r"\b[\w][\w'./-]*\b", text, re.UNICODE)
+
+
 def run_check(check, html, response):
     """Return (status, message). status in {PASS, FAIL, PENDING, INFO}."""
     t = check["type"]
@@ -59,7 +129,10 @@ def run_check(check, html, response):
         return ("INFO", desc)
 
     # Checks that operate on the generated HTML.
-    html_checks = {"regex", "absent", "absent_regex", "count_regex", "max_bytes"}
+    html_checks = {
+        "regex", "absent", "absent_regex", "count_regex", "max_bytes",
+        "max_visible_words", "max_sentence_words",
+    }
     if t in html_checks:
         if html is None:
             return ("PENDING", f"{desc} (no output HTML yet)")
@@ -78,6 +151,25 @@ def run_check(check, html, response):
         n = len(html.encode("utf-8"))
         ok = n <= check["value"]
         return (("PASS" if ok else "FAIL"), f"{desc} ({n} bytes, limit {check['value']})")
+    if t == "max_visible_words":
+        n = sum(len(_words(block)) for block in _visible_blocks(html))
+        ok = n <= check["value"]
+        return (("PASS" if ok else "FAIL"),
+                f"{desc} ({n} words, limit {check['value']})")
+    if t == "max_sentence_words":
+        longest = 0
+        sample = ""
+        for block in _visible_blocks(html):
+            sentences = re.split(r"(?<=[.!?])\s+", block)
+            for sentence in sentences:
+                n = len(_words(sentence))
+                if n > longest:
+                    longest, sample = n, sentence
+        ok = longest <= check["value"]
+        detail = f"{desc} (longest {longest} words, limit {check['value']})"
+        if not ok:
+            detail += f": {sample[:120]}"
+        return (("PASS" if ok else "FAIL"), detail)
 
     # Negative-case checks.
     if t == "html_absent":
@@ -146,6 +238,10 @@ SELFTEST_HTML_BAD = (
     '<div class="card" style="border-top: 3px solid red">x</div>'
     'text with an em dash \u2014 here'
 )
+SELFTEST_LONG_SENTENCE = (
+    "<p>This sentence contains far too many words for concise display copy "
+    "and must fail the configured sentence length check today.</p>"
+)
 
 
 def selftest():
@@ -165,6 +261,15 @@ def selftest():
          SELFTEST_HTML_GOOD, None, "PASS"),
         ("max_bytes exceeded -> FAIL", {"type": "max_bytes", "value": 5},
          SELFTEST_HTML_GOOD, None, "FAIL"),
+        ("max_visible_words ok", {"type": "max_visible_words", "value": 20},
+         "<p>Short readable copy.</p>", None, "PASS"),
+        ("max_visible_words exceeded -> FAIL", {"type": "max_visible_words", "value": 2},
+         "<p>Three visible words.</p>", None, "FAIL"),
+        ("max_visible_words ignores closed details", {"type": "max_visible_words", "value": 3},
+         "<details><summary>More detail</summary><p>Hidden supporting words here.</p></details>",
+         None, "PASS"),
+        ("max_sentence_words exceeded -> FAIL", {"type": "max_sentence_words", "value": 10},
+         SELFTEST_LONG_SENTENCE, None, "FAIL"),
         ("heart glyph", {"type": "regex", "pattern": "\u2764|&#10084;"},
          SELFTEST_HTML_GOOD, None, "PASS"),
         ("line-height >=1.65 (serif 1.7)", {"type": "regex",

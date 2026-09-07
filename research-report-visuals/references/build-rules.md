@@ -50,6 +50,16 @@ any modern browser.
 </html>
 ```
 
+For web fonts, add the browser rendering properties to the body rule:
+
+```css
+body {
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+```
+
 ## Standard Header (Masthead)
 
 Every visual begins with a consistent masthead above the hero title.
@@ -448,6 +458,8 @@ SVG rules:
 - Use the same font-family as the page (via `font-family` attribute on text)
 - Use the same color variables (reference them as literal values in SVG)
 - Keep SVG simple: boxes, arrows, text. Not illustrations.
+- Add `role="img"` and an accessible `<title>` or `aria-labelledby`
+- Prefer diagrams that explain a decision, sequence, relationship, or system
 
 ## Content Rules
 
@@ -460,8 +472,50 @@ SVG rules:
   <a href="https://..." target="_blank" rel="noopener">Source Name (2026)</a>
   ```
   Sources must ALWAYS be clickable when URLs are available in the report.
-- **Prioritize ruthlessly.** A 5000-word report becomes a 1500-word visual.
-  Cut supporting detail; keep key findings, numbers, and verdicts.
+- **Prioritize ruthlessly.** A long report usually becomes 700-900 visible
+  words in the primary layer. Cut repetition, not evidence.
+- **Preserve meaning.** Do not change numbers, negation, modal strength,
+  conditions, exceptions, identifiers, code, or quotations.
+- **Show evidence state where it matters.** Use Confirmed, Cross-checked,
+  Verify current, Contradiction, or Hypothesis next to affected claims.
+- **Do not use decorative generated images.** Prefer inline SVG diagrams,
+  meaningful icons, source images, and charts that encode report information.
+
+## Progressive Disclosure
+
+Use native `<details>` for supporting material that would otherwise crowd the
+main narrative:
+
+```html
+<details>
+  <summary>Authentication and permissions</summary>
+  <p>Supporting detail from the report.</p>
+</details>
+```
+
+Good candidates:
+
+- Full model, vendor, or Region lists
+- Authentication and permission details
+- Quota mechanics
+- Methodology and limitations
+- Secondary contradictions
+
+Keep the verdict, decision path, required warnings, and core evidence visible
+without interaction. Native `<details>` works without JavaScript and remains
+keyboard accessible.
+
+## Evidence Labels
+
+Evidence labels must use text plus an icon or shape. Color alone is not enough.
+Place the label in the same card, row, or callout as the affected claim.
+
+```html
+<span class="evidence-status verified">
+  <i data-lucide="badge-check"></i>
+  Cross-checked
+</span>
+```
 
 ## Interactivity Patterns
 

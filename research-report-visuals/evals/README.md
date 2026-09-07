@@ -59,6 +59,8 @@ Exit codes: `0` all good; `1` a FAIL or (strict) a missing output; `2` usage err
 | `absent_regex` | pattern must not match (e.g. banned card border bars) |
 | `count_regex` | pattern must match at least `min` times (e.g. >=2 source links) |
 | `max_bytes` | file must be <= `value` bytes |
+| `max_visible_words` | primary visible text, excluding code, SVG, implementation, and closed detail content, must stay within `value` |
+| `max_sentence_words` | the longest visible prose sentence must stay within `value` words |
 | `html_absent` | (negative cases) no HTML output must exist |
 | `response_regex` | (negative cases) captured transcript must explain the decline |
 | `judge` | human-review only; printed as INFO |
@@ -80,7 +82,7 @@ The 4 negatives guard the skill's real over-trigger vectors from the SKILL.md
 ## Maintenance
 
 - Re-run after editing `SKILL.md`, `build-rules.md`, `visual-signature.md`, or
-  `typography-and-color.md`.
+  `typography-and-color.md`, and after changing `controlled-language-and-evidence.md`.
 - Regenerate `outputs/` when the skill's HTML contract changes.
 - Validated against: pi / kiro-cli chat on claude-opus-4-8 (single-harness; see
   `meta.validated_against` in evals.json). Cross-harness runs are a known gap.

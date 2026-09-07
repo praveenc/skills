@@ -7,7 +7,7 @@
       "note": "Single-harness. Cross-harness runs not yet done; treat as a known gap."
     },
     "negative_ratio_target": "~30% of cases should be boundary/negative (currently 4/9 = 44%)",
-    "lifecycle": "Re-run after any edit to SKILL.md, build-rules.md, visual-signature.md, or typography-and-color.md. Regenerate fixtures when the skill's HTML contract changes."
+    "lifecycle": "Re-run after any edit to SKILL.md, build-rules.md, visual-signature.md, typography-and-color.md, or controlled-language-and-evidence.md. Regenerate fixtures when the skill's HTML contract changes."
   },
   "cases": [
     {
@@ -26,7 +26,12 @@
         "hover interaction present",
         "no colored top-border bars on cards",
         "contextual icons present",
-        "hero entrance animation present"
+        "hero entrance animation present",
+        "primary reading layer is concise",
+        "visible sentences are short",
+        "web-font rendering is optimized",
+        "evidence quality and freshness are visible where they affect a decision",
+        "supporting detail uses progressive disclosure when needed"
       ],
       "checks": [
         {"type": "regex", "flags": "i", "pattern": "class\\s*=\\s*[\"'][^\"']*\\bmasthead\\b", "desc": "masthead element exists (tolerant to extra classes)"},
@@ -42,7 +47,12 @@
         {"type": "absent_regex", "flags": "i", "pattern": "\\.(card|platform-card)[^{]*\\{[^}]*border-top:\\s*[34]px\\s+solid", "desc": "no colored top-border bar on cards"},
         {"type": "regex", "flags": "i", "pattern": "data-lucide=|class=\"icon\"", "desc": "contextual icons present"},
         {"type": "regex", "flags": "i", "pattern": "@keyframes", "desc": "hero entrance animation present"},
-        {"type": "judge", "desc": "cards are differentiated by content, and the visual reads as a story (not a dashboard)"}
+        {"type": "regex", "flags": "i", "pattern": "text-rendering\\s*:\\s*optimizeLegibility|-webkit-font-smoothing\\s*:\\s*antialiased", "desc": "web-font rendering is optimized"},
+        {"type": "max_visible_words", "value": 1000, "desc": "primary reading layer stays concise"},
+        {"type": "max_sentence_words", "value": 30, "desc": "visible display sentences stay readable"},
+        {"type": "judge", "desc": "cards are differentiated by content, and the visual reads as a story (not a dashboard)"},
+        {"type": "judge", "desc": "claim wording preserves source meaning, conditions, numbers, and confidence"},
+        {"type": "judge", "desc": "time-sensitive or disputed claims show evidence status near the claim; supporting detail uses native disclosure when it would crowd the story"}
       ]
     },
     {
@@ -57,7 +67,9 @@
         "masthead present",
         "footer sources list present",
         "body paragraphs capped at 720px",
-        "verdict-split or claim/timeline pattern (judge)"
+        "visible sentences are short",
+        "verdict-split or claim/timeline pattern (judge)",
+        "claim wording preserves source meaning and uncertainty"
       ],
       "checks": [
         {"type": "absent_regex", "flags": "i", "pattern": "highcharts|chart\\.js|chart\\.umd", "desc": "no charting CDN for a no-data report"},
@@ -66,7 +78,9 @@
         {"type": "regex", "flags": "i", "pattern": "footer[-_]?sources", "desc": "footer sources block exists"},
         {"type": "regex", "pattern": "max-width:\\s*720px", "desc": "prose line-length cap present"},
         {"type": "absent", "pattern": "\u2014", "desc": "no em-dash"},
-        {"type": "judge", "desc": "uses a verdict-split / claim-card / timeline pattern appropriate to a myth-vs-fact narrative; hero title is not width-constrained"}
+        {"type": "max_sentence_words", "value": 30, "desc": "visible display sentences stay readable"},
+        {"type": "judge", "desc": "uses a verdict-split / claim-card / timeline pattern appropriate to a myth-vs-fact narrative; hero title is not width-constrained"},
+        {"type": "judge", "desc": "the rewrite preserves claim strength, uncertainty, quotations, and source attribution"}
       ]
     },
     {
@@ -101,12 +115,14 @@
         "masthead present",
         "footer present",
         "file < 20KB (proportionally brief)",
+        "visible copy remains proportionally brief",
         "no filler / Lorem ipsum (judge)"
       ],
       "checks": [
         {"type": "regex", "flags": "i", "pattern": "class\\s*=\\s*[\"'][^\"']*\\bmasthead\\b", "desc": "masthead element exists"},
         {"type": "regex", "flags": "i", "pattern": "footer[-_]?(sources|attribution)", "desc": "footer present"},
         {"type": "max_bytes", "value": 20000, "desc": "proportionally brief, under 20KB"},
+        {"type": "max_visible_words", "value": 450, "desc": "visible copy stays proportional to the short source"},
         {"type": "absent_regex", "flags": "i", "pattern": "lorem ipsum", "desc": "no Lorem ipsum filler"},
         {"type": "absent", "pattern": "\u2014", "desc": "no em-dash"},
         {"type": "judge", "desc": "content is proportional to a short source; no invented filler sections"}

@@ -3,7 +3,7 @@ name: research-report-visuals
 description: Transform markdown research reports into interactive HTML visual narratives. Use when the user asks to create a visual, infographic, interactive page, or visual summary from a research report, deep research output, technical analysis, or a structured markdown report/analysis with a narrative to convey. Activates for requests like "create a visual for this report", "visualize this research", "make this report consumable", "turn this into an interactive page", or "generate a visual summary". Does NOT activate for general web design, landing pages, dashboards without a source report, data visualization from raw datasets, or turning a README, changelog, meeting notes, task list, or other non-report markdown into a visual.
 metadata:
   author: praveenc
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # Research Report Visuals
@@ -25,8 +25,8 @@ The visual is NOT a dashboard. It is NOT a collection of charts. It is a
 ## Workflow
 
 ```
-Read Report --> Classify Type --> Extract Narrative Arc -->
-Choose Visual Mode --> Select Typography + Color --> Build HTML
+Read Report --> Classify Type --> Extract Narrative Arc --> Build Claim Ledger -->
+Rewrite Display Copy --> Choose Visual Mode --> Select Typography + Color --> Build HTML
 ```
 
 ### Step 1: Confirm Output Location
@@ -94,6 +94,32 @@ Not every report uses all six. A myth-debunking might be: Hook (the myth) ->
 Core Insight (what actually happened) -> Evidence (the timeline) -> Takeaway.
 A comparison report might skip timeline entirely.
 
+### Step 4b: Build the Claim Ledger and Display Copy
+
+> **Load:** [references/controlled-language-and-evidence.md](references/controlled-language-and-evidence.md)
+> **When:** You have selected the narrative claims and need to rewrite them for the visual without changing their meaning.
+
+Before writing HTML:
+
+1. Create a small claim ledger with the claim, source, evidence status,
+   freshness risk, and intended visual section.
+2. Protect product names, API names, model IDs, code, numbers, quotations, and
+   defined technical terms from editorial rewriting.
+3. Rewrite only the visible display copy. Use short, active sentences and one
+   stable term for each concept.
+4. Keep uncertainty next to the affected claim. Do not move contradictions or
+   limitations to a distant appendix.
+5. Preserve supporting detail through native `<details>` blocks when it is
+   useful but not required for the main reading path.
+
+Use ASD-STE100 principles as a clarity method, not as a certification claim.
+Label generated language as **STE-aligned** unless a trained reviewer validates
+it against the applicable issue of the standard.
+
+For long reports, aim for **700-900 visible words** in the primary reading
+layer. This is a target, not a quota. Short reports should remain short.
+Code-heavy reports can exceed it when the source code is essential.
+
 ### Step 5: Choose Visual Mode
 
 Based on report type and narrative structure, select a visual approach.
@@ -123,10 +149,16 @@ where the reader will only care about 1-2).
 - Body text: `#2d2d2d` minimum darkness (never lighter)
 - Secondary text: `#525252` (not lighter)
 - Background: warm off-white (`#fafaf9` or `#fafafa`)
-- Serif heading for editorial authority; body is either a clean sans (clarity, dense/technical) OR a screen serif like Newsreader (warmth, prose-heavy). Choose by content register.
+- Choose typography by reading task. Geist with Geist Mono is a strong body and
+  label system for technical comparisons. Martian Mono can be used for the hero
+  only when the report needs a precise engineering voice.
+- Serif headings add editorial authority. A screen serif such as Newsreader
+  works well for prose-heavy explainers.
 - Color reserved for MEANING: entities, categories, status. Never decorative.
 - Assign each key entity a color early and use it consistently throughout.
-- Line-height: 1.8 for a sans body, 1.65-1.7 for a serif body. 64px between sections. Breathing room is mandatory.
+- Use `text-rendering: optimizeLegibility` and font smoothing for web fonts.
+- Line-height: 1.65-1.75 for high-x-height sans faces, up to 1.8 for softer sans
+  faces, and 1.65-1.7 for serif bodies. Keep at least 64px between sections.
 
 ### Step 6b: Icons and Visual Differentiation
 
@@ -204,6 +236,10 @@ Before delivering, verify:
 - [ ] Hero title and structural elements use full container width (no max-width)
 - [ ] No em dashes or en dashes anywhere in the output
 - [ ] Works as a standalone HTML file (opens in any browser)
+- [ ] Visible prose is STE-aligned: short, active, consistent, and faithful to the source
+- [ ] Technical identifiers, numbers, quotations, and claim strength are unchanged
+- [ ] Evidence status and freshness warnings appear next to affected claims
+- [ ] Long supporting detail uses native progressive disclosure instead of crowding the primary layer
 - [ ] Responsive on mobile (grid collapses, text remains readable)
 - [ ] Interactive elements serve comprehension (hover for detail, not spectacle)
 
@@ -238,6 +274,7 @@ Before delivering, verify:
 - Reports with no quantitative data: Do NOT force charts. Use timelines,
   claim cards, quote blocks, flow diagrams, entity relationship SVGs.
 - Long reports (>5000 words): Prioritize ruthlessly. The visual is NOT
-  a 1:1 reproduction. It is the report's highlights reel.
+  a 1:1 reproduction. Keep the primary layer near 700-900 visible words and
+  move useful supporting detail into native `<details>` blocks.
 - Mixed reports (some sections quantitative, some narrative): Use the
   narrative-scroll mode and embed charts inline where data demands them.
