@@ -27,6 +27,7 @@ OUTPUT:
     TAVILY=CONFIGURED|MISSING
     BRAVE=CONFIGURED|MISSING
     GITHUB=<http-status>|MISSING
+    LLMSTXT=READY|UNAVAILABLE
     KROKI=LOCAL|CONFIGURED|UNAVAILABLE
 
 EXAMPLES:
@@ -55,9 +56,12 @@ TAVILY_API_KEY="${TAVILY_API_KEY:-$(read_env TAVILY_API_KEY)}"
 BRAVE_SEARCH_API_KEY="${BRAVE_SEARCH_API_KEY:-$(read_env BRAVE_SEARCH_API_KEY)}"
 GITHUB_TOKEN="${GITHUB_TOKEN:-$(read_env GITHUB_TOKEN)}"
 KROKI_URL="${KROKI_URL:-$(read_env KROKI_URL)}"
+# Optional AWS profile: env var, else config. No profile name is hardcoded -
+# when unset, the AWS default credential chain (SSO/env/instance) is used.
+AWS_PROFILE="${AWS_PROFILE:-$(read_env AWS_PROFILE)}"
 
 # --- AWS Credentials ---
-if aws sts get-caller-identity --profile 001 >/dev/null 2>&1; then
+if aws sts get-caller-identity ${AWS_PROFILE:+--profile "$AWS_PROFILE"} >/dev/null 2>&1; then
   echo "AWS=VALID"
 else
   echo "AWS=INVALID"
@@ -80,12 +84,20 @@ fi
 # --- GitHub ---
 if [ -n "${GITHUB_TOKEN:-}" ] && ! echo "$GITHUB_TOKEN" | grep -q 'your_.*_here'; then
   HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-    -H "Authorization: token $GITHUB_TOKEN" \
-    -H "Accept: application/vnd.github.v3+json" \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
     https://api.github.com/rate_limit 2>/dev/null || echo "000")
   echo "GITHUB=$HTTP_STATUS"
 else
   echo "GITHUB=MISSING"
+fi
+
+# --- llmstxt-doc-search (primary AWS-docs source; needs Node for npx) ---
+if command -v node >/dev/null 2>&1; then
+  echo "LLMSTXT=READY"
+else
+  echo "LLMSTXT=UNAVAILABLE"
 fi
 
 # --- Kroki (optional) ---

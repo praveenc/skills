@@ -71,7 +71,7 @@ SEARCH_ENDPOINTS = {
     "images": "/images/search",
 }
 DEFAULT_COUNT = 20
-MAX_COUNT = 100
+MAX_COUNT = 20  # Brave Search API hard cap: max 20 results per request
 REQUEST_TIMEOUT = 30
 
 # Rate limit constants
@@ -401,6 +401,17 @@ def main() -> None:
     """Main entry point for the Brave Search script."""
     import argparse
 
+    def _count_type(value: str) -> int:
+        """argparse type for --count: reject values above the Brave API's per-request cap."""
+        n = int(value)
+        if n > MAX_COUNT:
+            raise argparse.ArgumentTypeError(
+                f"--count {n} exceeds Brave Search API max of {MAX_COUNT} per request",
+            )
+        if n < 1:
+            raise argparse.ArgumentTypeError("--count must be >= 1")
+        return n
+
     parser = argparse.ArgumentParser(
         description="Search using Brave Search API and optionally scrape results",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -416,7 +427,7 @@ Examples:
   %(prog)s "climate change" --goggle https://example.com/my.goggle
 
   # Video search with more results
-  %(prog)s "machine learning tutorial" --type videos --count 30
+  %(prog)s "machine learning tutorial" --type videos --count 15
 
   # Search only (no scraping)
   %(prog)s "best restaurants" --no-scrape
@@ -443,7 +454,7 @@ Freshness options:
     parser.add_argument(
         "-c",
         "--count",
-        type=int,
+        type=_count_type,
         default=DEFAULT_COUNT,
         help=f"Number of results to fetch (max {MAX_COUNT}, default: {DEFAULT_COUNT})",
     )

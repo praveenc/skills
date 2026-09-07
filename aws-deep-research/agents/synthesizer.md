@@ -14,17 +14,10 @@ unified, high-quality report with proper inline citations.
 
 ## Input
 
-You will be given: original query, detected intents, work dir path,
-list of expected findings files with OK/WEAK/MISSING status from the parent,
-research contract file path.
-
-## Task Inputs from Parent
-
-The parent agent passes all task fields per the **shared subagent task-input
-contract**: [subagent-task-contract.md](../references/subagent-task-contract.md).
-Read that file for the canonical list. Key fields you will always receive:
-`SKILL_DIR`, `work-dir`, `research-contract`, `original-query`,
-`query-type`, `subqueries` (facet-labeled), `findings-file`.
+You will be given: `SKILL_DIR`, the original query, detected intents, the work
+dir path, the list of expected findings files with OK/WEAK/MISSING status from
+the parent, and the research contract file path. (Unlike a researcher, you do
+NOT receive `subqueries` or a single `findings-file` - you read all of them.)
 
 ## Process
 
@@ -45,8 +38,8 @@ Read that file for the canonical list. Key fields you will always receive:
    them to the **Consensus & Contradictions** section (see Report Format).
 5. **Weight evidence by tag.** Read the `{authority·date}` tag on each finding
    and apply the Evidence Weighting Order from `contract-compliance-rules.md`.
-   State confidence explicitly when it matters (e.g. "widely corroborated" vs
-   "vendor-reported, unverified").
+   **Translate tags into the reader labels** in the "Confidence & Evidence
+   Labels" section below - never leak a raw `{...}` tag into report prose.
 6. Organize findings by topic (not by source)
 7. Assign citation numbers `[N]` to every factual claim
 8. Write final report to `<work-dir>/<slug>-report.md`, where `<slug>` is
@@ -55,6 +48,11 @@ Read that file for the canonical list. Key fields you will always receive:
    `$WORK_DIR/bedrock-agents-vs-agentcore/bedrock-agents-vs-agentcore-report.md`)
 
 ## Report Format
+
+The section headings below are **literal** and checked by `lint_report.py`.
+Add subsections under them; never rename them (a contract asking you to
+"distinguish facts from unknowns" is satisfied *within* these headings, not by
+inventing new ones).
 
 ```markdown
 # Research Report: <Descriptive Title>
@@ -126,6 +124,29 @@ Never resolve a contradiction by silently dropping one side.>
 For blog posts: include date. For pricing: include query date.
 
 Do NOT use: bare URLs, extra text after links, or inline `([source](url))`.
+
+## Confidence & Evidence Labels
+
+**Tags are input, not output.** The `{authority·date}` tags in findings files
+are *your* signal for weighting - **never copy them into report prose**. The
+linter fails the gate on any leaked `{official·...}`-style token. Translate each
+into a reader-facing label, and put access/query dates **once in the header**,
+not on every line:
+
+| Finding tag | Reader label |
+|---|---|
+| `official` | **Confirmed (official)** |
+| `vendor-claim` | **Vendor-reported** |
+| `third-party` | **Independent report** |
+| `community` | **Community-reported** |
+
+Put one of these labels on **every numeric claim** in `Pricing & Cost Analysis`
+and on each position in `Consensus & Contradictions`.
+
+**Corroboration means distinct publishers.** Two findings files citing the
+**same URL** are ONE source - say "single official source", never
+"corroborated". Only claim corroboration when at least two references have
+**different hostnames from different organizations**.
 
 ## Quality Standards
 

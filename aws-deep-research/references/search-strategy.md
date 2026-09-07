@@ -6,7 +6,6 @@ based on intent classification and query complexity.
 ## Contents
 
 - [Core Principle](#core-principle)
-- [Source Selection Matrix](#source-selection-matrix)
 - [Blog Feed Selection](#blog-feed-selection)
 - [Query Complexity Tiers](#query-complexity-tiers)
 - [Web Search Decision Rules](#web-search-decision-rules)
@@ -20,43 +19,27 @@ based on intent classification and query complexity.
 
 **MCP servers first, web search only when needed.**
 
-MCP servers (aws-knowledge, aws-pricing, bedrock-agentcore, git-repo-research)
-are free, authoritative, and fast. Web search APIs (Brave, Tavily) have monthly
-limits and should be reserved for information MCP servers can't provide.
+The docs/pricing/AgentCore clients (llms.txt search, AWS pricing, AgentCore
+docs) and GitHub REST are free, authoritative, and fast. Web search APIs
+(Brave, Tavily) have monthly limits and should be reserved for information those
+sources can't provide.
 
 **Exception: non-AWS/generic topics.** When the query is not primarily about
 AWS services, web search becomes the primary source. In this case, use
-**query expansion** (up to 3 searches) to maximize coverage. See the
-"Query Expansion" section below.
+**query decomposition** (up to 3 searches) to maximize coverage. See the
+"Query Decomposition" section below.
 
-## Source Selection Matrix
-
-| Intent | aws-knowledge | aws-pricing | agentcore | github | blog-feeds | web-search |
-|---|---|---|---|---|---|---|
-| service-overview | ✅ Required | - | If AgentCore | - | ✅ Recommended | - |
-| architecture | ✅ Required | - | If AgentCore | Optional | ✅ Recommended | - |
-| pricing | ✅ Supporting | ✅ Required | - | - | - | Optional |
-| comparison | ✅ Required | Optional | - | - | Optional | ✅ Required |
-| troubleshooting | ✅ Required | - | If AgentCore | - | Optional | ✅ Recommended |
-| best-practices | ✅ Required | - | If AgentCore | - | ✅ Recommended | - |
-| agentcore | Optional | - | ✅ Required | Optional | ✅ Recommended | - |
-| code-examples | ✅ Supporting | - | - | ✅ Required | Optional | Optional |
-| news-updates | ✅ Required | - | - | - | ✅ Required | ✅ Recommended |
-
-Legend:
-- ✅ Required - always query this source
-- ✅ Recommended - query unless budget is exhausted
-- Optional - query only if other sources are insufficient
-- Supporting - query for context but not the primary source
-- - - don't query
+> **Source routing** (which subagents to dispatch per intent/strategy) lives in
+> **SKILL.md Step 1a/1d** - the single source of truth. This file governs *how
+> deep* to search and *how much budget* to spend, not *which* sources run.
 
 ## Blog Feed Selection
 
 Blog feeds are free (no API credits) and provide recent, in-depth technical
-content. Always include them when the source selection matrix shows Recommended
-or Required.
+content. Include them whenever the web-content-researcher is dispatched (per
+SKILL.md Step 1a/1d).
 
-Use the category classification from Step 1b of the skill to determine which
+Use the category classification from Step 1c of the skill to determine which
 feeds to search. Limit to max 3 feeds per research session. See
 `references/blog-categories.md` for the full category-to-feed mapping.
 
@@ -69,10 +52,10 @@ Single-service questions, straightforward lookups.
 "What regions support Bedrock?"
 
 **Budget**:
-- MCP servers: unlimited (free)
+- Docs/pricing clients: unlimited (free)
 - Blog feeds: 1 category feed (free)
 - Web search: 0 credits (not needed)
-- Total subagents: 0-1 (blog feed researcher only if applicable)
+- Subagents: 1 (the primary researcher; +web-content only if a blog feed applies)
 
 ### Tier 2: Moderate (3-4 subqueries)
 Multi-faceted questions, service comparisons within AWS, architecture guidance.
@@ -293,10 +276,10 @@ facet costs a second full research session.
 
 ### What about AWS topics specifically?
 
-For AWS topics, the same 2-query decomposition applies to the `aws_doc_search`
-and blog-feed calls inside `aws-mcp-researcher`. The parent still routes to
-MCP first (per the Source Selection Matrix above) - decomposition governs
-*what queries hit MCP*, not *whether to hit MCP*. Web search stays
+For AWS topics, the same 2-query decomposition applies to the docs and
+blog-feed calls inside `aws-mcp-researcher`. The parent still routes to the
+docs/pricing sources first (per SKILL.md Step 1a/1d) - decomposition governs
+*what queries hit those sources*, not *whether to hit them*. Web search stays
 "supplementary" for pure-AWS topics (Tier 2 budget: 0-2 web credits if any
 comparison is involved).
 

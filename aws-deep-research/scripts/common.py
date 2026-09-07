@@ -5,6 +5,7 @@ Provides common functions used by brave_search.py and tavily_search.py.
 Not intended to be run directly.
 """
 
+import fcntl
 import hashlib
 import json
 import os
@@ -20,7 +21,10 @@ from rich.panel import Panel
 # Type aliases
 type URLList = list[str]
 
-console = Console()
+# Progress/status output goes to stderr so a script's `--json` payload on stdout
+# stays parseable. SKILL.md's budget-threshold check parses `--json` output; a
+# "✓ Saved N URLs" line on stdout ahead of the JSON breaks json.load().
+console = Console(stderr=True)
 
 
 # ---------------------------------------------------------------------------
@@ -28,14 +32,17 @@ console = Console()
 # ---------------------------------------------------------------------------
 
 _BLOCKLIST_PATH = Path(__file__).resolve().parent / "blocklist.txt"
-_BLOCKLIST_CACHE: tuple[frozenset[str], float] | None = None
+_BLOCKLIST_CACHE: tuple[Path, frozenset[str], float] | None = None
 
 
 def load_blocked_domains(path: Path | None = None) -> frozenset[str]:
     """Read ``blocklist.txt`` and return the set of blocked domains (lowercase).
 
-    Caches on mtime so repeated calls within a session don't re-read the file.
-    Returns an empty frozenset if the file does not exist.
+    Caches on (path, mtime) so repeated calls within a session don't re-read the
+    file. Keying on path as well as mtime matters: the blocklist gates every web
+    fetch, so an mtime-only key could return a *different* file's domains when
+    two files share a modification time. Returns an empty frozenset if the file
+    does not exist.
     """
     global _BLOCKLIST_CACHE
     p = path or _BLOCKLIST_PATH
@@ -43,8 +50,9 @@ def load_blocked_domains(path: Path | None = None) -> frozenset[str]:
         mtime = p.stat().st_mtime
     except FileNotFoundError:
         return frozenset()
-    if _BLOCKLIST_CACHE is not None and _BLOCKLIST_CACHE[1] == mtime:
-        return _BLOCKLIST_CACHE[0]
+    if (_BLOCKLIST_CACHE is not None
+            and _BLOCKLIST_CACHE[0] == p and _BLOCKLIST_CACHE[2] == mtime):
+        return _BLOCKLIST_CACHE[1]
     domains: set[str] = set()
     for line in p.read_text(encoding="utf-8").splitlines():
         line = line.split("#", 1)[0].strip().lower()
@@ -54,7 +62,7 @@ def load_blocked_domains(path: Path | None = None) -> frozenset[str]:
             # for matching.
             domains.add(line.replace("[.]", "."))
     blocked = frozenset(domains)
-    _BLOCKLIST_CACHE = (blocked, mtime)
+    _BLOCKLIST_CACHE = (p, blocked, mtime)
     return blocked
 
 
@@ -257,24 +265,43 @@ def record_search(engine: str, count: int = 1, path: Path | None = None) -> int:
 
     Prunes counters for any month other than the current one so the file
     stays small. Best-effort: a write failure never breaks a search.
+
+    The read + increment + write is guarded by an advisory ``fcntl.flock``
+    on the budget file itself, so concurrent researcher processes can't
+    interleave and lose an increment (read-modify-write race).
     """
     engine = engine.lower()
     p = path or _budget_file()
     month = _current_month()
-    data = _load_budget(p)
-    engine_counts = data.get(engine)
-    prior = 0
-    if isinstance(engine_counts, dict):
-        prior = int(engine_counts.get(month, 0))
-    # Prune stale months: keep only the current month per engine.
-    new_engine_counts = {month: prior + count}
-    data[engine] = new_engine_counts
+    new_total = count  # fallback if the file can't be opened/locked
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+        p.touch(exist_ok=True)
+        with open(p, "r+", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                raw = f.read()
+                try:
+                    data = json.loads(raw) if raw.strip() else {}
+                except json.JSONDecodeError:
+                    data = {}
+                if not isinstance(data, dict):
+                    data = {}
+                engine_counts = data.get(engine)
+                prior = 0
+                if isinstance(engine_counts, dict):
+                    prior = int(engine_counts.get(month, 0))
+                new_total = prior + count
+                # Prune stale months: keep only the current month per engine.
+                data[engine] = {month: new_total}
+                f.seek(0)
+                f.truncate()
+                f.write(json.dumps(data, indent=2, sort_keys=True))
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
     except OSError:
         pass
-    return new_engine_counts[month]
+    return new_total
 
 
 def get_usage(engine: str, path: Path | None = None) -> int:

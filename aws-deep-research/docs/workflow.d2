@@ -52,7 +52,7 @@ blocklist: "🚫 Domain blocklist\nsuffix-match\nSEC · SPAM · PAY · DEAD tags
 
 # ───────────────────────── Phase 4: Parallel Dispatch ─────────────────────────
 
-dispatch: "⚡ Parallel Dispatch\n≤ 4 subagents per round" {
+dispatch: "⚡ Parallel Dispatch\nper-harness cap\n(Kiro 4 · Claude Code ~20 · pi ≤4)" {
   shape: hexagon
   style: {fill: "#fde68a"; stroke: "#d97706"; stroke-width: 2; font-size: 15; bold: true}
 }
@@ -60,10 +60,10 @@ dispatch: "⚡ Parallel Dispatch\n≤ 4 subagents per round" {
 subagents: "Research subagents" {
   style: {fill: "#f9fafb"; stroke: "#9ca3af"; stroke-width: 1; stroke-dash: 3; font-size: 13}
 
-  aws_mcp: "aws-mcp-researcher\n\n• AWS Knowledge MCP\n• AWS Pricing MCP\n• Bedrock AgentCore" {
+  aws_mcp: "aws-mcp-researcher\n\n• llms.txt docs (primary)\n• AWS Pricing\n• proxy docs (fallback)" {
     style: {fill: "#fef9c3"; stroke: "#ca8a04"; stroke-width: 2; font-size: 12}
   }
-  web: "web-content-researcher\n\n• Brave + Tavily\n• fetchv2_fetch_batch\n• truncation recovery\n  (8K default → 20K primary)\n• AWS blog feeds" {
+  web: "web-content-researcher\n\n• Brave + Tavily\n• fetchv2:fetch_batch\n  (pi → trafilatura)\n• truncation recovery\n• AWS blog feeds" {
     style: {fill: "#cffafe"; stroke: "#0891b2"; stroke-width: 2; font-size: 12}
   }
   github: "github-researcher\n\n• Repo search\n• README fetch\n• Code examples" {
@@ -90,7 +90,7 @@ size_gate: "🧪 Size-gate check\n\n< 500 bytes = WEAK\nmissing     = MISSING\ne
 
 # ───────────────────────── Phase 7: Synthesis ─────────────────────────
 
-synth: "🧠 Synthesizer\nClaude Sonnet 4.6" {
+synth: "🧠 Synthesizer\ntranslates evidence tags\n→ confidence labels" {
   shape: parallelogram
   style: {fill: "#ddd6fe"; stroke: "#6d28d9"; stroke-width: 2; font-size: 13; bold: true}
 }
@@ -135,6 +135,6 @@ size_gate -> synth: "Step 6:\npass + gap notes" {style.font-size: 11}
 
 contract -> synth: "re-read to\nground claims" {style: {stroke-dash: 5; stroke: "#2563eb"; stroke-width: 2; font-size: 11}}
 
-synth -> report: "Step 7" {style.font-size: 11}
+synth -> report: "Step 6 lint gate\n(1 repair) → Step 8 present" {style.font-size: 11}
 report -> diagram_opt {style: {stroke-dash: 3; font-size: 11}}
 diagram_opt -> report: "embed" {style: {stroke-dash: 3; font-size: 11}}

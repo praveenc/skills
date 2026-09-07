@@ -31,14 +31,19 @@ if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
 fi
 
 # --- 2. Fallback: search well-known install locations ---
+# Covers the paths this skill actually installs to today (it symlinks into
+# ~/.agents, ~/.claude, ~/.pi, ~/.kiro). The old aws-deep-research-v2 entries
+# were stale and preferred over the real path.
 if [ -z "$SKILL_DIR" ]; then
   for candidate in \
-    "./.kiro/skills/aws-deep-research-v2" \
-    "./.kiro/skills/aws-deep-research" \
-    "./.pi/agent/skills/aws-deep-research" \
+    "$HOME/.agents/skills/aws-deep-research" \
+    "$HOME/.claude/skills/aws-deep-research" \
     "$HOME/.pi/agent/skills/aws-deep-research" \
-    "$HOME/.kiro/skills/aws-deep-research-v2" \
-    "$HOME/.kiro/skills/aws-deep-research"
+    "$HOME/.pi/skills/aws-deep-research" \
+    "$HOME/.kiro/skills/aws-deep-research" \
+    "./.agents/skills/aws-deep-research" \
+    "./.claude/skills/aws-deep-research" \
+    "./.kiro/skills/aws-deep-research"
   do
     if [ -f "$candidate/SKILL.md" ]; then
       if [ "${candidate#./}" != "$candidate" ]; then
@@ -55,6 +60,10 @@ if [ -z "$SKILL_DIR" ]; then
   echo "ERROR: aws-deep-research skill not found" >&2
   exit 1
 fi
+
+# In the fallback branch SCRIPT_DIR was never set (only the BASH_SOURCE branch
+# sets it), which broke the read_env.py call below under `set -u`. Derive it.
+SCRIPT_DIR="${SCRIPT_DIR:-$SKILL_DIR/scripts}"
 
 CONFIG_FILE="${AWS_DEEP_RESEARCH_CONFIG:-$HOME/.config/aws-deep-research/config.env}"
 

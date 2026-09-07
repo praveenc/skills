@@ -7,20 +7,9 @@ Default path: `~/.config/aws-deep-research/config.env`.
 Override it with `AWS_DEEP_RESEARCH_CONFIG`.
 Never store credentials inside the skill directory.
 
-## Detection
-
-```bash
-CONFIG_FILE="${AWS_DEEP_RESEARCH_CONFIG:-$HOME/.config/aws-deep-research/config.env}"
-if [ -f "$CONFIG_FILE" ]; then
-  diff -q "$CONFIG_FILE" "$SKILL_DIR/scripts/.env.example" >/dev/null 2>&1
-  echo "ENV_CUSTOMIZED=$?"
-else
-  echo "ENV_CUSTOMIZED=1"
-fi
-```
-
-- Exit `0` (identical) - run setup below
-- Exit `1` (missing or different) - create/configure as needed
+This wizard runs only when SKILL.md **Step 0** determines the config is missing
+or still matches the template. Step 0 owns that detection - do not re-detect
+here (an inverted copy previously re-ran setup on already-configured machines).
 
 ## Setup Message
 

@@ -39,14 +39,14 @@ Route filtering (--route):
   Useful when sitemaps lack dates and you want a specific section (e.g. /blog/).
 
 Usage:
-    uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10
-    uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --route blog
-    uv run sitemap/sitemap_feed_extractor.py https://example.com --top 10 --discover
-    uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --from 2026-01-01 --to 2026-03-07
-    uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 20 --start-date 2026-02-15
-    uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --output urls.txt
-    uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --json
-    uv run sitemap/sitemap_feed_extractor.py https://aws.amazon.com/blogs/aws/feed/ --top 5
+    uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10
+    uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --route blog
+    uv run sitemap_feed_extractor.py https://example.com --top 10 --discover
+    uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --from 2026-01-01 --to 2026-03-07
+    uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 20 --start-date 2026-02-15
+    uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --output urls.txt
+    uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --json
+    uv run sitemap_feed_extractor.py https://aws.amazon.com/blogs/aws/feed/ --top 5
 """
 
 from __future__ import annotations
@@ -758,31 +758,31 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="""\
 Examples:
   # Get top 10 most recent posts
-  uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10
+  uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10
 
   # Filter by route - only URLs containing /blog/ in their path
-  uv run sitemap/sitemap_feed_extractor.py https://windsurf.com/sitemap.xml --top 10 --route blog
+  uv run sitemap_feed_extractor.py https://windsurf.com/sitemap.xml --top 10 --route blog
 
   # Get ALL URLs matching a route (no --top needed)
-  uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --route docs/api
+  uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --route docs/api
 
   # Auto-discover sitemaps from a homepage
-  uv run sitemap/sitemap_feed_extractor.py https://example.com --top 10 --discover
+  uv run sitemap_feed_extractor.py https://example.com --top 10 --discover
 
   # Get posts from a date range
-  uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --from 2026-01-01 --to 2026-03-07
+  uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --from 2026-01-01 --to 2026-03-07
 
   # Top 20 starting from a specific date (instead of today)
-  uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 20 --start-date 2026-02-15
+  uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 20 --start-date 2026-02-15
 
   # Output as JSON
-  uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --json
+  uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --json
 
   # Save URLs to a file
-  uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --output urls.txt
+  uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --output urls.txt
 
   # URLs only (no table), useful for piping
-  uv run sitemap/sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --urls-only
+  uv run sitemap_feed_extractor.py https://example.com/sitemap.xml --top 10 --urls-only
 """,
     )
     parser.add_argument(

@@ -8,10 +8,11 @@ research directory.
 
 | Script | Used By | Cost |
 |---|---|---|
-| `aws_doc_search.py` | aws-mcp-researcher | Free (AWS creds) |
+| `llmstxt_doc_search.py` | aws-mcp-researcher, agentcore-researcher | Free (Node/npx) - **PRIMARY docs** |
+| `aws_doc_search.py` | aws-mcp-researcher | Free (AWS creds) - fallback for non-llms.txt docs |
 | `aws_pricing_search.py` | aws-mcp-researcher | Free (AWS creds) |
-| `agentcore_search.py` | agentcore-researcher | Free |
-| `github_search.py` | github-researcher | Free |
+| `agentcore_search.py` | agentcore-researcher | Free - fallback for AgentCore docs |
+| `github_search.py` | github-researcher | Free (GITHUB_TOKEN) - GitHub REST |
 | `brave_search.py` | web-content-researcher | 2K/month free |
 | `tavily_search.py` | web-content-researcher | 1K/month free |
 | `trafilatura_scraper.py` | web-content-researcher | Free |

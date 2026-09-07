@@ -21,10 +21,10 @@ Checks (hard = fails the gate, soft = reported, never fails):
   hard  ref_sequence   reference numbers start at 1 and increase by 1
   hard  no_dangling    every [N] cited in the body has a reference entry
   hard  size_max       report is under the size ceiling (default 50 KB)
+  hard  no_raw_tags    {authority-date} evidence tags did not leak into prose
   soft  no_orphans     every reference entry is cited somewhere in the body
   soft  size_min       report is above a floor that suggests a stub
   soft  no_bare_urls   body prose does not carry bare http(s) URLs
-  soft  no_raw_tags    {authority-date} evidence tags did not leak into prose
 
 Usage:
   lint_report.py <report.md> [--intents comparison,pricing] [--json]
@@ -33,8 +33,12 @@ Usage:
   --intents   comma-separated intents from SKILL.md Step 1a. Drives which
               conditional sections are required. Omit to check only the
               universal sections.
-  --strict    promote soft findings to hard (fails on any finding)
-  --json      machine-readable result for a runner
+  --strict      promote soft findings to hard (fails on any finding)
+  --json        machine-readable result on stdout for a runner
+  --no-sidecar  skip the <report>.lint.json audit sidecar (written by default)
+
+Side effect: unless --no-sidecar is given, writes <report>.lint.json beside the
+report (same object as --json) so the gate leaves a durable record that it ran.
 
 Exit codes:
   0  every hard check passed
@@ -180,10 +184,14 @@ def lint(text: str, intents: list[str], max_bytes: int, min_bytes: int) -> list[
     add("soft", "no_bare_urls", not bare,
         f"{len(bare)} bare URL(s) in prose: {bare[:2]}" if bare else "no bare URLs in prose")
 
+    # Hard: internal {authority·date} tags are synthesizer INPUT, not reader
+    # output. Leaking them means the reader must decode internal notation to
+    # tell an official fact from a vendor claim - the synthesizer must translate
+    # them to a confidence label instead.
     leaked = EVIDENCE_TAG.findall(body)
-    add("soft", "no_raw_tags", not leaked,
-        f"{len(leaked)} raw evidence tag(s) leaked into prose" if leaked
-        else "no raw evidence tags in prose")
+    add("hard", "no_raw_tags", not leaked,
+        f"{len(leaked)} raw evidence tag(s) leaked into prose - translate to a "
+        f"confidence label" if leaked else "no raw evidence tags in prose")
 
     return findings
 
@@ -199,6 +207,11 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--min-bytes", type=int, default=DEFAULT_MIN_BYTES)
     ap.add_argument("--strict", action="store_true", help="soft findings also fail")
     ap.add_argument("--json", action="store_true", dest="as_json")
+    ap.add_argument(
+        "--no-sidecar",
+        action="store_true",
+        help="do not write the <report>.lint.json audit sidecar (written by default)",
+    )
     args = ap.parse_args(argv)
 
     path = Path(args.report)
@@ -215,20 +228,30 @@ def main(argv: list[str]) -> int:
     failed_soft = [f for f in findings if not f["ok"] and f["severity"] == "soft"]
     passed = not failed_hard and (not args.strict or not failed_soft)
 
+    result = {
+        "report": str(path),
+        "intents": intents,
+        "bytes": len(text.encode("utf-8")),
+        "passed": passed,
+        "strict": args.strict,
+        "hard_failed": [f["check"] for f in failed_hard],
+        "soft_failed": [f["check"] for f in failed_soft],
+        "findings": findings,
+    }
+
+    # Audit sidecar: write <report>.lint.json beside the report so the gate
+    # leaves proof it ran (SKILL.md Step 8 copies to outputs/ only when this
+    # exists and either passed or the parent stated the defect). Best-effort:
+    # a read-only dir must not turn a lint pass into a crash.
+    if not args.no_sidecar:
+        sidecar = path.with_name(f"{path.stem}.lint.json") if path.suffix else path.with_suffix(".lint.json")
+        try:
+            sidecar.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        except OSError as exc:
+            print(f"lint_report.py: could not write sidecar {sidecar}: {exc}", file=sys.stderr)
+
     if args.as_json:
-        json.dump(
-            {
-                "report": str(path),
-                "intents": intents,
-                "bytes": len(text.encode("utf-8")),
-                "passed": passed,
-                "hard_failed": [f["check"] for f in failed_hard],
-                "soft_failed": [f["check"] for f in failed_soft],
-                "findings": findings,
-            },
-            sys.stdout,
-            indent=2,
-        )
+        json.dump(result, sys.stdout, indent=2)
         sys.stdout.write("\n")
     else:
         print(f"lint_report.py {path.name}  intents={intents or '(none)'}")

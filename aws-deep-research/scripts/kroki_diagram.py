@@ -26,6 +26,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -175,7 +176,17 @@ def main() -> None:
 
     console.print(f"[green]✓ {out_path} ({len(content):,} bytes)[/green]")
     # Minimal stdout for calling agent
-    print(f'{{"status":"success","output":"{out_path}","bytes":{len(content)},"format":"{fmt}","endpoint":"{label}"}}')
+    print(
+        json.dumps(
+            {
+                "status": "success",
+                "output": str(out_path),
+                "bytes": len(content),
+                "format": fmt,
+                "endpoint": label,
+            },
+        ),
+    )
 
 
 if __name__ == "__main__":

@@ -58,6 +58,20 @@ EXIT_NETWORK_ERROR = 5
 # URL patterns that serve raw markdown content (no extraction needed)
 MARKDOWN_URL_SUFFIXES = (".md", ".markdown")
 
+# Inline data: URIs and long base64 runs bloat findings and are a known
+# safeguard/injection trigger (Fable 5.1 flags base64 in tool output). Strip
+# them from extracted content before it is written or read by a subagent.
+_DATA_URI_RE = re.compile(
+    r"data:[a-z0-9.+-]+/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+", re.IGNORECASE
+)
+_B64_BLOB_RE = re.compile(r"[A-Za-z0-9+/]{200,}={0,2}")
+
+
+def _strip_binary_blobs(text: str) -> str:
+    """Remove data: URIs and long base64 runs from extracted content."""
+    text = _DATA_URI_RE.sub("[data-uri stripped]", text)
+    return _B64_BLOB_RE.sub("[base64 blob stripped]", text)
+
 # Constants for time formatting
 SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 3600
@@ -379,6 +393,9 @@ def process_url(
 
             if not result:
                 _raise_extraction_error(url)
+
+        # Strip inline data: URIs / base64 blobs (bloat + safeguard trigger)
+        result = _strip_binary_blobs(result)
 
         # Filter by minimum word count
         if min_words > 0:

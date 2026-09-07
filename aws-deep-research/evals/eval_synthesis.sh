@@ -13,7 +13,17 @@
 #
 # Usage:
 #   bash eval_synthesis.sh <slug> [<slug> ...]
-#   bash eval_synthesis.sh --all          # every fixture in synthesis-rubric.json
+#   bash eval_synthesis.sh --all               # every slug in synthesis-rubric.json
+#   bash eval_synthesis.sh --fixtures --all    # re-synthesize the SHIPPED fixtures
+#                                              # under evals/fixtures/ (reproducible)
+#   bash eval_synthesis.sh --model <M> --fixtures --all   # pin the synth model
+#
+# --fixtures  source findings from the committed evals/fixtures/<slug>/ dirs
+#             instead of $RESEARCH_WORK_DIR. Each fixture is staged into the
+#             run's scratch dir first, so the committed fixture is never written
+#             to (the <slug>-report.eval.md output lands in scratch).
+# --model M   pin the synthesis model (default: pi's default). Pin it for a
+#             release-comparison run so arms differ only by the prompt.
 #
 # Then score each *.eval.md against evals/synthesis-rubric.json. The rubric's
 # HARD dimensions (structure, citation integrity, gaps honesty, tightness) are
@@ -31,19 +41,28 @@
 #   1  a worker failed, an output is missing, or a report failed a hard check
 set -euo pipefail
 
-case "${1:-}" in
-  -h|--help)
-    sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//;s/^#$//'
-    exit 0
-    ;;
-esac
-
 EVALS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$EVALS_DIR/.." && pwd)"
 WORK_ROOT="${RESEARCH_WORK_DIR:-$HOME/.aws-deep-research/work}"
 PI_BIN="${PI_BIN:-pi}"
 RUBRIC="$EVALS_DIR/synthesis-rubric.json"
 SYNTH_PROMPT="$SKILL_DIR/agents/synthesizer.md"
+FIXTURES_DIR="$EVALS_DIR/fixtures"
+
+MODEL=""
+USE_FIXTURES=0
+ALL=0
+slugs=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) sed -n '2,42p' "$0" | sed 's/^# \{0,1\}//;s/^#$//'; exit 0 ;;
+    --all) ALL=1; shift ;;
+    --fixtures) USE_FIXTURES=1; shift ;;
+    --model) MODEL="${2:?}"; shift 2 ;;
+    -*) echo "ERROR: unknown flag: $1" >&2; exit 2 ;;
+    *) slugs+=("$1"); shift ;;
+  esac
+done
 
 if ! command -v "$PI_BIN" >/dev/null 2>&1; then
   echo "ERROR: '$PI_BIN' not on PATH. Set PI_BIN or install pi." >&2
@@ -51,15 +70,12 @@ if ! command -v "$PI_BIN" >/dev/null 2>&1; then
 fi
 
 # Resolve the fixture list.
-slugs=()
-if [ "${1:-}" = "--all" ]; then
+if [ "$ALL" = "1" ]; then
   if ! command -v jq >/dev/null 2>&1; then
     echo "ERROR: --all needs jq to read the rubric." >&2
     exit 1
   fi
   while IFS= read -r s; do slugs+=("$s"); done < <(jq -r '.regression_fixtures[].slug' "$RUBRIC")
-else
-  slugs=("$@")
 fi
 
 if [ "${#slugs[@]}" -eq 0 ]; then
@@ -69,6 +85,20 @@ fi
 
 results_dir="$WORK_ROOT/.eval-runs/$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$results_dir"
+
+# --fixtures: stage the committed fixtures into scratch and read from there, so
+# the re-synthesized <slug>-report.eval.md never lands in the committed dir.
+if [ "$USE_FIXTURES" = "1" ]; then
+  for slug in "${slugs[@]}"; do
+    if [ -d "$FIXTURES_DIR/$slug" ]; then
+      mkdir -p "$results_dir/$slug"
+      cp -R "$FIXTURES_DIR/$slug"/. "$results_dir/$slug/"
+    else
+      echo "WARN: no fixture at $FIXTURES_DIR/$slug" >&2
+    fi
+  done
+  WORK_ROOT="$results_dir"
+fi
 
 echo "Fixtures: ${slugs[*]}"
 echo "Results:  $results_dir"
@@ -100,6 +130,7 @@ Do NOT overwrite ${slug}-report.md."
   log="$results_dir/$slug.log"
   echo "-> dispatching synthesis worker for: $slug"
   "$PI_BIN" -p --no-session --thinking low --tools read,write \
+    ${MODEL:+--model "$MODEL"} \
     --append-system-prompt "$(cat "$SYNTH_PROMPT")" \
     "$task" >"$log" 2>&1 &
   pids+=("$!")

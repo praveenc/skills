@@ -5,12 +5,12 @@
 Multi-source, parallelized deep research with facet-based query decomposition,
 subagent dispatch, and synthesized citations.
 
-**AWS-first** (dispatches specialist subagents against AWS Knowledge MCP,
-AWS Pricing MCP, Bedrock AgentCore docs, AWS blog feeds, GitHub, and the open
-web), and also handles **generic / non-AWS research** the model cannot answer
-from memory - library internals, software architecture patterns, methodology
-deep-dives, cross-vendor comparisons, and primary-source research (papers,
-gists, blog posts).
+**AWS-first** (dispatches specialist subagents against AWS docs via `llms.txt`
+indexes - Bedrock, AgentCore, Well-Architected - plus AWS Pricing, GitHub, AWS
+blog feeds, and the open web), and also handles **generic / non-AWS research**
+the model cannot answer from memory - library internals, software architecture
+patterns, methodology deep-dives, cross-vendor comparisons, and primary-source
+research (papers, gists, blog posts).
 
 The skill auto-classifies each query as `aws` or `generic` in Step 1b and
 routes to appropriate sources; generic queries skip the AWS MCP researcher and
@@ -27,31 +27,26 @@ npx skills add https://github.com/praveenc/skills --skill aws-deep-research
 
 ## How it works
 
-<p align="center">
-  <img src="./docs/workflow.png"
-       alt="aws-deep-research workflow: query, research contract, facet decomposition, parallel subagent dispatch, findings files, size-gate, synthesis, report"
-       width="720">
-</p>
+```
+Query → Contract → Slug → Decompose → Dispatch → Verify → Synthesize → Gate → Present
+```
 
-<p align="center"><sub>
-  <a href="./docs/workflow.png">Open full-size PNG</a> &middot;
-  <a href="./docs/workflow.d2">View D2 source</a>
-</sub></p>
+<sub><a href="./docs/workflow.d2">D2 source for the workflow diagram</a></sub>
 
-The eight-step flow enforced by `SKILL.md`:
+The flow enforced by `SKILL.md`:
 
 1. **Research contract** grounds every claim (scope, exclusions, factual anchors)
 2. **Facet-labeled decomposition** (2-3 subqueries per source, printed to the user before any API credit is spent)
-3. **Domain blocklist** filters URLs pre-fetch
-4. Up to **4 subagents dispatch in parallel** writing findings to disk (never into the parent's context)
-5. **Size gate** (`scripts/verify_findings.sh`) catches silent failures
-6. **Synthesizer** re-reads the contract to ground all citations in the final report
-7. **Report gate** (`scripts/lint_report.py`) checks sections, citation integrity, and size, with one repair attempt
+3. **Subagents dispatch in one round**, writing findings to disk, never into the parent's context - native `Agent` tool on Claude Code / SDK, `subagent` on Kiro, headless process fan-out on pi (parallel cap is per-harness)
+4. **Size gate** (`scripts/verify_findings.sh`) catches silent failures and failure/skip notes
+5. **Synthesizer** re-reads the contract to ground all citations, translating internal evidence tags to reader confidence labels
+6. **Report gate** (`scripts/lint_report.py`) checks sections, citation integrity, size, and tag leakage - one repair attempt - and writes a `.lint.json` audit sidecar
+7. **Present**: copy to `~/.aws-deep-research/outputs/`, summarize key findings and gaps
 
 ## Testing
 
 ```bash
-bash evals/run_tests.sh           # 151 model-free tests
+bash evals/run_tests.sh           # model-free unit tests (pytest)
 bash evals/run.sh --static         # eval-corpus structure gate
 bash evals/run.sh --selftest       # eval check-engine self-test
 ```
@@ -87,8 +82,8 @@ The skill uses these keys (all optional; it gracefully degrades):
 |---|---|---|
 | `BRAVE_SEARCH_API_KEY` | Web search | 2,000 queries/month |
 | `TAVILY_API_KEY` | Alternate web search | 1,000 queries/month |
-| `GITHUB_TOKEN` | Higher GitHub API rate limits | 5,000/hr with token vs 60/hr without |
-| AWS credentials (via `~/.aws/config` or env) | AWS docs + pricing + Bedrock AgentCore MCP | - |
+| `GITHUB_TOKEN` | GitHub repo search (REST) | 5,000/hr with token vs 60/hr without |
+| AWS credentials (via `~/.aws/config` or env) | AWS Pricing + docs fallback (llms.txt is the primary docs source and needs none) | - |
 
 Create `~/.config/aws-deep-research/config.env` from
 `scripts/.env.example`, populate only the keys you need, and set mode `600`.

@@ -22,24 +22,24 @@
       "query": "how much does Amazon Aurora Serverless v2 cost compared to provisioned Aurora across regions?",
       "should_trigger": true,
       "split": "train",
-      "tags": ["pricing", "comparison", "live-data"],
-      "rationale": "Pricing comparison needs live pricing data; the model cannot answer from memory."
+      "tags": ["pricing", "comparison", "live-data", "contested"],
+      "rationale": "Pricing comparison needs live pricing data; the model cannot answer from memory. Contested: aws-billing-and-cost-management also claims pricing/cost queries, so in catalog mode a loss here is a sibling overlap, not a pure description defect."
     },
     {
       "id": "route-003",
       "query": "what is the maximum number of knowledge bases you can create per account in Amazon Bedrock?",
       "should_trigger": true,
       "split": "train",
-      "tags": ["quota", "boundary-positive", "single-fact"],
-      "rationale": "Boundary positive: a single-fact question, but a service quota that changes - needs live docs, not recall."
+      "tags": ["quota", "boundary-positive", "single-fact", "contested"],
+      "rationale": "Boundary positive: a single-fact question, but a service quota that changes - needs live docs, not recall. Contested: amazon-bedrock also claims Bedrock quota/limit questions."
     },
     {
       "id": "route-004",
       "query": "I'm getting AccessDeniedException calling bedrock:InvokeModelWithResponseStream from a Lambda in another account - find out what's actually required",
       "should_trigger": true,
       "split": "train",
-      "tags": ["troubleshooting", "specific-error", "boundary-positive"],
-      "rationale": "Boundary positive: a specific AWS error needing multi-source troubleshooting, not local code debugging."
+      "tags": ["troubleshooting", "specific-error", "boundary-positive", "contested"],
+      "rationale": "Boundary positive: a specific AWS error needing multi-source troubleshooting, not local code debugging. Contested: amazon-bedrock also claims bedrock:* AccessDenied/IAM diagnosis."
     },
     {
       "id": "route-005",
@@ -54,8 +54,8 @@
       "query": "review best practices for Bedrock Guardrails in production",
       "should_trigger": true,
       "split": "train",
-      "tags": ["best-practices", "explicit-verb"],
-      "rationale": "Named trigger phrase 'review best practices for' on an AWS service."
+      "tags": ["best-practices", "explicit-verb", "contested"],
+      "rationale": "Named trigger phrase 'review best practices for' on an AWS service. Contested: amazon-bedrock also claims Guardrails configuration/capability questions."
     },
     {
       "id": "route-007",
@@ -184,6 +184,46 @@
       "split": "train",
       "tags": ["explicit-verb", "aws-service", "deep-dive"],
       "rationale": "Named trigger phrase 'do a deep dive' on AWS internals with a currency requirement."
+    },
+    {
+      "id": "route-023",
+      "query": "write Python that calls the Bedrock Converse API and streams Claude's response",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["near-miss", "sibling-bedrock", "code-authoring", "contested-sibling"],
+      "rationale": "Sibling near-miss: heavy Bedrock vocabulary, but the ask is to author SDK code. amazon-bedrock owns model-invocation code; deep-research is not for writing code."
+    },
+    {
+      "id": "route-024",
+      "query": "set a monthly AWS budget alert at $5000 and email me when I cross 80%",
+      "should_trigger": false,
+      "split": "train",
+      "tags": ["near-miss", "sibling-billing", "account-operation", "contested-sibling"],
+      "rationale": "Sibling near-miss: mentions cost/dollars, but it is a Budgets configuration task on the user's own account. aws-billing-and-cost-management owns it; nothing to research."
+    },
+    {
+      "id": "route-025",
+      "query": "just search the web and give me the URL of the AWS Lambda pricing page",
+      "should_trigger": false,
+      "split": "validation",
+      "tags": ["near-miss", "sibling-web-search", "single-fetch", "contested-sibling"],
+      "rationale": "Sibling near-miss: a single-lookup web fetch with no synthesis. brave-search (a lightweight single-query search) owns it; this is not multi-source research."
+    },
+    {
+      "id": "route-026",
+      "query": "add a Bedrock guardrail to my app that blocks PII in prompts",
+      "should_trigger": false,
+      "split": "validation",
+      "tags": ["near-miss", "sibling-bedrock", "build-on-service", "contested-sibling"],
+      "rationale": "Sibling near-miss: shares 'Bedrock guardrail' with the contested positive route-006, but this is building/configuring on Bedrock, not researching it. amazon-bedrock owns it."
+    },
+    {
+      "id": "route-027",
+      "query": "why did my AWS bill jump 30% this month? break it down by service",
+      "should_trigger": false,
+      "split": "validation",
+      "tags": ["near-miss", "sibling-billing", "account-operation", "contested-sibling"],
+      "rationale": "Sibling near-miss: a cost analysis of the user's OWN account and data, not public multi-source research. aws-billing-and-cost-management owns it."
     }
   ]
 }

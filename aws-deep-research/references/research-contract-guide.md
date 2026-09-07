@@ -1,7 +1,7 @@
 # Research Contract Guide
 
 The Research Contract is a lightweight artifact extracted from the query in
-Step 1e. It captures hard facts, entity constraints, and version requirements
+Step 1g. It captures hard facts, entity constraints, and version requirements
 that every subagent must respect when gathering and reporting data.
 
 ## Contents
@@ -47,30 +47,30 @@ Write the contract as markdown to `<output-dir>/research-contract.md`.
 
 ### Complex Query (model comparison)
 
-Query: "Compare Claude Opus 4.6 vs Sonnet 4.6 vs Haiku 4.5 pricing and quality"
+Query: "Compare Claude Opus 5 vs Sonnet 5 vs Haiku 4.5 pricing and quality"
 
 ```markdown
 # Research Contract
 
 ## Entity Constraints
-- **Include**: Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5,
+- **Include**: Claude Opus 5, Claude Sonnet 5, Claude Haiku 4.5,
   Amazon Bedrock pricing
-- **Exclude**: Claude 3.x, Claude 3.5.x, Claude 4.0, non-Bedrock pricing
+- **Exclude**: Claude 4.x, Claude 3.x, non-Bedrock pricing
 
 ## Temporal Constraints
-- Pricing: 2026 current rates only (verify at aws.amazon.com/bedrock/pricing/)
-- Benchmarks: must reference the exact model version (4.6 or 4.5)
+- Pricing: current rates only (verify at aws.amazon.com/bedrock/pricing/)
+- Benchmarks: must reference the exact model version (5 or 4.5)
 
 ## Factual Anchors
 - Pricing data MUST be for the exact model versions above
-- If only older version pricing is available, label as "⚠️ proxy data (Claude 3.5)"
+- If only older version pricing is available, label as "⚠️ proxy data (Claude 4.x)"
 - Never mix version-specific numbers in the same table without clear labels
 
 ## Labeling Rules
-- ✅ "Claude Sonnet 4.6 scores 79.6% on SWE-bench"
-- ⚠️ "Claude 3.5 Sonnet costs $3.00/1M input tokens (older version - current 4.6 pricing may differ)"
+- ✅ "Claude Sonnet 5 scores X% on SWE-bench"
+- ⚠️ "Claude 4.x Sonnet costs $3.00/1M input tokens (older version - current 5 pricing may differ)"
 - ⚠️ "~5x cheaper than Opus (estimated from historical tier ratios - verify current pricing)"
-- ❌ Do NOT present Claude 3.5 pricing as if it applies to Claude 4.6
+- ❌ Do NOT present Claude 4.x pricing as if it applies to Claude 5
 - ❌ Do NOT present unsourced cost ratios or derived calculations without a ⚠️ label
 ```
 

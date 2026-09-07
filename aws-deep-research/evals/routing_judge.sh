@@ -16,14 +16,27 @@
 # prove native invocation - that needs a real harness load event (see
 # behavior.json harness-smoke case).
 #
+# Two modes:
+#   default (metadata-only)  the judge sees ONLY this skill's name+description
+#                            and answers YES/NO. Measures the boundary in
+#                            isolation.
+#   --catalog <skills-dir>   the judge sees the name+description of EVERY skill
+#                            in <skills-dir> (plus this one) and must CHOOSE one.
+#                            `triggered` = it chose aws-deep-research. This is
+#                            the realistic router setting: a description that
+#                            wins alone can still lose to a sibling like
+#                            amazon-bedrock or aws-billing on a contested query.
+#
 # Usage:
 #   routing_judge.sh [--trials N] [--case ID] [--split train|validation]
-#                    [--model PATTERN] [--jobs N] [--verify-isolation] [--dry-run]
+#                    [--model PATTERN] [--jobs N] [--catalog DIR]
+#                    [--verify-isolation] [--dry-run]
 #
 # Defaults: --trials 3 --jobs 4, every case, model = pi's default.
 #
 # Majority vote across trials decides `triggered`; per-trial votes are retained
 # in meta.json so an unstable case is visible rather than averaged away.
+# The vote parse is first-token exact ("No, but ... Yes" is a NO, not a YES).
 #
 # Exit codes:
 #   0  evidence generated for every requested case
@@ -44,17 +57,20 @@ ONLY_SPLIT=""
 MODEL=""
 DRY_RUN=0
 VERIFY_ONLY=0
+CATALOG=""
+MODE_LABEL="metadata-only"
 
 err() { printf '%s\n' "$*" >&2; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//;s/^#$//'; exit 0 ;;
+    -h|--help) sed -n '2,45p' "$0" | sed 's/^# \{0,1\}//;s/^#$//'; exit 0 ;;
     --trials) TRIALS="${2:?}"; shift 2 ;;
     --jobs) JOBS="${2:?}"; shift 2 ;;
     --case) ONLY_CASE="${2:?}"; shift 2 ;;
     --split) ONLY_SPLIT="${2:?}"; shift 2 ;;
     --model) MODEL="${2:?}"; shift 2 ;;
+    --catalog) CATALOG="${2:?}"; MODE_LABEL="catalog"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     --verify-isolation) VERIFY_ONLY=1; shift ;;
     *) err "routing_judge.sh: unknown argument: $1"; exit 2 ;;
@@ -92,6 +108,64 @@ Answer with exactly one word: YES if the skill should activate, NO if it
 should not. No explanation, no punctuation.
 
 User request: "
+
+# --- catalog mode: present EVERY skill, grade which one the judge picks ------
+CATALOG_PROMPT_HEAD=""
+if [ -n "$CATALOG" ]; then
+  [ -d "$CATALOG" ] || { err "routing_judge.sh: catalog dir not found: $CATALOG"; exit 2; }
+  CATALOG_LIST="$(python3 - "$CATALOG" "$SKILL_DIR" <<'PY'
+import re, sys, pathlib
+catalog_dir, skill_dir = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+
+def extract(md):
+    try:
+        parts = md.read_text(encoding="utf-8").split("---", 2)
+    except OSError:
+        return None
+    if len(parts) < 3:
+        return None
+    fm = parts[1]
+    nm = re.search(r"^name:\s*(\S+)", fm, re.M)
+    # description as a `>` folded block, or a single-line scalar
+    block = re.search(r"^description:\s*>\s*\n((?:[ \t].*\n?)+)", fm, re.M)
+    line = re.search(r"^description:\s*(\S.*)$", fm, re.M)
+    if not nm or not (block or line):
+        return None
+    desc = (" ".join(l.strip() for l in block.group(1).splitlines())
+            if block else line.group(1).strip())
+    return nm.group(1), re.sub(r"\s+", " ", desc).strip()
+
+seen = {}
+for md in sorted(catalog_dir.glob("*/SKILL.md")):
+    r = extract(md)
+    if r:
+        seen[r[0]] = r[1]
+# the skill under test must be in the catalog even if CATALOG omits it
+r = extract(skill_dir / "SKILL.md")
+if r:
+    seen.setdefault(r[0], r[1])
+for name in sorted(seen):
+    print(f"- {name}: {seen[name]}")
+PY
+)" || { err "routing_judge.sh: could not build catalog from $CATALOG"; exit 1; }
+
+  case "$CATALOG_LIST" in
+    *aws-deep-research*) : ;;
+    *) err "routing_judge.sh: catalog has no readable aws-deep-research SKILL.md"; exit 1 ;;
+  esac
+
+  CATALOG_PROMPT_HEAD="You are a skill router. Below is the full catalog of available agent
+skills, each with the name and description a router sees.
+
+<skills>
+$CATALOG_LIST
+</skills>
+
+Choose the ONE skill that should handle the user request below. Answer with
+exactly that skill's name and nothing else. If no skill fits, answer NONE.
+
+User request: \""
+fi
 
 # --- isolation verification ------------------------------------------------
 # Proves no file access by checking the judge cannot report a CANARY it could
@@ -143,7 +217,7 @@ PY
 CASE_COUNT=$(wc -l <"$CASE_FILE" | tr -d ' ')
 [ "$CASE_COUNT" -gt 0 ] || { err "routing_judge.sh: no cases matched"; exit 2; }
 
-echo "cases=$CASE_COUNT  trials=$TRIALS  jobs=$JOBS  model=${MODEL:-<default>}"
+echo "mode=$MODE_LABEL  cases=$CASE_COUNT  trials=$TRIALS  jobs=$JOBS  model=${MODEL:-<default>}"
 echo "sandbox=$SANDBOX  (judge cwd, outside the skill tree)"
 echo
 
@@ -151,16 +225,50 @@ echo
 # Prints YES / NO / ERROR to stdout.
 # stdin is redirected from /dev/null: a backgrounded child inherits the loop's
 # stdin, and pi reads it, silently eating the rest of the case file.
+#
+# Vote parse is FIRST-TOKEN EXACT: the first standalone YES/NO word wins, so a
+# hedged "No, but ... Yes" scores NO (its leading answer). The old substring
+# scan collapsed whitespace and matched *YES* anywhere, flipping that to YES.
 run_trial() {
-  local query="$1" out
+  local query="$1" out first
   out=$(cd "$SANDBOX" && "$PI_BIN" -p --no-session --tools '' --thinking off \
     ${MODEL:+--model "$MODEL"} "${JUDGE_PROMPT_HEAD}${query}" </dev/null 2>/dev/null \
-    | tr -d '[:space:].' | tr '[:lower:]' '[:upper:]' | tail -1)
-  case "$out" in
-    *YES*) printf 'YES' ;;
-    *NO*)  printf 'NO' ;;
-    *)     printf 'ERROR' ;;
+    | tr '[:lower:]' '[:upper:]')
+  first=$(printf '%s\n' "$out" | grep -oE '\b(YES|NO)\b' | head -1)
+  case "$first" in
+    YES) printf 'YES' ;;
+    NO)  printf 'NO' ;;
+    *)   printf 'ERROR' ;;
   esac
+}
+
+# Catalog trial: the judge names a skill (or NONE). Reuse the YES/NO pipeline -
+# YES = it chose aws-deep-research; NO = it chose another skill or NONE.
+#
+# Parse only the LAST non-empty line (the answer; the prompt asks for the name
+# and nothing else), not the whole response - the same first-token rigor as the
+# YES/NO parser above. Prefer a standalone aws-deep-research token so hedging
+# prose ("the user-request is best suited to...") on the answer line cannot be
+# misread as the chosen skill via its stray hyphen.
+run_trial_catalog() {
+  local query="$1" out last chosen
+  out=$(cd "$SANDBOX" && "$PI_BIN" -p --no-session --tools '' --thinking off \
+    ${MODEL:+--model "$MODEL"} "${CATALOG_PROMPT_HEAD}${query}" </dev/null 2>/dev/null \
+    | tr '[:upper:]' '[:lower:]')
+  last=$(printf '%s\n' "$out" | grep -vE '^[[:space:]]*$' | tail -1)
+  if printf '%s' "$last" | grep -qE '(^|[^a-z0-9-])aws-deep-research([^a-z0-9-]|$)'; then
+    printf 'YES'; return
+  fi
+  chosen=$(printf '%s' "$last" | grep -oE 'none|[a-z0-9]+(-[a-z0-9]+)+' | head -1)
+  case "$chosen" in
+    "") printf 'ERROR' ;;
+    *)  printf 'NO' ;;
+  esac
+}
+
+# Dispatch to the active mode.
+emit_vote() {
+  if [ -n "$CATALOG" ]; then run_trial_catalog "$1"; else run_trial "$1"; fi
 }
 
 # --- one case: N trials, majority vote -------------------------------------
@@ -170,7 +278,7 @@ run_case() {
 
   i=1
   while [ "$i" -le "$TRIALS" ]; do
-    if [ "$DRY_RUN" = "1" ]; then v="YES"; else v="$(run_trial "$query")"; fi
+    if [ "$DRY_RUN" = "1" ]; then v="YES"; else v="$(emit_vote "$query")"; fi
     votes="$votes $v"
     case "$v" in
       YES) yes=$((yes+1)) ;;
@@ -184,10 +292,14 @@ run_case() {
   if [ "$yes" -eq 0 ] || [ "$no" -eq 0 ]; then stable=true; else stable=false; fi
 
   mkdir -p "$OUTDIR/$id"
-  python3 - "$OUTDIR/$id/meta.json" "$triggered" "$stable" "$expected" \
+  MODE_LABEL="$MODE_LABEL" python3 - "$OUTDIR/$id/meta.json" "$triggered" "$stable" "$expected" \
            "$split" "$yes" "$no" "$errs" $votes <<'PY'
-import json, sys
+import json, os, sys
 path, triggered, stable, expected, split, yes, no, errs, *votes = sys.argv[1:]
+mode = os.environ.get("MODE_LABEL", "metadata-only")
+note = ("Router chose among ALL catalog skills; triggered = it chose aws-deep-research."
+        if mode == "catalog" else
+        "Semantic routing boundary only. NOT evidence of native invocation.")
 json.dump({
     "triggered": triggered == "true",
     "expected": expected == "True",
@@ -195,8 +307,8 @@ json.dump({
     "stable_across_trials": stable == "true",
     "votes": {"yes": int(yes), "no": int(no), "error": int(errs)},
     "trial_votes": votes,
-    "mode": "metadata-only",
-    "note": "Semantic routing boundary only. NOT evidence of native invocation.",
+    "mode": mode,
+    "note": note,
 }, open(path, "w"), indent=2)
 PY
 
@@ -211,21 +323,27 @@ PY
 }
 
 # --- fan out with a job cap ------------------------------------------------
-# `wait -n` needs bash 4.3 (macOS ships 3.2); drain in batches of $JOBS.
+# `wait -n` needs bash 4.3 (macOS ships 3.2); drain a batch of $JOBS by waiting
+# each PID individually. A bare `wait` returns only the LAST job's status, so a
+# failing case among passing ones is masked - collect PIDs and OR their codes.
 # The loop reads the case list on FD 3, not stdin: backgrounded pi children
 # inherit stdin and would consume the remaining cases.
 fail=0
+pids=""
 running=0
+drain() {
+  for p in $pids; do wait "$p" || fail=1; done
+  pids=""
+  running=0
+}
 while IFS=$'\t' read -r -u 3 id expected split query; do
   [ -n "$id" ] || continue
   run_case "$id" "$expected" "$split" "$query" &
+  pids="$pids $!"
   running=$((running+1))
-  if [ "$running" -ge "$JOBS" ]; then
-    wait || fail=1
-    running=0
-  fi
+  [ "$running" -ge "$JOBS" ] && drain
 done 3<"$CASE_FILE"
-wait || fail=1
+drain
 
 echo
 echo "evidence: $OUTDIR/<case-id>/meta.json"

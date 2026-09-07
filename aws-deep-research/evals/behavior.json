@@ -25,6 +25,7 @@
         {"type": "artifact_exists", "path": "web-content.md", "desc": "web-content-researcher wrote findings"},
         {"type": "report_lint", "intents": "architecture", "desc": "report passes lint_report.py hard checks"},
         {"type": "max_parallel", "limit": 4, "desc": "never more than 4 subagents per round"},
+        {"type": "min_parallel", "floor": 2, "desc": "at least 2 researchers dispatched in one round (real fan-out, not sequential)"},
         {"type": "trace_regex", "pattern": "facet:", "desc": "facet-labeled subqueries printed before dispatch"},
         {"type": "no_parent_findings_read", "desc": "parent never read a findings file (context isolation)"},
         {"type": "judge", "desc": "report contains concrete mapping examples in JSON code blocks"}
@@ -80,7 +81,7 @@
         {"type": "artifact_exists", "path": "aws-pricing.md", "desc": "pricing findings written"},
         {"type": "report_lint", "intents": "pricing", "desc": "Pricing & Cost Analysis section required and present"},
         {"type": "report_regex", "pattern": "\\$\\s?\\d", "desc": "concrete dollar amounts present"},
-        {"type": "report_regex", "pattern": "\\d{4}-\\d{2}-\\d{2}", "desc": "a query/publication date is recorded"},
+        {"type": "report_regex", "pattern": "(?is)(##\\s*pricing[^#]*\\d{4}-\\d{2}-\\d{2}|pric\\w*[^\\n]{0,40}\\d{4}-\\d{2}-\\d{2}|\\d{4}-\\d{2}-\\d{2}[^\\n]{0,40}pric\\w*)", "desc": "a pricing-specific query/as-of date is recorded (not merely the report header date)"},
         {"type": "no_parent_findings_read", "desc": "context isolation held"}
       ]
     },
@@ -98,6 +99,7 @@
         {"type": "artifact_exists", "path": "agentcore.md", "desc": "agentcore-researcher wrote findings"},
         {"type": "report_lint", "intents": "architecture,code-examples", "desc": "conditional sections present"},
         {"type": "max_parallel", "limit": 4, "desc": "round batching respected"},
+        {"type": "min_parallel", "floor": 2, "desc": "github + agentcore + aws-mcp dispatched together, not one at a time"},
         {"type": "min_citations", "count": 8, "desc": "at least 8 distinct references"},
         {"type": "no_parent_findings_read", "desc": "context isolation held"}
       ]
