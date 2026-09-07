@@ -22,9 +22,9 @@ Rules for constructing the final HTML output file.
 
 ## File Structure
 
-Single self-contained HTML file. No external dependencies except Google Fonts
-and optionally a CDN charting library. Must open correctly as `file://` in
-any modern browser.
+Single self-contained HTML file. Do not load fonts, scripts, stylesheets,
+images, or charting libraries at runtime. The file must remain usable offline
+when opened with `file://` in a modern browser.
 
 ```html
 <!DOCTYPE html>
@@ -33,12 +33,8 @@ any modern browser.
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>[Report Title]</title>
-  <!-- Google Fonts (2-3 families max) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=..." rel="stylesheet">
-  <!-- Optional: charting library from CDN (only if charts needed) -->
   <style>
-    /* All CSS inline. No external stylesheets. */
+    /* All CSS inline. Use system font stacks. */
   </style>
 </head>
 <body>
@@ -50,7 +46,7 @@ any modern browser.
 </html>
 ```
 
-For web fonts, add the browser rendering properties to the body rule:
+Add the browser rendering properties to the body rule:
 
 ```css
 body {
@@ -429,19 +425,10 @@ The distinction: quotes are inline content elements, cards are containers.
 
 ## Charting Libraries (when needed)
 
-Only include a charting library when the report has quantitative data that
-genuinely benefits from a chart (not a table). Options:
-
-| Library | CDN | When |
-|---------|-----|------|
-| Highcharts 12.x | `cdn.jsdelivr.net/npm/highcharts@12.1.2/` | Complex charts, multiple series, interactivity |
-| Chart.js 4.x | `cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js` | Simple charts (bar, line, pie) |
-| None (CSS/SVG) | N/A | Diagrams, flows, timelines, comparisons |
-
-**Default to no library.** Most research reports are better served by
-styled tables, big numbers, SVG diagrams, and CSS-only visualizations.
-Only pull in a charting library when you have 3+ data series that need
-axis scales, tooltips, or responsive reflow.
+Do not load a charting library at runtime. Use styled tables, inline SVG, and
+CSS for charts, diagrams, flows, timelines, and comparisons. If a requested
+chart cannot be represented clearly without a library, ask the user before
+creating a non-self-contained deliverable.
 
 ## SVG Diagrams
 
@@ -465,12 +452,19 @@ SVG rules:
 - **No em dashes** (`&#8212;`) or en dashes (`&#8211;`) anywhere in the output.
   Use commas, colons, semicolons, or periods instead.
 - **No Lorem ipsum.** All content comes from the source report.
+- **Escape report-derived content.** Do not insert source text as raw HTML.
+  Escape at least `&`, `<`, `>`, `"`, and `'` before placing report text in
+  HTML. Source markup remains text unless the user separately supplied and
+  authorized that markup.
 - **Attribute sources.** Include a footer with hyperlinked source references.
-  If the research report includes URLs in its citations, link them:
+  Parse each source URL and create a link only when its scheme is `http:` or
+  `https:`. Render other schemes as plain text. If the research report includes
+  an allowed URL in its citations, link it:
   ```html
-  <a href="https://..." target="_blank" rel="noopener">Source Name (2026)</a>
+  <a href="https://..." target="_blank"
+     rel="noopener noreferrer">Source Name (2026)</a>
   ```
-  Sources must ALWAYS be clickable when URLs are available in the report.
+  Allowed source URLs must remain clickable.
 - **Prioritize ruthlessly.** A long report usually becomes 700-900 visible
   words in the primary layer. Cut repetition, not evidence.
 - **Preserve meaning.** Do not change numbers, negation, modal strength,

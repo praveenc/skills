@@ -3,7 +3,7 @@ name: research-report-visuals
 description: Transform markdown research reports into interactive HTML visual narratives. Use when the user asks to create a visual, infographic, interactive page, or visual summary from a research report, deep research output, technical analysis, or a structured markdown report/analysis with a narrative to convey. Activates for requests like "create a visual for this report", "visualize this research", "make this report consumable", "turn this into an interactive page", or "generate a visual summary". Does NOT activate for general web design, landing pages, dashboards without a source report, data visualization from raw datasets, or turning a README, changelog, meeting notes, task list, or other non-report markdown into a visual.
 metadata:
   author: praveenc
-  version: "0.2.1"
+  version: "0.2.2"
 ---
 
 # Research Report Visuals
@@ -161,15 +161,13 @@ where the reader will only care about 1-2).
 ### Step 6b: Icons and Visual Differentiation
 
 > **Load:** [references/icons-and-accents.md](references/icons-and-accents.md)
-> **When:** You need icon names, CDN setup, or card differentiation patterns.
+> **When:** You need inline SVG patterns or card differentiation guidance.
 
 **Quick rules:**
-- Use Lucide Icons from CDN (clean, consistent, technical). The exact
-  mechanism (do NOT invent `data-icon` or inline SVGs): pin the UMD script
-  `<script src="https://unpkg.com/lucide@1.27.0/dist/umd/lucide.min.js"></script>`,
-  mark each icon `<i data-lucide="cpu" class="icon"></i>`, and call
-  `lucide.createIcons();` after the DOM loads. Without `data-lucide=` + that
-  call, no icon renders. Load the reference for the icon-name catalog.
+- Use small inline SVG icons. Give each SVG a `viewBox`, `role="img"`, and an
+  accessible title or label.
+- Do not load icon libraries, fonts, charting code, or other runtime assets
+  from a CDN. The HTML must remain usable offline.
 - Every card/item gets a CONTEXTUAL icon representing its topic
 - Never use generic decorative accents (colored corners, gradient blobs)
 - Cards must be differentiated by content, not random color placement
@@ -233,7 +231,9 @@ Before delivering, verify:
 - [ ] Cards respond to hover (lift, shadow, or reveal)
 - [ ] Hero title and structural elements use full container width (no max-width)
 - [ ] No em dashes or en dashes anywhere in the output
-- [ ] Works as a standalone HTML file (opens in any browser)
+- [ ] Works offline as a self-contained HTML file with no remote runtime assets
+- [ ] Report-derived text is escaped before insertion into HTML
+- [ ] Source links use only `http:` or `https:` and include `rel="noopener noreferrer"`
 - [ ] Visible prose is STE-aligned: short, active, consistent, and faithful to the source
 - [ ] Technical identifiers, numbers, quotations, and claim strength are unchanged
 - [ ] Evidence status and freshness warnings appear next to affected claims

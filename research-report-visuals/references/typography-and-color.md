@@ -21,6 +21,18 @@ Every visual uses exactly two (occasionally three) typefaces:
 3. **Mono font** (optional) - Used for data, numbers, code, and technical
    identifiers. Signals precision.
 
+Use local system font stacks. Do not fetch font files or stylesheets at
+runtime. Treat the named faces below as art-direction references. If a named
+face is not installed, use the nearest stack:
+
+```css
+:root {
+  --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --sans: "Avenir Next", Avenir, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+```
+
 ### Recommended Pairings
 
 Pick ONE pairing per visual. Do not mix across visuals for the same project.
@@ -44,7 +56,7 @@ body { font-feature-settings: "kern", "liga", "onum", "pnum"; }
 h1, h2 { font-optical-sizing: auto; }
 ```
 
-For modern web fonts such as Geist, enable the browser's text rendering:
+For modern local fonts such as Geist, enable the browser's text rendering:
 
 ```css
 body {
