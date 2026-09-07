@@ -1,0 +1,193 @@
+{
+  "skill_name": "research-report-visuals",
+  "suite": "routing",
+  "mode": "metadata-only",
+  "description": "Semantic trigger corpus for the research-report-visuals frontmatter. It measures whether the target skill should be considered, not whether a harness actually loaded it.",
+  "isolation": "The judge sees only the exact name and description from the tested SKILL.md. File, shell, search, network, and subagent tools are denied. The judge runs outside the skill directory.",
+  "trials": 3,
+  "arms": ["released", "candidate"],
+  "split_policy": "Fixed 60/40 train/validation split with 10 positives and 10 negatives. Tune the description against train only. After selecting a description, run 6 fresh held-out prompts that are not added here until the release decision is complete.",
+  "metrics": ["precision", "recall", "false-selection rate", "no-selection rate", "instability rate", "confusion by skill"],
+  "cases": [
+    {
+      "id": "route-001",
+      "query": "Turn the attached GPU benchmark report into a 60-second scrolling HTML story with the recommendation and evidence easy to scan.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "train",
+      "tags": ["positive", "exactly-one-winner", "explicit-report", "comparison"],
+      "rationale": "The user supplied a research report and requested an HTML visual narrative."
+    },
+    {
+      "id": "route-002",
+      "query": "This analysis is accurate but painfully dense. Make it consumable as an interactive visual summary without losing the caveats.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "train",
+      "tags": ["positive", "exactly-one-winner", "implicit-visual", "dense-report"],
+      "rationale": "The request asks to convert an existing analysis into a consumable interactive visual."
+    },
+    {
+      "id": "route-003",
+      "query": "Create an infographic-style web page from this technical comparison report. Preserve the numbers, sources, and final decision.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "train",
+      "tags": ["positive", "exactly-one-winner", "infographic", "source-fidelity"],
+      "rationale": "An existing technical report must become a sourced visual page."
+    },
+    {
+      "id": "route-004",
+      "query": "Visualize this deep research output as a narrative page that an executive can understand in one minute.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "train",
+      "tags": ["positive", "exactly-one-winner", "deep-research-output", "executive"],
+      "rationale": "The work starts from a completed deep research report and asks for a visual narrative."
+    },
+    {
+      "id": "route-005",
+      "query": "Make a visual digest from this markdown report covering four recent security blog posts, with links to each original article.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "train",
+      "tags": ["positive", "exactly-one-winner", "blog-digest", "boundary-positive"],
+      "rationale": "The supplied markdown is a narrative research digest, not a raw feed or dataset."
+    },
+    {
+      "id": "route-006",
+      "query": "Turn this platform strategy report into an interactive visual narrative and include a proper AWS architecture diagram for the proposed design.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals", "aws-architecture-diagram"],
+      "split": "train",
+      "tags": ["positive", "composition", "report-visual", "architecture-diagram"],
+      "rationale": "The report visual and the requested AWS architecture diagram require two complementary skills."
+    },
+    {
+      "id": "route-007",
+      "query": "I do not want another summary document. Give this paper an executive-friendly web treatment that leads with the conclusion and lets readers open supporting detail.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "validation",
+      "tags": ["positive", "exactly-one-winner", "implicit-html", "progressive-disclosure"],
+      "rationale": "The request asks for a conclusion-led web artifact from supplied research without copying the description's trigger wording."
+    },
+    {
+      "id": "route-008",
+      "query": "Condense the attached 6,000-word study into one scrolling experience with a clear argument, evidence callouts, and a short main reading path.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "validation",
+      "tags": ["positive", "exactly-one-winner", "long-report", "interactive-page"],
+      "rationale": "The task asks for a designed scrolling treatment of a long supplied study."
+    },
+    {
+      "id": "route-009",
+      "query": "Find the current Bedrock inference endpoint options, document the evidence, then package the findings as a one-minute web brief.",
+      "should_trigger": true,
+      "expected_skills": ["aws-deep-research", "research-report-visuals"],
+      "split": "validation",
+      "tags": ["positive", "composition", "research-then-visualize"],
+      "rationale": "The user requests both current evidence gathering and a designed web brief."
+    },
+    {
+      "id": "route-010",
+      "query": "Use the attached incident review to make a single-file leadership explainer. Keep the chronology and contributing factors intact.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "validation",
+      "tags": ["positive", "exactly-one-winner", "postmortem-analysis", "visual-explainer"],
+      "rationale": "A supplied incident review with a clear narrative must become a designed single-file artifact."
+    },
+    {
+      "id": "route-011",
+      "query": "Summarize the attached research report in five bullets.",
+      "should_trigger": false,
+      "expected_skills": [],
+      "split": "train",
+      "tags": ["negative", "near-miss", "report-noun", "no-skill"],
+      "rationale": "The user asks for a text summary, not a visual artifact."
+    },
+    {
+      "id": "route-012",
+      "query": "Rewrite this report in ASD-STE100 style and return markdown.",
+      "should_trigger": false,
+      "expected_skills": [],
+      "split": "train",
+      "tags": ["negative", "near-miss", "report-rewrite", "no-skill"],
+      "rationale": "The user requests editorial rewriting only, with markdown output."
+    },
+    {
+      "id": "route-013",
+      "query": "Take the tables from this report and build a filterable KPI dashboard for monthly operations.",
+      "should_trigger": false,
+      "expected_skills": ["lieflat-charts"],
+      "split": "train",
+      "tags": ["negative", "adjacent-skill", "exactly-one-winner", "dashboard"],
+      "rationale": "The requested product is an operational dashboard rather than a report narrative."
+    },
+    {
+      "id": "route-014",
+      "query": "Create a dashboard from this CSV: date,region,revenue; 2026-01,us,1200; 2026-02,us,1500.",
+      "should_trigger": false,
+      "expected_skills": ["lieflat-charts"],
+      "split": "train",
+      "tags": ["negative", "adjacent-skill", "exactly-one-winner", "raw-csv"],
+      "rationale": "Raw tabular data without a source report belongs to a data visualization tool."
+    },
+    {
+      "id": "route-015",
+      "query": "Design a landing page for my SaaS startup with a hero, pricing tiers, testimonials, and a signup form.",
+      "should_trigger": false,
+      "expected_skills": ["frontend-design"],
+      "split": "train",
+      "tags": ["negative", "adjacent-skill", "exactly-one-winner", "landing-page"],
+      "rationale": "This is general product web design with no source report."
+    },
+    {
+      "id": "route-016",
+      "query": "Turn this quarterly research report into a ten-slide executive presentation.",
+      "should_trigger": false,
+      "expected_skills": ["Presentations"],
+      "split": "train",
+      "tags": ["negative", "adjacent-skill", "exactly-one-winner", "slides"],
+      "rationale": "The requested artifact is a slide deck, not an HTML visual narrative."
+    },
+    {
+      "id": "route-017",
+      "query": "Draw the AWS components and data flow for this event-driven order processing system.",
+      "should_trigger": false,
+      "expected_skills": ["aws-architecture-diagram"],
+      "split": "validation",
+      "tags": ["negative", "adjacent-skill", "exactly-one-winner", "architecture-only"],
+      "rationale": "The user asks only for a system drawing and provides no research source."
+    },
+    {
+      "id": "route-018",
+      "query": "Publish my project's setup, usage, and contribution documentation as a polished project site.",
+      "should_trigger": false,
+      "expected_skills": ["frontend-ui-engineering"],
+      "split": "validation",
+      "tags": ["negative", "adjacent-skill", "exactly-one-winner", "readme"],
+      "rationale": "Project documentation needs a product site, not a research-story transformation."
+    },
+    {
+      "id": "route-019",
+      "query": "Plot these 500 sensor samples with outlier filtering and time-range zoom.",
+      "should_trigger": false,
+      "expected_skills": ["lieflat-charts"],
+      "split": "validation",
+      "tags": ["negative", "adjacent-skill", "exactly-one-winner", "raw-dataset"],
+      "rationale": "The request is direct exploratory charting of supplied measurements."
+    },
+    {
+      "id": "route-020",
+      "query": "Which three conclusions in this paper should change our plan?",
+      "should_trigger": false,
+      "expected_skills": [],
+      "split": "validation",
+      "tags": ["negative", "near-miss", "report-reading", "no-skill"],
+      "rationale": "The user wants a direct decision-oriented answer rather than a designed artifact."
+    }
+  ]
+}
