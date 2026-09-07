@@ -146,51 +146,61 @@ model, so raise `--jobs` rather than shrinking the model.
 
 ### Measured baseline
 
-> **STALE - v6.15, pre-v7.0.** The table below was measured against the v6.15
-> description on the pre-v7.0 22-case corpus. v7.0 changed both (`description`
-> trimmed + `amazon-bedrock` boundary clause; corpus now 27 cases with five
-> sibling near-misses), so by this doc's own rule - *`description` change →
-> rerun routing* - it MUST be re-measured before it is trusted. Re-measure both
-> modes and overwrite this table in the same commit:
->
-> ```bash
-> ./routing_judge.sh --trials 3 --jobs 12 --model claude-haiku-4-5   # metadata-only
-> ./routing_judge.sh --catalog <harness-skills-dir> --trials 3       # realistic
-> ./run.sh --suite routing --json routing-metrics.json               # precision/recall
-> ```
->
-> Expect the sibling near-misses to be the hard cases and the `contested`
-> positives to be where catalog mode diverges from metadata-only.
+Skill **v7.0** (27-case corpus), judge `claude-haiku-4-5`, 3 trials per case,
+canary-verified isolation, measured **2026-09-07**. Both modes, per split
+(tp/fp/tn/fn, then the four rates):
 
-Skill v6.15, metadata-only judge (`kiro/claude-haiku-4-5`), 3 trials per case,
-canary-verified isolation, measured 2026-08-27:
+**Metadata-only** (judge sees only this skill's name + description):
 
-| Metric | before route-003 fix | after |
-|---|---|---|
-| precision | 1.000 | 1.000 |
-| recall | 0.818 | 0.909 |
-| false-selection rate | 0.000 | 0.000 |
-| accuracy | 0.909 | 0.955 |
-| train split | 13/14 | 14/14 |
+| split | tp | fp | tn | fn | precision | recall | false-sel | no-sel |
+|---|---|---|---|---|---|---|---|---|
+| train | 7 | 0 | 9 | 0 | 1.000 | 1.000 | 0.000 | 0.000 |
+| validation | 3 | 1 | 6 | 1 | 0.750 | 0.750 | 0.143 | 0.250 |
+| all | 10 | 1 | 15 | 1 | 0.909 | 0.909 | 0.062 | 0.091 |
 
-Perfect precision is the half that matters most: over-triggering spends four
-CLI cold starts and real API credits on work the base model should just do. It
-held across the fix, so the added triggers sharpened the boundary rather than
-widening it.
+**Catalog** (`--catalog ~/.agents/skills`, ~70 sibling skills competing - the
+realistic router):
 
-Two positives missed in the baseline, both informative:
+| split | tp | fp | tn | fn | precision | recall | false-sel | no-sel |
+|---|---|---|---|---|---|---|---|---|
+| train | 6 | 0 | 9 | 1 | 1.000 | 0.857 | 0.000 | 0.143 |
+| validation | 2 | 0 | 7 | 2 | 1.000 | 0.500 | 0.000 | 0.500 |
+| all | 8 | 0 | 16 | 3 | 1.000 | 0.727 | 0.000 | 0.273 |
 
-- `route-003` (train), unanimous 0Y/3N. A service-quota lookup read as a simple
-  factual recall. The description had no language separating a STABLE fact the
-  model knows from a CURRENT value that must be looked up. Fixed by naming
-  quotas, limits, pricing, and version availability as explicit triggers - this
-  is what moved recall to 0.909.
-- `route-008` (validation), 1Y/2N and unstable. The generic-scope boundary case.
-  Recorded, deliberately NOT tuned against - editing the description in response
-  to a validation failure would turn validation into training data. Only the
-  train split was re-measured after the fix. Re-measure validation after the next
-  description change and treat a persistent split as evidence that generic
-  support needs to be more load-bearing in the description.
+Read the two together: **metadata-only measures the boundary; catalog measures
+the outcome once siblings compete.** Catalog trades recall for perfect precision
+- every contested query the lone description would grab is instead absorbed by
+the right sibling. That is the intended behaviour, not a regression: over-
+triggering costs real dispatch fan-out and API credits, so ceding a contested
+query to `amazon-bedrock` / `aws-billing-and-cost-management` is the cheaper error.
+
+Misses, sorted by whether they are tunable:
+
+- `route-027` (train, negative). Metadata-only FALSE-triggers ("why did my AWS
+  bill jump 30%..."); catalog gets it right (routes to aws-billing). Exactly the
+  sibling overlap the `contested-sibling` negatives were added to expose - alone
+  the description reads it as research, against the catalog it defers. Train, so
+  tunable, but the fix is NOT to narrow the description into the sibling's turf;
+  the sibling already wins it where it matters (catalog).
+- `route-006` (train, positive, `contested`). Catalog misses - Bedrock Guardrails
+  best-practices went to amazon-bedrock. A contested positive lost to a legitimate
+  sibling claim, not a wording defect. Tunable only as a product call (should
+  research win Guardrails queries over amazon-bedrock?), not a bug.
+- `route-008` (validation, positive). Catalog misses the generic circuit-breaker
+  research. **Validation - deliberately NOT tuned against**; editing the
+  description to rescue it turns validation into training data. It recurs from the
+  prior baseline: a persistent miss is the signal that generic-research support
+  needs to be more load-bearing in the description. Record, do not patch.
+- `route-010` (validation, positive, feed-only). Missed in BOTH modes ("latest AWS
+  security blog posts"), unstable 1Y/2N in metadata-only. Also validation -
+  recorded, not tuned. Short recency/feed queries sit on the boundary; the
+  instability says the judge itself is split.
+
+Net: **precision is strong both ways (0.909 metadata / 1.000 catalog)** - the half
+that matters, since over-triggering is the expensive error. The recall gap is
+concentrated in validation generic/feed cases we are barred from tuning on and in
+a contested positive a sibling legitimately owns. No train-split defect calls for
+a description change.
 
 These numbers are the durable record; regenerate the underlying per-case data
 with `./routing_judge.sh` whenever the description, judge model, or corpus
