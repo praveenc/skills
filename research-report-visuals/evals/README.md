@@ -18,6 +18,7 @@ evals/
   routing.json
   native.json
   behavior.json
+  behavior_runner.py
   routing_judge.sh
   run.py
   run.sh
@@ -200,15 +201,39 @@ Run each behavior case in a fresh session and trial directory.
 - `released`: force-load the released skill.
 - `candidate`: force-load the candidate skill.
 
+Generate candidate evidence with the committed adapter:
+
+```bash
+RUN_ID=20260907T230000Z
+
+python3 behavior_runner.py \
+  --run-id "$RUN_ID" \
+  --model amazon-bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0
+
+./run.sh --run "outputs/$RUN_ID" --suite behavior --arm candidate
+```
+
+Use repeatable `--case <case-id>` and `--trial <number>` options for a partial
+run. Existing trial directories are immutable.
+
+The adapter runs `scripts/validate_output.py` without `--fix`. If validation
+fails, it gives only the `FAIL` lines to a fresh Pi process with read and write
+tools. It stops after three repair passes. Pi exposes no network or shell tools,
+extensions, sessions, context files, or prompt templates.
+
 Each trial can retain:
 
 ```text
-output.html       generated artifact
-response.txt      final response, optional
-trace.jsonl       normalized observed actions, required
-meta.json         provenance and cost data, required
-desktop.png       optional visual-judge input
-mobile.png        optional visual-judge input
+output.initial.html  first generated artifact, before repairs
+output.html          final generated artifact
+pi-events.jsonl      raw Pi JSON event streams
+harness-events.jsonl host invocation and validator events
+repair.diff          per-pass unified repair diffs
+response.txt         final model response
+trace.jsonl          normalized model tool calls and validator events
+meta.json            provenance, validation, and cost data
+desktop.png          optional visual-judge input
+mobile.png           optional visual-judge input
 ```
 
 Every `meta.json` binds the trial to its manifest:
@@ -226,7 +251,13 @@ Every `meta.json` binds the trial to its manifest:
     "permissions": "<exact manifest value>",
     "catalog_revision": "<exact manifest value>",
     "corpus_digest": "<behavior corpus digest>",
-    "skill_revision": "<candidate SKILL.md sha256>"
+    "skill_revision": "<candidate SKILL.md sha256>",
+    "skill_tree_digest": "<full candidate tree sha256>",
+    "component_digests": {
+      "evals/run.py": "<sha256>",
+      "scripts/validate_output.py": "<sha256>",
+      "evals/behavior_runner.py": "<sha256>"
+    }
   },
   "wall_time_seconds": 0,
   "model_calls": 0,

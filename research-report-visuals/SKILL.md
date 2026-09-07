@@ -1,9 +1,9 @@
 ---
 name: research-report-visuals
-description: Transform markdown research reports into interactive HTML visual narratives. Use when the user asks to create a visual, infographic, interactive page, or visual summary from a research report, deep research output, technical analysis, or a structured markdown report/analysis with a narrative to convey. Activates for requests like "create a visual for this report", "visualize this research", "make this report consumable", "turn this into an interactive page", or "generate a visual summary". Does NOT activate for general web design, landing pages, dashboards without a source report, data visualization from raw datasets, or turning a README, changelog, meeting notes, task list, or other non-report markdown into a visual.
+description: Transform markdown research reports into interactive HTML visual narratives. Use when the user asks to create a visual, infographic, interactive page, or visual summary from a research report, deep research output, technical analysis, or a structured markdown report/analysis with a narrative to convey. Also use when the request combines research with a final interactive web brief, or turns an incident review or postmortem into a single-file leadership explainer. Activates for requests like "create a visual for this report", "visualize this research", "make this report consumable", "turn this into an interactive page", or "generate a visual summary". Does NOT activate for general web design, landing pages, dashboards without a source report, data visualization from raw datasets, or turning a README, changelog, meeting notes, task list, or other non-report markdown into a visual.
 metadata:
   author: praveenc
-  version: "0.2.2"
+  version: "0.3.0"
 ---
 
 # Research Report Visuals
@@ -103,6 +103,12 @@ Before writing HTML:
    freshness risk, and intended visual section.
 2. Protect product names, API names, model IDs, code, numbers, quotations, and
    defined technical terms from editorial rewriting.
+   Inventory every number, percentage, duration, date, version, identifier,
+   Region, URL, and quantitative range in the source. Every inventory item
+   must appear in the visual, either in the primary layer or a `<details>`
+   block. Preserve its characters, punctuation, units, spacing, and case. For
+   example, keep `8-9 points` as `8-9 points`; do not rewrite it as
+   `8 to 9 points`.
 3. Rewrite only the visible display copy. Use short, active sentences and one
    stable term for each concept.
 4. Keep uncertainty next to the affected claim. Do not move contradictions or
@@ -115,8 +121,30 @@ Label generated language as **STE-aligned** unless a trained reviewer validates
 it against the applicable issue of the standard.
 
 For long reports, aim for **700-900 visible words** in the primary reading
-layer. This is a target, not a quota. Short reports should remain short.
-Code-heavy reports can exceed it when the source code is essential.
+layer. Unless the user requests a comprehensive reproduction, 900 visible
+words is a hard ceiling. Short reports should remain short. Code-heavy reports
+can exceed it when the source code is essential.
+
+Use these proportionality rules:
+- If the source has 100 words or fewer, keep visible copy below 300 words. Do
+  not add examples, claims, implications, implementation guidance, or sections
+  that are not in source. Use at most three main sections, omit `<details>`,
+  and preserve the source summary sentence exactly.
+- If the source has at least 1,000 words or seven substantive sections, use at
+  least two native `<details>` blocks. Each block must contain useful source
+  detail, not a placeholder.
+
+For a long or dense report, use this construction rule before you write:
+1. Draft 650-850 visible words outside closed `<details>` blocks. Do not count
+   disclosure text toward this target, and do not reproduce the report section
+   by section.
+2. Add at least two closed `<details>` blocks with at least 25 words in each.
+3. Use one detail block for decision context and constraints. Preserve every
+   inventory item omitted from the primary layer, including timing windows,
+   service objectives, Region restrictions, and other decision-critical
+   quantities.
+4. Use another detail block for evidence limits, methods, or implementation
+   detail.
 
 ### Step 5: Choose Visual Mode
 
@@ -205,16 +233,48 @@ between "professional" and "generic."
 **Output path:** Ask the user where to save, or use a sensible default
 alongside the source report.
 
+Before writing the file, enforce this hard output contract:
+- Use real `<header>`, `<main>`, and `<footer>` landmarks. A class name such as
+  `header` or `main` does not satisfy this requirement.
+- Include `<!DOCTYPE html>`, `<html lang="en">`, a non-empty `<title>`, viewport
+  metadata, and one `<h1>`.
+- Preserve every item in the exact-literal checklist and every allowed source
+  URL.
+- Use only the ASCII hyphen-minus (`-`). Do not emit en dash or em dash
+  characters, including in dates, ranges, generated labels, or CSS content.
+- Do not use dash glyphs as placeholders in tables. Write `Not reported`,
+  `Not applicable`, or another explicit source-faithful label.
+- Do not use `border-top` or `border-left` wider than 1px on cards, panels, or
+  callouts. In particular, the final HTML must not contain
+  `border-top: 3px solid` or `border-top: 4px solid`.
+- Keep visible copy within the source-size rule above.
+- For a long or dense source, include the required native `<details>` blocks.
+- For a long or dense source, keep the primary layer at 900 visible words or
+  fewer and confirm that each required `<details>` block has substantive text.
+
 ## Validation Loop
 
-After building the HTML, run through the checklist. If any item fails:
+After the first file write, run the bundled validator. Resolve the skill
+directory from this `SKILL.md`; do not download dependencies:
 
-1. Fix only the failing items in-place (edit the HTML, do not regenerate from scratch).
-2. Re-check only the previously-failing items.
-3. Maximum 2 fix passes. If still failing after 2 passes, deliver the file with a note to the user about the remaining issue.
+```bash
+python3 <skill-directory>/scripts/validate_output.py <source.md> <output.html>
+```
+
+The validator is non-mutating. It reports prohibited punctuation or borders,
+missing protected literals, source links, semantic landmarks, word limits, and
+progressive-disclosure requirements.
+
+If validation fails:
+
+1. Repair only the reported failures in the same HTML file.
+2. Run the validator again.
+3. Maximum 3 repair passes. If validation still fails, deliver the file with a
+   concise note that lists the remaining failures.
 
 Before delivering, verify:
 
+- [ ] Real `<header>`, `<main>`, and `<footer>` landmarks are present
 - [ ] Masthead present (report type left, date right, mono, uppercase)
 - [ ] Reader gets the "so what" in 60 seconds of scrolling
 - [ ] Visual tells a STORY (not a collection of disconnected sections)
@@ -231,11 +291,15 @@ Before delivering, verify:
 - [ ] Cards respond to hover (lift, shadow, or reveal)
 - [ ] Hero title and structural elements use full container width (no max-width)
 - [ ] No em dashes or en dashes anywhere in the output
+- [ ] Final character audit replaced every `—` and `–` with valid punctuation
 - [ ] Works offline as a self-contained HTML file with no remote runtime assets
 - [ ] Report-derived text is escaped before insertion into HTML
 - [ ] Source links use only `http:` or `https:` and include `rel="noopener noreferrer"`
 - [ ] Visible prose is STE-aligned: short, active, consistent, and faithful to the source
 - [ ] Technical identifiers, numbers, quotations, and claim strength are unchanged
+- [ ] Every exact protected literal appears character-for-character
+- [ ] Decision constraints, timing windows, service objectives, and caveats
+      retain their exact quantities
 - [ ] Evidence status and freshness warnings appear next to affected claims
 - [ ] Long supporting detail uses native progressive disclosure instead of crowding the primary layer
 - [ ] Responsive on mobile (grid collapses, text remains readable)

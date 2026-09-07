@@ -14,9 +14,11 @@ matched-arm deltas, and emits JSON, Markdown, or JUnit when requested.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import hashlib
 from html.parser import HTMLParser
 import json
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -72,6 +74,8 @@ class _VisibleTextParser(HTMLParser):
         "h1", "h2", "h3", "h4", "h5", "h6", "header", "li", "main",
         "p", "section", "summary", "td", "th",
     }
+    _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input",
+             "link", "meta", "param", "source", "track", "wbr"}
 
     def __init__(self) -> None:
         super().__init__()
@@ -80,8 +84,23 @@ class _VisibleTextParser(HTMLParser):
         self._details_stack: list[bool] = []
         self._summary_depth = 0
         self._parts: list[str] = []
+        self._hidden_stack: list[bool] = []
+        self._hidden_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attrs_dict = dict(attrs)
+        hidden = (
+            "hidden" in attrs_dict
+            or (attrs_dict.get("aria-hidden") or "").lower() == "true"
+            or bool(re.search(
+                r"(?:display\s*:\s*none|visibility\s*:\s*hidden)",
+                attrs_dict.get("style") or "", re.I,
+            ))
+        )
+        if tag not in self._VOID:
+            self._hidden_stack.append(hidden)
+            if hidden:
+                self._hidden_depth += 1
         if tag == "details":
             is_open = any(name == "open" for name, _ in attrs)
             self._details_stack.append(is_open)
@@ -106,13 +125,16 @@ class _VisibleTextParser(HTMLParser):
             self._skip_depth = max(0, self._skip_depth - 1)
         elif self._is_visible() and tag in self._BLOCK:
             self._parts.append("\n")
+        if tag not in self._VOID and self._hidden_stack:
+            if self._hidden_stack.pop():
+                self._hidden_depth = max(0, self._hidden_depth - 1)
 
     def handle_data(self, data: str) -> None:
         if self._is_visible():
             self._parts.append(data)
 
     def _is_visible(self) -> bool:
-        return not self._skip_depth and (
+        return not self._skip_depth and not self._hidden_depth and (
             self._closed_details == 0 or self._summary_depth > 0
         )
 
@@ -174,16 +196,38 @@ class _ContentTextParser(HTMLParser):
 
 
 class _LinkParser(HTMLParser):
+    _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input",
+             "link", "meta", "param", "source", "track", "wbr"}
+
     def __init__(self) -> None:
         super().__init__()
         self.urls: list[str] = []
+        self._hidden_depth = 0
+        self._hidden_stack: list[bool] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attrs_dict = dict(attrs)
+        hidden = (
+            "hidden" in attrs_dict
+            or (attrs_dict.get("aria-hidden") or "").lower() == "true"
+            or bool(re.search(
+                r"(?:display\s*:\s*none|visibility\s*:\s*hidden)",
+                attrs_dict.get("style") or "", re.I,
+            ))
+        )
+        if tag not in self._VOID:
+            self._hidden_stack.append(hidden)
+            if hidden:
+                self._hidden_depth += 1
         if tag != "a":
             return
-        href = dict(attrs).get("href")
-        if href:
+        href = attrs_dict.get("href")
+        if href and not self._hidden_depth:
             self.urls.append(href)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag not in self._VOID and self._hidden_stack and self._hidden_stack.pop():
+            self._hidden_depth = max(0, self._hidden_depth - 1)
 
 
 class _DetailsParser(HTMLParser):
@@ -198,9 +242,11 @@ class _DetailsParser(HTMLParser):
         self._skip_depth = 0
         self._current: list[str] = []
         self.word_counts: list[int] = []
+        self._open_stack: list[bool] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "details":
+            self._open_stack.append(any(name == "open" for name, _ in attrs))
             if self._details_depth == 0:
                 self._current = []
             self._details_depth += 1
@@ -217,7 +263,9 @@ class _DetailsParser(HTMLParser):
         elif tag == "details" and self._details_depth:
             self._details_depth -= 1
             if self._details_depth == 0:
-                self.word_counts.append(len(_words(" ".join(self._current))))
+                is_open = self._open_stack.pop() if self._open_stack else False
+                if not is_open:
+                    self.word_counts.append(len(_words(" ".join(self._current))))
 
     def handle_data(self, data: str) -> None:
         if self._details_depth and not self._summary_depth and not self._skip_depth:
@@ -248,6 +296,31 @@ def _words(text: str) -> list[str]:
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def skill_tree_digest(root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
+        relative = path.relative_to(root)
+        if (
+            ".git" in relative.parts
+            or "__pycache__" in relative.parts
+            or relative.parts[:2] == ("evals", "outputs")
+            or path.name == ".DS_Store"
+            or path.suffix == ".pyc"
+        ):
+            continue
+        if path.is_symlink():
+            payload = b"link\0" + os.readlink(path).encode("utf-8")
+        elif path.is_file():
+            payload = b"file\0" + path.read_bytes()
+        else:
+            continue
+        digest.update(relative.as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(payload)
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def suite_digest(name: str) -> str:
@@ -285,19 +358,52 @@ def html_metrics(html: str | None) -> dict:
     }
 
 
+class _StructureParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.tags: set[str] = set()
+        self.html_lang = False
+        self.viewport = False
+        self.in_title = False
+        self.title: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        self.tags.add(tag)
+        self.html_lang |= tag == "html" and bool(values.get("lang"))
+        self.viewport |= (
+            tag == "meta" and (values.get("name") or "").lower() == "viewport"
+        )
+        self.in_title |= tag == "title"
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "title":
+            self.in_title = False
+
+    def handle_data(self, data: str) -> None:
+        if self.in_title:
+            self.title.append(data)
+
+
 def html_structure_errors(html: str) -> list[str]:
-    checks = [
-        (r"(?is)^\s*<!doctype\s+html", "doctype"),
-        (r"(?is)<html\b[^>]*\blang\s*=", "html lang"),
-        (r"(?is)<title>\s*\S", "non-empty title"),
-        (r"(?is)<meta\b[^>]*name\s*=\s*[\"']viewport[\"']", "viewport meta"),
-        (r"(?is)<body\b", "body"),
-        (r"(?is)<header\b", "header landmark"),
-        (r"(?is)<main\b", "main landmark"),
-        (r"(?is)<h1\b", "h1"),
-        (r"(?is)<footer\b", "footer landmark"),
-    ]
-    return [label for pattern, label in checks if not re.search(pattern, html)]
+    parser = _StructureParser()
+    parser.feed(html)
+    missing = []
+    if not re.match(r"(?is)^\s*<!doctype\s+html", html):
+        missing.append("doctype")
+    if not parser.html_lang:
+        missing.append("html lang")
+    if not "".join(parser.title).strip():
+        missing.append("non-empty title")
+    if not parser.viewport:
+        missing.append("viewport meta")
+    for tag, label in (
+        ("body", "body"), ("header", "header landmark"), ("main", "main landmark"),
+        ("h1", "h1"), ("footer", "footer landmark"),
+    ):
+        if tag not in parser.tags:
+            missing.append(label)
+    return missing
 
 
 class Evidence:
@@ -308,6 +414,8 @@ class Evidence:
         self.html = self._read("output.html")
         self.response = self._read("response.txt")
         self.trace = self._read("trace.jsonl")
+        self.pi_events = self._read("pi-events.jsonl")
+        self.harness_events = self._read("harness-events.jsonl")
         self.meta, self.meta_error = self._read_json("meta.json")
 
     def _read(self, name: str) -> str | None:
@@ -373,6 +481,51 @@ def trace_events(ev: Evidence | FakeEvidence) -> tuple[list[dict], str | None]:
         if not isinstance(event, dict) or not isinstance(event.get("type"), str):
             return [], f"trace.jsonl line {number} needs an object with type"
         events.append(event)
+    if not events:
+        return [], "normalized trace is empty"
+    if isinstance(ev, Evidence):
+        observed = []
+        if ev.pi_events is None:
+            return [], "no raw pi-events.jsonl"
+        for line in ev.pi_events.splitlines():
+            try:
+                raw = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if raw.get("type") != "message_end":
+                continue
+            for item in raw.get("message", {}).get("content", []):
+                if item.get("type") != "toolCall":
+                    continue
+                name = item.get("name")
+                arguments = item.get("arguments", {})
+                if name == "read":
+                    observed.append({"type": "file_read", "path": arguments.get("path")})
+                elif name == "write":
+                    observed.append({"type": "file_write", "path": arguments.get("path")})
+                else:
+                    observed.append({
+                        "type": "tool_call", "tool": name, "arguments": arguments,
+                    })
+        if ev.harness_events:
+            for line in ev.harness_events.splitlines():
+                if line.strip():
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        return [], f"harness-events.jsonl is invalid: {exc}"
+                    if event.get("type") == "validator":
+                        observed.append({
+                            "type": "tool_call",
+                            "tool": "validate_output",
+                            "arguments": event.get("arguments"),
+                            "exit_code": event.get("exit_code"),
+                        })
+        canonical = lambda values: Counter(
+            json.dumps(value, sort_keys=True) for value in values
+        )
+        if canonical(events) != canonical(observed):
+            return [], "trace.jsonl does not match raw observed events"
     return events, None
 
 
@@ -407,6 +560,10 @@ def provenance_check(
         "corpus_digest": corpus,
         "skill_revision": manifest["arm_definitions"][arm]["skill_revision"],
     }
+    definition = manifest["arm_definitions"][arm]
+    if arm != "no-skill":
+        expected["skill_tree_digest"] = definition["skill_tree_digest"]
+        expected["component_digests"] = definition["component_digests"]
     mismatches = [
         f"{field}={provenance.get(field)!r}, expected {value!r}"
         for field, value in expected.items()
@@ -417,6 +574,83 @@ def provenance_check(
         "status": "FAIL" if mismatches else "PASS",
         "message": "evidence provenance matches manifest" if not mismatches
         else "; ".join(mismatches[:3]),
+    }
+
+
+def artifact_digest_check(
+    ev: Evidence | FakeEvidence,
+    manifest: dict,
+    run_dir: Path,
+    arm: str,
+    suite: str,
+    case_id: str,
+    trial: int,
+) -> dict:
+    if isinstance(ev, FakeEvidence):
+        return {
+            "type": "artifact_digests",
+            "status": "PASS",
+            "message": "self-test evidence is in memory",
+        }
+    if not ev.dir.is_dir():
+        return {
+            "type": "artifact_digests",
+            "status": "PENDING",
+            "message": "trial directory is missing",
+        }
+    prefix = f"{arm}/{suite}/{case_id}/trial-{trial:02d}/"
+    recorded = {
+        relative: digest
+        for relative, digest in manifest.get("evidence_digests", {}).items()
+        if relative.startswith(prefix)
+    }
+    actual = {
+        path.relative_to(run_dir).as_posix(): sha256_file(path)
+        for path in sorted(ev.dir.rglob("*"), key=lambda item: item.as_posix())
+        if path.is_file()
+    }
+    ok = bool(recorded) and recorded == actual
+    return {
+        "type": "artifact_digests",
+        "status": "PASS" if ok else "FAIL",
+        "message": (
+            "retained artifacts match manifest digests"
+            if ok
+            else "retained artifacts are missing from or differ from manifest digests"
+        ),
+    }
+
+
+def producer_status_check(ev: Evidence | FakeEvidence) -> dict:
+    if isinstance(ev, FakeEvidence):
+        return {
+            "type": "producer_status",
+            "status": "PASS",
+            "message": "self-test producer completed",
+        }
+    if not ev.present:
+        return {
+            "type": "producer_status",
+            "status": "PENDING",
+            "message": "producer evidence is missing",
+        }
+    failures = []
+    if ev.meta.get("validator_passed") is not True:
+        failures.append("validator did not pass")
+    exit_codes = ev.meta.get("pi_exit_codes")
+    if not isinstance(exit_codes, list) or not exit_codes or any(
+        not isinstance(code, int) or code != 0 for code in exit_codes
+    ):
+        failures.append("Pi invocation failed")
+    if ev.meta.get("exit_code") != 0:
+        failures.append("producer exit code is nonzero")
+    if ev.meta.get("raw_event_parse_errors") != 0:
+        failures.append("raw event stream has parse errors")
+    return {
+        "type": "producer_status",
+        "status": "FAIL" if failures else "PASS",
+        "message": "producer and validator completed cleanly" if not failures
+        else "; ".join(failures),
     }
 
 
@@ -501,7 +735,7 @@ def behavior_check(check: dict, ev: Evidence | FakeEvidence) -> tuple[str, str]:
             return "PENDING" if ev.trace is None else "FAIL", f"{desc} ({error})"
         actionable = [
             event for event in events
-            if event["type"] in {"tool_call", "network", "file_write"}
+            if event["type"] in {"tool_call", "network", "file_read", "file_write"}
         ]
         if kind == "trace_no_network":
             hits = [
@@ -514,6 +748,7 @@ def behavior_check(check: dict, ev: Evidence | FakeEvidence) -> tuple[str, str]:
             )
         if kind == "trace_writes_within_trial":
             outside = []
+            output_writes = 0
             base = ev.dir.resolve()
             for event in actionable:
                 if event["type"] != "file_write":
@@ -526,6 +761,10 @@ def behavior_check(check: dict, ev: Evidence | FakeEvidence) -> tuple[str, str]:
                 resolved = (path if path.is_absolute() else base / path).resolve()
                 if not resolved.is_relative_to(base):
                     outside.append(str(resolved))
+                if resolved == (base / "output.html").resolve():
+                    output_writes += 1
+            if not output_writes:
+                outside.append("<no observed output.html write>")
             return ("PASS" if not outside else "FAIL"), (
                 desc if not outside else f"{desc} (outside: {outside[:3]})"
             )
@@ -563,7 +802,11 @@ def evaluate_behavior(
     for number in range(1, suite["trials"] + 1):
         ev = Evidence(trial_dir(run_dir, arm, "behavior", case["id"], number))
         checks = [
-            provenance_check(ev, manifest, "behavior", arm, case["id"], number)
+            artifact_digest_check(
+                ev, manifest, run_dir, arm, "behavior", case["id"], number
+            ),
+            provenance_check(ev, manifest, "behavior", arm, case["id"], number),
+            producer_status_check(ev),
         ]
         for spec in case["checks"]:
             status, message = behavior_check(spec, ev)
@@ -605,10 +848,15 @@ def evaluate_routing(
         ev = Evidence(trial_dir(run_dir, arm, "routing", case["id"], number))
         triggered = ev.meta.get("triggered")
         error = ev.meta_error
+        artifacts = artifact_digest_check(
+            ev, manifest, run_dir, arm, "routing", case["id"], number
+        )
         provenance = provenance_check(
             ev, manifest, "routing", arm, case["id"], number
         )
-        if provenance["status"] != "PASS":
+        if artifacts["status"] != "PASS":
+            status, message = artifacts["status"], artifacts["message"]
+        elif provenance["status"] != "PASS":
             status, message = provenance["status"], provenance["message"]
         elif error:
             status, message = "FAIL", error
@@ -625,7 +873,7 @@ def evaluate_routing(
             "status": status,
             "triggered": triggered if isinstance(triggered, bool) else None,
             "message": message,
-            "checks": [provenance],
+            "checks": [artifacts, provenance],
         })
 
     checks = []
@@ -683,6 +931,9 @@ def evaluate_native(
     for number in range(1, suite["trials"] + 1):
         ev = Evidence(trial_dir(run_dir, arm, "native", case["id"], number))
         checks = [
+            artifact_digest_check(
+                ev, manifest, run_dir, arm, "native", case["id"], number
+            ),
             provenance_check(ev, manifest, "native", arm, case["id"], number)
         ]
         if ev.meta_error:
@@ -810,15 +1061,15 @@ def static_gate() -> int:
     negatives = [case for case in routing_cases if case.get("should_trigger") is False]
     require(routing.get("arms") == ["released", "candidate"],
             "routing arms must be released and candidate")
-    require(len(routing_cases) == 20, f"routing has {len(routing_cases)} cases, need 20")
-    require(len(positives) == 10, f"routing has {len(positives)} positives, need 10")
-    require(len(negatives) == 10, f"routing has {len(negatives)} negatives, need 10")
+    require(len(routing_cases) == 26, f"routing has {len(routing_cases)} cases, need 26")
+    require(len(positives) == 14, f"routing has {len(positives)} positives, need 14")
+    require(len(negatives) == 12, f"routing has {len(negatives)} negatives, need 12")
     require({case.get("split") for case in routing_cases} == {"train", "validation"},
             "routing splits must be exactly train and validation")
-    require(sum(case.get("split") == "train" for case in routing_cases) == 12,
-            "routing train split must contain 12 cases")
-    require(sum(case.get("split") == "validation" for case in routing_cases) == 8,
-            "routing validation split must contain 8 cases")
+    require(sum(case.get("split") == "train" for case in routing_cases) == 14,
+            "routing train split must contain 14 cases")
+    require(sum(case.get("split") == "validation" for case in routing_cases) == 12,
+            "routing validation split must contain 12 cases")
     for split in ("train", "validation"):
         cases = [case for case in routing_cases if case.get("split") == split]
         require(any(case.get("should_trigger") is True for case in cases),
@@ -1074,6 +1325,7 @@ def validate_manifest(run_dir: Path) -> tuple[dict | None, list[str]]:
     for field in (
         "run_id", "created_at", "corpus_revision", "model", "harness",
         "permissions", "catalog_revision", "arms", "arm_definitions",
+        "evidence_digests",
     ):
         if not manifest.get(field):
             problems.append(f"manifest.json has no {field}")
@@ -1094,6 +1346,16 @@ def validate_manifest(run_dir: Path) -> tuple[dict | None, list[str]]:
     if not isinstance(definitions, dict):
         problems.append("manifest arm_definitions must be an object")
         definitions = {}
+    evidence_digests = manifest.get("evidence_digests", {})
+    if not isinstance(evidence_digests, dict):
+        problems.append("manifest evidence_digests must be an object")
+    else:
+        for relative, digest in evidence_digests.items():
+            path = Path(relative)
+            if path.is_absolute() or ".." in path.parts:
+                problems.append(f"manifest has unsafe evidence path: {relative}")
+            if not re.fullmatch(r"[0-9a-f]{64}", str(digest)):
+                problems.append(f"manifest has invalid evidence digest: {relative}")
     for arm in arms:
         if arm not in definitions:
             problems.append(f"manifest has no arm definition for {arm}")
@@ -1121,6 +1383,19 @@ def validate_manifest(run_dir: Path) -> tuple[dict | None, list[str]]:
             problems.append(f"{arm} skill_path is not readable: {skill_file}")
         elif revision != sha256_file(skill_file):
             problems.append(f"{arm} skill_path digest differs from manifest")
+        tree_revision = definition.get("skill_tree_digest")
+        if not re.fullmatch(r"[0-9a-f]{64}", str(tree_revision)):
+            problems.append(f"{arm} arm must record skill_tree_digest")
+        elif Path(skill_path).is_dir() and tree_revision != skill_tree_digest(Path(skill_path)):
+            problems.append(f"{arm} skill tree digest differs from manifest")
+        components = definition.get("component_digests")
+        if not isinstance(components, dict) or not components:
+            problems.append(f"{arm} arm must record component_digests")
+        else:
+            for relative, digest in components.items():
+                component = Path(skill_path) / relative
+                if not component.is_file() or sha256_file(component) != digest:
+                    problems.append(f"{arm} component digest differs: {relative}")
     return manifest, problems
 
 
@@ -1330,7 +1605,7 @@ def run_validation(args: argparse.Namespace) -> int:
         "native": {**native, "cases": resolve_native_cases(native, routing)},
         "behavior": behavior,
     }
-    suite_names = [args.suite] if args.suite else list(SUITES)
+    suite_names = [args.suite] if args.suite else list(manifest["corpus_revision"])
     binding_problems = []
     if "native" in suite_names:
         catalog_skills = manifest.get("catalog_skills")
@@ -1361,10 +1636,17 @@ def run_validation(args: argparse.Namespace) -> int:
         definition = manifest["arm_definitions"][arm]
         revision = definition["skill_revision"]
         if arm == "candidate":
-            current = sha256_file(HERE.parent / "SKILL.md")
+            current_root = HERE.parent
+            current = sha256_file(current_root / "SKILL.md")
             if revision != current:
                 binding_problems.append(
                     f"candidate skill digest mismatch: {revision!r} != {current!r}"
+                )
+            tree_revision = definition.get("skill_tree_digest")
+            current_tree = skill_tree_digest(current_root)
+            if tree_revision != current_tree:
+                binding_problems.append(
+                    f"candidate skill tree mismatch: {tree_revision!r} != {current_tree!r}"
                 )
     if binding_problems:
         for problem in binding_problems:
@@ -1452,12 +1734,15 @@ def run_validation(args: argparse.Namespace) -> int:
             paired = metrics["deltas"]["candidate_minus_released"][
                 f"{suite_name}_paired"
             ]
-            if (
-                paired["mean_case_delta"] is not None
-                and paired["mean_case_delta"] < 0
-            ):
+            regressions = {
+                case_id: delta
+                for case_id, delta in paired["per_case"].items()
+                if delta < 0
+            }
+            if regressions:
                 gate_failures.append(
-                    f"candidate {suite_name} paired case score regressed against released"
+                    f"candidate {suite_name} regressed against released: "
+                    f"{sorted(regressions)}"
                 )
 
     gate_failures = list(dict.fromkeys(gate_failures))
@@ -1485,7 +1770,10 @@ def run_validation(args: argparse.Namespace) -> int:
         for failure in gate_failures:
             print(f"  {RED}GATE{RESET}  {failure}")
     else:
-        print(f"  {GREEN}GATE PASS{RESET}")
+        label = "PARTIAL CHECK PASS" if (
+            args.suite or args.case or args.arm or args.lenient
+        ) else "EVAL PASS"
+        print(f"  {GREEN}{label}{RESET}")
 
     payload = {
         "skill": TARGET_SKILL,
@@ -1521,6 +1809,11 @@ def selftest() -> int:
          FakeEvidence(html=good_html), "PASS"),
         ("html_structure fails", {"type": "html_structure", "desc": "d"},
          FakeEvidence(html="<p>x</p>"), "FAIL"),
+        ("comment landmarks fail", {"type": "html_structure", "desc": "d"},
+         FakeEvidence(html=(
+             "<!doctype html><!-- <html lang='en'><head><title>Fake</title>"
+             "<meta name='viewport'><body><header><main><h1><footer> -->"
+         )), "FAIL"),
         ("contains_source_urls passes", {"type": "contains_source_urls",
          "values": ["https://source.example"], "desc": "d"},
          FakeEvidence(html=good_html), "PASS"),
@@ -1554,8 +1847,14 @@ def selftest() -> int:
          "min_words_each": 3, "desc": "d"}, FakeEvidence(
              html="<details><summary>More</summary><p>Three useful words here.</p></details>"
          ), "PASS"),
+        ("open details fail", {"type": "details_min_words", "count": 1,
+         "min_words_each": 3, "desc": "d"}, FakeEvidence(
+             html="<details open><summary>More</summary><p>Three useful words here.</p></details>"
+         ), "FAIL"),
         ("trace_no_network passes", {"type": "trace_no_network", "desc": "d"},
          FakeEvidence(trace='{"type":"file_read","path":"report.md"}'), "PASS"),
+        ("empty trace fails", {"type": "trace_no_network", "desc": "d"},
+         FakeEvidence(trace=""), "FAIL"),
         ("trace_no_network fails", {"type": "trace_no_network", "desc": "d"},
          FakeEvidence(trace='{"type":"network","url":"https://x"}'), "FAIL"),
         ("trace writes stay local", {"type": "trace_writes_within_trial", "desc": "d"},
@@ -1582,7 +1881,11 @@ def selftest() -> int:
         "permissions": "test-policy",
         "catalog_revision": "test-catalog",
         "corpus_revision": {"behavior": "a" * 64},
-        "arm_definitions": {"candidate": {"skill_revision": "b" * 64}},
+        "arm_definitions": {"candidate": {
+            "skill_revision": "b" * 64,
+            "skill_tree_digest": "c" * 64,
+            "component_digests": {"evals/run.py": "d" * 64},
+        }},
     }
     provenance = {
         "run_id": "selftest",
@@ -1596,6 +1899,8 @@ def selftest() -> int:
         "catalog_revision": "test-catalog",
         "corpus_digest": "a" * 64,
         "skill_revision": "b" * 64,
+        "skill_tree_digest": "c" * 64,
+        "component_digests": {"evals/run.py": "d" * 64},
     }
     good_provenance = provenance_check(
         FakeEvidence(meta={"provenance": provenance}),

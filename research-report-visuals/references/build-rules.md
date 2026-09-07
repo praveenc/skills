@@ -38,13 +38,24 @@ when opened with `file://` in a modern browser.
   </style>
 </head>
 <body>
-  <!-- Content -->
+  <header>
+    <!-- Masthead and hero -->
+  </header>
+  <main>
+    <!-- Narrative sections -->
+  </main>
+  <footer class="footer">
+    <!-- Sources and attribution -->
+  </footer>
   <script>
     /* Minimal JS for interactivity. At end of body. */
   </script>
 </body>
 </html>
 ```
+
+The `<header>`, `<main>`, and `<footer>` elements are required landmarks.
+Classes named `header`, `main`, or `footer` are not substitutes.
 
 Add the browser rendering properties to the body rule:
 
@@ -451,6 +462,11 @@ SVG rules:
 
 - **No em dashes** (`&#8212;`) or en dashes (`&#8211;`) anywhere in the output.
   Use commas, colons, semicolons, or periods instead.
+  Before the single file write, audit the complete HTML string and replace
+  every literal `—` and `–`. This includes prose, dates, ranges, labels, CSS
+  `content`, comments, and accessibility text.
+  Do not use dash glyphs as table placeholders. Use an explicit label such as
+  `Not reported` or `Not applicable`.
 - **No Lorem ipsum.** All content comes from the source report.
 - **Escape report-derived content.** Do not insert source text as raw HTML.
   Escape at least `&`, `<`, `>`, `"`, and `'` before placing report text in

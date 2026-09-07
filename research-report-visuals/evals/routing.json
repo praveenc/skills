@@ -6,8 +6,8 @@
   "isolation": "The judge sees only the exact name and description from the tested SKILL.md. File, shell, search, network, and subagent tools are denied. The judge runs outside the skill directory.",
   "trials": 3,
   "arms": ["released", "candidate"],
-  "split_policy": "Fixed 60/40 train/validation split with 10 positives and 10 negatives. Tune the description against train only. After selecting a description, run 6 fresh held-out prompts that are not added here until the release decision is complete.",
-  "metrics": ["precision", "recall", "false-selection rate", "no-selection rate", "instability rate", "confusion by skill"],
+  "split_policy": "Fixed 14/12 train/validation split with 14 positives and 12 negatives. Observed validation failures move to train before the description changes. Tune the description against train only. The validation split includes 6 fresh prompts added only after the description was frozen.",
+  "metrics": ["precision", "recall", "false-selection rate", "no-selection rate", "instability rate"],
   "cases": [
     {
       "id": "route-001",
@@ -86,7 +86,7 @@
       "query": "Find the current Bedrock inference endpoint options, document the evidence, then package the findings as a one-minute web brief.",
       "should_trigger": true,
       "expected_skills": ["aws-deep-research", "research-report-visuals"],
-      "split": "validation",
+      "split": "train",
       "tags": ["positive", "composition", "research-then-visualize"],
       "rationale": "The user requests both current evidence gathering and a designed web brief."
     },
@@ -95,7 +95,7 @@
       "query": "Use the attached incident review to make a single-file leadership explainer. Keep the chronology and contributing factors intact.",
       "should_trigger": true,
       "expected_skills": ["research-report-visuals"],
-      "split": "validation",
+      "split": "train",
       "tags": ["positive", "exactly-one-winner", "postmortem-analysis", "visual-explainer"],
       "rationale": "A supplied incident review with a clear narrative must become a designed single-file artifact."
     },
@@ -188,6 +188,60 @@
       "split": "validation",
       "tags": ["negative", "near-miss", "report-reading", "no-skill"],
       "rationale": "The user wants a direct decision-oriented answer rather than a designed artifact."
+    },
+    {
+      "id": "route-021",
+      "query": "Research the current options for cross-Region model routing and then deliver the evidence as an interactive HTML decision brief for platform leaders.",
+      "should_trigger": true,
+      "expected_skills": ["aws-deep-research", "research-report-visuals"],
+      "split": "validation",
+      "tags": ["positive", "composition", "research-then-visualize", "fresh-validation"],
+      "rationale": "The request combines current evidence gathering with a designed interactive web brief."
+    },
+    {
+      "id": "route-022",
+      "query": "Turn the attached outage retrospective into an offline scrolling web explainer for executives. Preserve the event sequence, contributing conditions, and corrective actions.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "validation",
+      "tags": ["positive", "postmortem", "leadership-explainer", "fresh-validation"],
+      "rationale": "A supplied incident retrospective with a narrative must become a designed offline web artifact."
+    },
+    {
+      "id": "route-023",
+      "query": "Convert this dense architecture review markdown into a standalone leadership brief with a clear recommendation, evidence labels, and diagrams that explain the tradeoffs.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "validation",
+      "tags": ["positive", "exactly-one-winner", "architecture-review", "fresh-validation"],
+      "rationale": "The source is a completed narrative review that must become a designed standalone brief."
+    },
+    {
+      "id": "route-024",
+      "query": "Make the attached reliability assessment easy to scan as an interactive web narrative. Keep the limitations and unresolved questions visible.",
+      "should_trigger": true,
+      "expected_skills": ["research-report-visuals"],
+      "split": "validation",
+      "tags": ["positive", "exactly-one-winner", "reliability-report", "fresh-validation"],
+      "rationale": "The request transforms an existing assessment into an interactive narrative while preserving evidence limits."
+    },
+    {
+      "id": "route-025",
+      "query": "Create only an AWS service and data-flow diagram for the proposed multi-account design.",
+      "should_trigger": false,
+      "expected_skills": ["aws-architecture-diagram"],
+      "split": "validation",
+      "tags": ["negative", "adjacent-skill", "exactly-one-winner", "architecture-only", "fresh-validation"],
+      "rationale": "The user requests a system diagram only, not a visual treatment of a source report."
+    },
+    {
+      "id": "route-026",
+      "query": "Read this analysis and reply with a short list of the risks that require action this quarter.",
+      "should_trigger": false,
+      "expected_skills": [],
+      "split": "validation",
+      "tags": ["negative", "near-miss", "direct-answer", "no-skill", "fresh-validation"],
+      "rationale": "The user wants a direct textual answer rather than a designed artifact."
     }
   ]
 }

@@ -115,7 +115,9 @@ python3 - "$RUN_DIR/manifest.json" "$RUN_ID" "$SKILL_DIR" "$ARM" \
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
 import sys
 
 path, run_id, skill_dir, arm, model, harness, corpus = sys.argv[1:]
@@ -124,6 +126,41 @@ skill_file = Path(skill_dir) / "SKILL.md"
 
 def digest(file):
     return hashlib.sha256(Path(file).read_bytes()).hexdigest()
+
+def tree_digest(root):
+    value = hashlib.sha256()
+    for item in sorted(Path(root).rglob("*"), key=lambda p: p.as_posix()):
+        relative = item.relative_to(root)
+        if (".git" in relative.parts or "__pycache__" in relative.parts
+                or relative.parts[:2] == ("evals", "outputs")
+                or item.name == ".DS_Store" or item.suffix == ".pyc"):
+            continue
+        if item.is_symlink():
+            payload = b"link\0" + os.readlink(item).encode()
+        elif item.is_file():
+            payload = b"file\0" + item.read_bytes()
+        else:
+            continue
+        value.update(relative.as_posix().encode() + b"\0" + payload + b"\0")
+    return value.hexdigest()
+
+source_root = Path(skill_dir).resolve()
+snapshot = path.parent / "snapshots" / arm / source_root.name
+if snapshot.exists():
+    if tree_digest(snapshot) != tree_digest(source_root):
+        raise SystemExit("existing routing snapshot differs; use a new run ID")
+else:
+    snapshot.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(
+        source_root, snapshot,
+        ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc", "outputs"),
+    )
+skill_file = snapshot / "SKILL.md"
+components = {
+    "evals/run.py": digest(snapshot / "evals" / "run.py"),
+    "scripts/validate_output.py": digest(snapshot / "scripts" / "validate_output.py"),
+    "evals/routing_judge.sh": digest(snapshot / "evals" / "routing_judge.sh"),
+}
 
 if path.exists():
     manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -154,6 +191,7 @@ else:
         "permissions": "no tools, skills, extensions, context files, prompt templates, or session; scratch cwd",
         "catalog_revision": "skills disabled; target metadata supplied inline",
         "catalog_skills": {},
+        "evidence_digests": {},
         "arms": [],
         "arm_definitions": {},
     }
@@ -162,7 +200,9 @@ if arm not in manifest["arms"]:
 manifest["arm_definitions"][arm] = {
     "target_skill_access": "available",
     "skill_revision": digest(skill_file),
-    "skill_path": str(Path(skill_dir).resolve()),
+    "skill_tree_digest": tree_digest(snapshot),
+    "component_digests": components,
+    "skill_path": str(snapshot.resolve()),
 }
 path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 PY
@@ -259,14 +299,18 @@ echo "skill=$SKILL_DIR"
 
 run_trial() {
   query="$1"
+  raw_path="$2"
   if [ "$DRY_RUN" = "1" ]; then
+    printf 'YES\n' >"$raw_path"
     printf 'YES'
     return
   fi
   if ! raw="$(invoke_judge "${JUDGE_PROMPT_HEAD}${query}")"; then
+    printf '%s\n' "$raw" >"$raw_path"
     printf 'ERROR'
     return
   fi
+  printf '%s\n' "$raw" >"$raw_path"
   out="$(printf '%s' "$raw" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
   case "$out" in
     YES) printf 'YES' ;;
@@ -282,9 +326,9 @@ run_case() {
   trial=1
   case_failed=0
   while [ "$trial" -le "$TRIALS" ]; do
-    vote="$(run_trial "$query")"
     trial_dir="$RUN_DIR/$ARM/routing/$id/$(printf 'trial-%02d' "$trial")"
     mkdir -p "$trial_dir"
+    vote="$(run_trial "$query" "$trial_dir/raw-response.txt")"
     python3 - "$trial_dir/meta.json" "$vote" "$split" \
       "$RUN_DIR/manifest.json" "$ARM" "$id" "$trial" <<'PY'
 import json
@@ -308,6 +352,8 @@ payload = {
         "catalog_revision": manifest["catalog_revision"],
         "corpus_digest": manifest["corpus_revision"]["routing"],
         "skill_revision": manifest["arm_definitions"][arm]["skill_revision"],
+        "skill_tree_digest": manifest["arm_definitions"][arm]["skill_tree_digest"],
+        "component_digests": manifest["arm_definitions"][arm]["component_digests"],
     },
 }
 if vote == "YES":
@@ -337,6 +383,26 @@ while IFS=$'\t' read -r -u 3 id split query; do
   fi
 done 3<"$CASE_FILE"
 wait || fail=1
+
+python3 - "$RUN_DIR/manifest.json" "$RUN_DIR" "$ARM/routing" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+manifest_path, run_dir, prefix = map(Path, sys.argv[1:])
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+evidence = manifest.setdefault("evidence_digests", {})
+prefix_text = prefix.as_posix().rstrip("/") + "/"
+for relative in [key for key in evidence if key.startswith(prefix_text)]:
+    del evidence[relative]
+for path in sorted((run_dir / prefix).rglob("*"), key=lambda item: item.as_posix()):
+    if path.is_file():
+        relative = path.relative_to(run_dir).as_posix()
+        evidence[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+manifest["evidence_digests"] = dict(sorted(evidence.items()))
+manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+PY
 
 echo "evidence: $RUN_DIR/$ARM/routing"
 echo "grade: ./run.sh --run $RUN_DIR --suite routing --arm $ARM"

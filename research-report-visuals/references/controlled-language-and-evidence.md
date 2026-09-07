@@ -23,6 +23,13 @@ Create a short protected-term list before rewriting. Include:
 - Numbers, units, dates, and quoted text
 - Terms that the source defines precisely
 
+Inventory every number, percentage, duration, date, version, identifier,
+Region, URL, and quantitative range in the source. Every inventory item must
+appear in the visual, either in the primary layer or a `<details>` block. Copy
+each item exactly. Keep the same characters, punctuation, spacing, units, and
+case. Do not normalize a range such as `10-15 minutes` to `10 to 15 minutes`,
+and do not expand or contract a technical identifier.
+
 Use one term for each concept. Do not alternate between synonyms such as
 "endpoint", "surface", and "route" unless the source makes a real distinction.
 
@@ -63,6 +70,15 @@ House targets for visible prose:
 | Paragraph length | 2-4 sentences |
 | Hero verdict | 60 words or fewer |
 | Primary layer for a long report | 700-900 visible words |
+
+If the source has 100 words or fewer, keep visible copy below 300 words and do
+not invent supporting sections. If the source has at least 1,000 words or seven
+substantive sections, keep the primary layer between 600 and 850 words and
+include at least two useful native `<details>` blocks with 25 or more words in
+each. Count only text outside closed `<details>` blocks toward the primary
+layer target. Use one block for decision context and constraints, including
+every protected inventory item omitted from the primary layer. Use another for
+evidence limits, methods, or implementation detail.
 
 These are editorial targets, not proof of ASD-STE100 compliance. Strict
 compliance requires review against the applicable standard and approved

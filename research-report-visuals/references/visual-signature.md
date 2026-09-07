@@ -31,7 +31,7 @@ subject or most important entity.
 - Cost analysis? Amber/green dominates (money, savings).
 
 The dominant color appears in:
-- Hero section accent (background tint, border, or title color)
+- Hero section accent (background tint or title color)
 - The most important callout box
 - Primary entity cards
 - Key stat numbers
@@ -151,9 +151,9 @@ bare white with text. Give it a subtle surface:
 }
 ```
 
-**Option C: Soft gradient accent line**
+**Option C: Soft gradient accent wash**
 ```css
-.hero { border-top: 3px solid var(--dominant); }
+.hero { background: linear-gradient(180deg, var(--dominant-soft), transparent); }
 ```
 
 **Option D: Large faded icon/motif**
@@ -202,15 +202,15 @@ visual interest:
 **Options (pick ONE per visual):**
 
 **Pull-quote:** A key finding displayed at larger size, extending slightly
-beyond the normal content width or indented with a dramatic left border.
+beyond the normal content width or placed on a tinted surface.
 ```css
 .pull-quote {
   font-family: var(--serif);
   font-size: 22px;
   line-height: 1.5;
   color: var(--text);
-  border-left: 3px solid var(--dominant);
-  padding-left: 24px;
+  background: var(--dominant-soft);
+  padding: 20px 24px;
   margin: 40px -20px 40px 40px; /* extends left */
 }
 ```
