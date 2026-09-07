@@ -91,8 +91,7 @@ Category/type on the left, date on the right, same line:
 
 The `masthead-type` reflects the report classification (e.g., "Technical
 Strategy", "Migration Guide", "Security Analysis"). The `masthead-date`
-uses the report's publication date. This pattern is NON-NEGOTIABLE and
-appears in every visual.
+uses the report's publication date. This pattern is required in every visual.
 
 ## Standard Footer
 

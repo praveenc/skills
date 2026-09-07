@@ -3,6 +3,15 @@
 Use this reference after extracting the narrative and before building HTML.
 It keeps the visual concise without weakening the report's claims.
 
+## Contents
+
+- Protect technical terms
+- Build a claim ledger
+- Write STE-aligned display copy
+- Show evidence status
+- Use progressive disclosure
+- Final meaning check
+
 ## 1. Protect Technical Terms
 
 Create a short protected-term list before rewriting. Include:
