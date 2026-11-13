@@ -102,10 +102,10 @@ the synthesizer"*). Kiro plans the 4-parallel DAG and returns results via the
 built-in `summary` tool.
 
 **Permission note:** on the generic path the subagents run under the default
-agent's permissions, so without `--trust-all-tools` Kiro will prompt per
-subagent. That is expected. Users who dislike prompts should launch with
-`kiro-cli chat --trust-all-tools`. This skill assumes that is acceptable and
-does not require named-agent registration to suppress prompts.
+agent's permissions, so Kiro prompts once per subagent. That is expected.
+Users who want no prompts should use the named-agent path below, which
+pre-trusts only the researchers through `trustedAgents`. This skill assumes
+the prompts are acceptable and does not require named-agent registration.
 
 ### The named-agent path (optional optimization)
 
