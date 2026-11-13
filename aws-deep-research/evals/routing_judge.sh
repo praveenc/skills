@@ -154,6 +154,12 @@ PY
     *) err "routing_judge.sh: catalog has no readable aws-deep-research SKILL.md"; exit 1 ;;
   esac
 
+  # Valid answers: every catalog skill name plus "none", one per line. The
+  # catalog parser accepts only these, so stray hyphenated prose never counts.
+  CATALOG_NAMES="$SANDBOX/catalog-names.txt"
+  { printf '%s\n' "$CATALOG_LIST" | sed -n 's/^- \([^:]*\):.*/\1/p' \
+      | tr '[:upper:]' '[:lower:]'; echo none; } >"$CATALOG_NAMES"
+
   CATALOG_PROMPT_HEAD="You are a skill router. Below is the full catalog of available agent
 skills, each with the name and description a router sees.
 
@@ -245,23 +251,21 @@ run_trial() {
 # Catalog trial: the judge names a skill (or NONE). Reuse the YES/NO pipeline -
 # YES = it chose aws-deep-research; NO = it chose another skill or NONE.
 #
-# Parse only the LAST non-empty line (the answer; the prompt asks for the name
-# and nothing else), not the whole response - the same first-token rigor as the
-# YES/NO parser above. Prefer a standalone aws-deep-research token so hedging
-# prose ("the user-request is best suited to...") on the answer line cannot be
-# misread as the chosen skill via its stray hyphen.
+# Scan every line of the answer and keep only tokens that are a catalog skill
+# name or NONE; the LAST such token is the choice (an answer usually ends on
+# it). Prose tokens such as "user-request" are not catalog names, so they can
+# no longer be misread, and a trailing explanation line no longer hides the
+# name stated above it.
 run_trial_catalog() {
-  local query="$1" out last chosen
+  local query="$1" out chosen
   out=$(cd "$SANDBOX" && "$PI_BIN" -p --no-session --tools '' --thinking off \
     ${MODEL:+--model "$MODEL"} "${CATALOG_PROMPT_HEAD}${query}" </dev/null 2>/dev/null \
     | tr '[:upper:]' '[:lower:]')
-  last=$(printf '%s\n' "$out" | grep -vE '^[[:space:]]*$' | tail -1)
-  if printf '%s' "$last" | grep -qE '(^|[^a-z0-9-])aws-deep-research([^a-z0-9-]|$)'; then
-    printf 'YES'; return
-  fi
-  chosen=$(printf '%s' "$last" | grep -oE 'none|[a-z0-9]+(-[a-z0-9]+)+' | head -1)
+  chosen=$(printf '%s\n' "$out" | grep -oE '[a-z0-9]+(-[a-z0-9]+)*' \
+    | grep -xF -f "$CATALOG_NAMES" | tail -1)
   case "$chosen" in
     "") printf 'ERROR' ;;
+    aws-deep-research) printf 'YES' ;;
     *)  printf 'NO' ;;
   esac
 }

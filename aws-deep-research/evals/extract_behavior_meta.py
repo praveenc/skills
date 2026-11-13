@@ -54,6 +54,12 @@ FETCH_IN_SHELL = re.compile(
 )
 
 
+def is_findings_name(name: str) -> bool:
+    """Whole-name match for a work-dir file. FINDINGS stays unanchored for the
+    trace blob, but a bare filename like `brief-agentcore.md` must not count."""
+    return FINDINGS.fullmatch(name) is not None
+
+
 def iter_tool_calls(path: Path):
     """Yield (name, arg_blob) for every toolCall in a pi session log."""
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -163,7 +169,7 @@ def main(argv: list[str]) -> int:
     # would let a fabricated citation pass as "retrieved."
     if work_dir.is_dir():
         for f in sorted(work_dir.glob("*.md")):
-            if not FINDINGS.search(f.name):
+            if not is_findings_name(f.name):
                 continue
             try:
                 retrieved.update(URL.findall(f.read_text(encoding="utf-8", errors="replace")))
