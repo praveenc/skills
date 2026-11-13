@@ -77,7 +77,7 @@ class ResearchLogger:
 # resources.
 SERVER_PARAMS = StdioServerParameters(
     command="uvx",
-    args=["awslabs.amazon-bedrock-agentcore-mcp-server@latest"],
+    args=["awslabs.amazon-bedrock-agentcore-mcp-server@0.2.1"],
     env={
         "FASTMCP_LOG_LEVEL": "ERROR",
         "AGENTCORE_ENABLE_TOOLS": "search_agentcore_docs,fetch_agentcore_doc",

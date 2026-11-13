@@ -14,7 +14,7 @@ registered `llms.txt` and fetches full doc content on demand, so it is the
 fast, reliable primary source for AWS Bedrock, Bedrock AgentCore, and the
 Well-Architected agentic-ai-lens guides (plus Strands, Kiro).
 
-Portable: the server ships on npm, so `npx -y @praveenc/llmstxt-doc-search`
+Portable: the server ships on npm, so `npx -y @praveenc/llmstxt-doc-search@1.0.0`
 runs it on any host with Node - no absolute path, no per-machine config. Its
 five default sources (aws-bedrock-userguide, aws-bedrock-agentcore-devguide,
 aws-agentic-ai-lens, strands, kiro) seed on first run and persist to
@@ -65,7 +65,7 @@ console = Console(stderr=True)
 
 # The server ships on npm; npx runs it anywhere Node is present. Overridable so
 # a local dev build (node dist/index.js) or `npx tsx src/index.ts` can be used.
-DEFAULT_MCP_CMD = ["npx", "-y", "@praveenc/llmstxt-doc-search"]
+DEFAULT_MCP_CMD = ["npx", "-y", "@praveenc/llmstxt-doc-search@1.0.0"]
 REQUIRED_TOOLS = {"search_docs", "fetch_doc"}
 DEFAULT_MAX_LENGTH = 15000
 
@@ -106,7 +106,7 @@ class ResearchLogger:
 def make_server_params() -> StdioServerParameters:
     """Build server params for the llmstxt-doc-search MCP server.
 
-    Uses `npx -y @praveenc/llmstxt-doc-search` by default (portable). Set
+    Uses `npx -y @praveenc/llmstxt-doc-search@1.0.0` by default (portable). Set
     LLMSTXT_MCP_CMD to a full command line to point at a local build.
     """
     override = os.environ.get("LLMSTXT_MCP_CMD", "").strip()

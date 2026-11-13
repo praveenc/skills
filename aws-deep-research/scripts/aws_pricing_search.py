@@ -105,7 +105,7 @@ def make_server_params(region: str = "us-east-1") -> StdioServerParameters:
 
     return StdioServerParameters(
         command="uvx",
-        args=["awslabs.aws-pricing-mcp-server@latest"],
+        args=["awslabs.aws-pricing-mcp-server@1.1.1"],
         env=env,
     )
 
