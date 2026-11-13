@@ -42,3 +42,24 @@ Also ask:
 
 If yes, update `REPORT_OUTPUT_DIR` in `CONFIG_FILE`. Otherwise keep the default.
 Then proceed to Step 1.
+
+## Data flow (for reviewers)
+
+Every MCP server runs as a local child process (`uvx` or `npx`, versions
+pinned in the launching script or agent JSON). This is where each one sends
+data:
+
+| Server | Launched by | Sends | To |
+|---|---|---|---|
+| `@praveenc/llmstxt-doc-search` | `llmstxt_doc_search.py` | requests for `llms.txt` indexes and doc pages; queries are ranked locally (BM25) | public doc sites (AWS docs, Strands, Kiro); sources cached in `~/.config/llmstxt-doc-search/` |
+| `mcp-proxy-for-aws` | `aws_doc_search.py`, `setup/kiro-agent.json` | doc search queries, signed with SigV4 from local AWS credentials | AWS MCP Server, `aws-mcp.us-east-1.api.aws` |
+| `awslabs.aws-pricing-mcp-server` | `aws_pricing_search.py` | service codes, filters and region, using local AWS credentials | AWS Price List API |
+| `awslabs.amazon-bedrock-agentcore-mcp-server` | `agentcore_search.py`, `setup/kiro-agent.json` | AgentCore doc search and fetch requests | public AgentCore documentation |
+| `fetchv2-mcp-server` | `agents/web-content-researcher.json`, `setup/kiro-agent.json` | an HTTP GET for each URL the web researcher fetches | the site at that URL |
+
+Non-MCP calls: `brave_search.py` and `tavily_search.py` send the query and
+API key to Brave or Tavily; `github_search.py` sends the query and
+`GITHUB_TOKEN` to `api.github.com`; `kroki_diagram.py` sends D2 source to
+`KROKI_URL` (local Docker by default, never a public host automatically).
+None of these calls carries findings files, reports, or the research
+contract; Kroki receives only the D2 source.
