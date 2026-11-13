@@ -13,6 +13,7 @@ description: >
   model already knows; writing, reviewing, or debugging code or tests; AWS CLI
   operations; summarizing supplied content; anything answerable from the current
   conversation; or building on / debugging Bedrock itself (use amazon-bedrock).
+license: MIT
 compatibility: >
   Runs on Kiro CLI, Claude Code / Claude Agent SDK (native Agent tool), and the
   pi harness (headless process fan-out); see references/platform-dispatch.md.
