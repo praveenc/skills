@@ -193,6 +193,11 @@ Because pi has no MCP, the web researcher cannot use `fetchv2` here - it uses
 `trafilatura_scraper.py` for every URL (see
 [web-content-researcher.md](../agents/web-content-researcher.md)).
 
+Before any process-fan-out round, print the bold disclaimer: **each subagent
+launches a full, separate CLI process (its own model context + auth
+round-trip).** `dispatch.sh` prints this for you. The Claude Code `Agent` tool
+and Kiro subagents run in-session - no cold start, no disclaimer needed.
+
 ### Run a parallel round
 
 The shim dispatches **one** subagent. The parent backgrounds several and waits

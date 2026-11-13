@@ -231,35 +231,22 @@ credits. Update the statuses after Step 5.
 All **findings files** go into `$WORK_DIR/<slug>/` (created in Step 1g). Downloads go to
 `$WORK_DIR/<slug>/downloads/`. **Never write under the invocation CWD.**
 
-**Determine the harness first, then dispatch accordingly** - there are three
-backends and picking the wrong one is the classic failure (a model improvising
-into whatever delegate-shaped tool it finds). One round covers all applicable
-researchers; the parallel cap is **per-harness** (Kiro 4, Claude Code ~20, pi ≤4):
+**Determine the harness first, then dispatch with its own mechanism** -
+picking the wrong backend is the classic failure (a model improvising into
+whatever delegate-shaped tool it finds). One round covers all applicable
+researchers.
 
-- **Kiro** - dispatch **in-session** via the native subagent tool (`use_subagent`
-  on v2, `subagent` on v3). Prefer the **generic path**: hand each subagent the
-  role from `$SKILL_DIR/agents/<name>.md` inline (omit `agent_name`). **Do NOT
-  shell out** and **do NOT use any other delegate-shaped tool.**
-- **Claude Code / Claude Agent SDK** - dispatch via the native **`Agent` tool**:
-  one call per researcher, all in a **single turn**, backgrounded.
-  `subagent_type: general-purpose`; prompt = *"Read `$SKILL_DIR/agents/<name>.md`
-  and act as that agent"* + the brief. Subagents inherit the session's MCP (so
-  `fetchv2` works). Prepare the synthesizer brief while they run. **Do NOT shell
-  out to `claude -p` for a normal round** - that is the fallback only.
-- **pi** - dispatch as **headless child processes** via `scripts/dispatch.sh`
-  (one call per subagent; background several + per-PID `wait`). pi has no MCP, so
-  the web researcher uses trafilatura, not fetchv2.
-- **Ambiguous or unknown harness** - ask the user one question; use its native
-  subagent tool if any, else `dispatch.sh` best effort.
+| Harness | Dispatch | Cap per round |
+|---|---|---|
+| Kiro | native subagent tool, in-session | 4 |
+| Claude Code / Claude Agent SDK | native `Agent` tool, one call per researcher in a single turn | ~20 |
+| pi | `scripts/dispatch.sh`, one headless process per subagent | ≤4 |
+| Ambiguous or unknown | ask the user one question | - |
 
-Full procedure, detection fingerprints, the `Agent`-tool round shape, the
-`dispatch.sh` contract, and per-harness limits:
-[references/platform-dispatch.md](references/platform-dispatch.md).
-
-Before any **process-fan-out (pi)** round, print the bold disclaimer: **each
-subagent launches a full, separate CLI process (its own model context + auth
-round-trip).** `dispatch.sh` prints this for you. The Claude Code `Agent` tool
-and Kiro subagents run in-session - no cold start, no disclaimer needed.
+Read [references/platform-dispatch.md](references/platform-dispatch.md)
+before the first dispatch: it holds detection fingerprints, the exact call
+shape per harness, when shelling out is allowed, and the `dispatch.sh`
+contract.
 
 | Subagent | Findings file | When |
 |---|---|---|
