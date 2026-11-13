@@ -17,7 +17,8 @@ license: MIT
 compatibility: >
   Runs on Kiro CLI, Claude Code / Claude Agent SDK (native Agent tool), and the
   pi harness (headless process fan-out); see references/platform-dispatch.md.
-  Requires uv (Python scripts) and Node (npx, for the llmstxt docs client).
+  Requires network access, uv (Python scripts) and Node (npx, for the llmstxt
+  docs client).
   fetchv2 MCP does batched web fetch on Kiro/Claude Code; pi falls back to
   trafilatura. Optional: Brave/Tavily keys, GITHUB_TOKEN, AWS credentials for
   the docs/pricing fallback, Docker-hosted Kroki for diagrams.
