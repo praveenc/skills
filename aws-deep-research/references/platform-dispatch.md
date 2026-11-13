@@ -256,11 +256,6 @@ Round 1: [aws-mcp-researcher, web-content-researcher, github-researcher, agentco
 Round 2: [synthesizer]
 ```
 
-**With diagram (optional)** - add to the synthesizer round if a slot is free:
-```
-Round 2: [synthesizer, diagram-generator]  (parallel)
-```
-
 ## Task brief (all backends)
 
 Every subagent task string carries the fields defined in

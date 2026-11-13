@@ -189,7 +189,13 @@ needed keys are valid, proceed silently.
 
 ### 1g. Research Contract
 
-Extract hard facts, entity constraints, and version requirements into
+Generate the slug first (Step 2) and create the work dir:
+
+```bash
+mkdir -p "$WORK_DIR/<slug>/downloads"
+```
+
+Then extract hard facts, entity constraints, and version requirements into
 `$WORK_DIR/<slug>/research-contract.md`. See
 [references/research-contract-guide.md](references/research-contract-guide.md)
 for format and examples.
@@ -197,7 +203,7 @@ for format and examples.
 - **Complex** (3+ entities, version constraints) → show contract, ask user to validate
 - **Simple** → proceed silently
 
-## Step 2 - Generate Slug (MANDATORY before Step 3)
+## Step 2 - Generate Slug (MANDATORY before Step 1g)
 
 The slug identifies this research session on disk (`$WORK_DIR/<slug>/`) and
 names the final report file (`<slug>-report.md`). Rules in brief: **4-7 words,
@@ -229,13 +235,7 @@ credits. Update the statuses after Step 5.
 
 ## Step 4 - Dispatch Research
 
-Create the work dir: `$WORK_DIR/<slug>/`
-
-```bash
-mkdir -p "$WORK_DIR/<slug>/downloads"
-```
-
-All **findings files** go into `$WORK_DIR/<slug>/`. Downloads go to
+All **findings files** go into `$WORK_DIR/<slug>/` (created in Step 1g). Downloads go to
 `$WORK_DIR/<slug>/downloads/`. **Never write under the invocation CWD.**
 
 **Determine the harness first, then dispatch accordingly** - there are three
@@ -367,7 +367,8 @@ or tiered structure. Skip for pricing, feature overviews, or troubleshooting.
 
 Check Kroki availability from the `check_api_keys.sh` output. If UNAVAILABLE,
 skip silently. Otherwise dispatch `diagram-generator` with the report path
-and a brief describing what to diagram.
+and a brief describing what to diagram. When it adds a diagram, re-run the
+Step 6 lint command so the `.lint.json` sidecar matches the final report.
 
 ## Step 8 - Present Results
 
@@ -386,6 +387,10 @@ REPORT_DIR="${REPORT_OUTPUT_DIR:-$HOME/.aws-deep-research/outputs}"
 REPORT_DIR="${REPORT_DIR/#\~/$HOME}"
 mkdir -p "$REPORT_DIR"
 cp "$WORK_DIR/<slug>/<slug>-report.md" "$REPORT_DIR/"
+if [ -d "$WORK_DIR/<slug>/diagrams" ]; then
+  mkdir -p "$REPORT_DIR/diagrams"
+  cp "$WORK_DIR/<slug>/diagrams/"*.svg "$REPORT_DIR/diagrams/" 2>/dev/null || true
+fi
 echo "SAVED=$REPORT_DIR/<slug>-report.md"
 ```
 

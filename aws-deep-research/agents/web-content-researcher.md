@@ -30,7 +30,7 @@ Read that file for the canonical list. Key fields you will always receive:
 **Tavily** (preferred for factual answers, 1K credits/month free):
 ```bash
 uv run $SKILL_DIR/scripts/tavily_search.py "<query>" \
-  --depth basic --max-results 5 --include-answer --json -y \
+  --depth basic --max-results 5 --include-answer --no-scrape --json -y \
   -o <work-dir>/downloads/tavily
 ```
 

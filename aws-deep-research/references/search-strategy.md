@@ -149,7 +149,7 @@ uv run $SKILL_DIR/scripts/brave_search.py \
 uv run $SKILL_DIR/scripts/tavily_search.py \
   "<keywords>" \
   --include-domains builder.aws.com,repost.aws,community.aws,dev.to \
-  --count 10 --json -y \
+  --max-results 10 --no-scrape --json -y \
   -o <output-dir>/downloads/tavily
 ```
 

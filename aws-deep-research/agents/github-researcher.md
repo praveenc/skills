@@ -26,14 +26,14 @@ Read that file for the canonical list. Key fields you will always receive:
 ```bash
 uv run $SKILL_DIR/scripts/github_search.py \
   -q "subquery 1" -q "subquery 2" \
-  -o <findings-file> --log-dir <work-dir> --top 5
+  -o <work-dir>/downloads/github-raw.md --log-dir <work-dir> --top 5
 ```
 
 `$SKILL_DIR` is provided in your task instructions by the parent agent. This
 queries the GitHub REST search API directly; it needs `GITHUB_TOKEN` in the
 environment (checked in step 2).
 
-Flags: `-q` (repeatable), `-o` findings-file path, `--log-dir` for research.log,
+Flags: `-q` (repeatable), `-o` raw output path, `--log-dir` for research.log,
 `--top` max repos per query (default 5), `--json` for JSON output.
 
 ## Process
@@ -49,8 +49,13 @@ Flags: `-q` (repeatable), `-o` findings-file path, `--log-dir` for research.log,
    first line of the findings file and exit gracefully. The search script reads
    the token from the process environment or the external config as literal
    data without shell evaluation.
-3. Run `github_search.py` with all subqueries
-4. Verify output has useful content
+3. Run `github_search.py` with all subqueries, writing raw output to
+   `<work-dir>/downloads/github-raw.md`. A non-zero exit wrote no file - do
+   not treat it as success.
+4. **Read the raw file and write evidence records to `<findings-file>`** -
+   one per repo: a one-line claim, its URL, license, an `{authority·date}` tag
+   (date from **Updated**), and the facet. Keep the `## Source URLs` list.
+   Never copy the whole raw file in.
 
 ## Rules
 
