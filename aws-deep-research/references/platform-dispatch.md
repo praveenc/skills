@@ -208,13 +208,14 @@ The shim dispatches **one** subagent. The parent backgrounds several and waits
 export DISPATCH_BANNER_SHOWN=1
 echo "⚠️  Each subagent below launches a full, separate pi process."
 
-declare -A PID_AGENT
-scripts/dispatch.sh aws-mcp-researcher     "@$WORK_DIR/$SLUG/brief-aws.md"       "$WORK_DIR/$SLUG/aws-docs.md"      & PID_AGENT[$!]=aws-mcp-researcher
-scripts/dispatch.sh web-content-researcher "@$WORK_DIR/$SLUG/brief-web.md"       "$WORK_DIR/$SLUG/web-content.md"   & PID_AGENT[$!]=web-content-researcher
-scripts/dispatch.sh github-researcher      "@$WORK_DIR/$SLUG/brief-github.md"    "$WORK_DIR/$SLUG/github-repos.md"  & PID_AGENT[$!]=github-researcher
-scripts/dispatch.sh agentcore-researcher   "@$WORK_DIR/$SLUG/brief-agentcore.md" "$WORK_DIR/$SLUG/agentcore.md"     & PID_AGENT[$!]=agentcore-researcher
-for pid in "${!PID_AGENT[@]}"; do
-  wait "$pid" || echo "⚠️  ${PID_AGENT[$pid]} exited $? (see logs/)"
+# parallel arrays, not `declare -A`: macOS ships bash 3.2
+PIDS=(); AGENTS=()
+scripts/dispatch.sh aws-mcp-researcher     "@$WORK_DIR/$SLUG/brief-aws.md"       "$WORK_DIR/$SLUG/aws-docs.md"      & PIDS+=($!); AGENTS+=(aws-mcp-researcher)
+scripts/dispatch.sh web-content-researcher "@$WORK_DIR/$SLUG/brief-web.md"       "$WORK_DIR/$SLUG/web-content.md"   & PIDS+=($!); AGENTS+=(web-content-researcher)
+scripts/dispatch.sh github-researcher      "@$WORK_DIR/$SLUG/brief-github.md"    "$WORK_DIR/$SLUG/github-repos.md"  & PIDS+=($!); AGENTS+=(github-researcher)
+scripts/dispatch.sh agentcore-researcher   "@$WORK_DIR/$SLUG/brief-agentcore.md" "$WORK_DIR/$SLUG/agentcore.md"     & PIDS+=($!); AGENTS+=(agentcore-researcher)
+for i in "${!PIDS[@]}"; do
+  wait "${PIDS[$i]}" || echo "⚠️  ${AGENTS[$i]} exited $? (see logs/)"
 done
 ```
 

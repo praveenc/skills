@@ -83,8 +83,10 @@ fi
 
 # --- GitHub ---
 if [ -n "${GITHUB_TOKEN:-}" ] && ! echo "$GITHUB_TOKEN" | grep -q 'your_.*_here'; then
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-    -H "Authorization: Bearer $GITHUB_TOKEN" \
+  # The auth header goes in on stdin (-H @-), never argv, so `ps` cannot show
+  # the token. printf is a shell builtin, so it spawns no process either.
+  HTTP_STATUS=$(printf 'Authorization: Bearer %s\n' "$GITHUB_TOKEN" | curl -s -o /dev/null -w "%{http_code}" \
+    -H @- \
     -H "Accept: application/vnd.github+json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     https://api.github.com/rate_limit 2>/dev/null || echo "000")

@@ -275,6 +275,11 @@ LOGFILE="$LOGDIR/${AGENT}.stdout"
 # The child's exit code propagates via set -e so the caller sees failures.
 if command -v timeout >/dev/null 2>&1; then
   timeout "${DISPATCH_TIMEOUT:-900}" "${CMD[@]}" > "$LOGFILE" 2>&1
+elif command -v gtimeout >/dev/null 2>&1; then
+  # macOS ships no `timeout`; Homebrew coreutils installs it as gtimeout.
+  gtimeout "${DISPATCH_TIMEOUT:-900}" "${CMD[@]}" > "$LOGFILE" 2>&1
 else
+  err "dispatch.sh: warning: neither timeout nor gtimeout is on PATH -" \
+      "DISPATCH_TIMEOUT is not enforced (macOS: brew install coreutils)"
   "${CMD[@]}" > "$LOGFILE" 2>&1
 fi

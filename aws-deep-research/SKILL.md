@@ -175,7 +175,8 @@ If the user provides URLs or references a specific project, see
 bash "$SKILL_DIR/scripts/check_api_keys.sh" "$SKILL_DIR"
 ```
 
-Parse the output (one `KEY=STATUS` per line). Only prompt about services the
+Parse the output (one `KEY=STATUS` per line; any `GITHUB=` value other than
+`200` counts as INVALID). Only prompt about services the
 current strategy needs. If a needed service is INVALID/MISSING, inform the
 user with the specific issue and ask whether to proceed without it. When all
 needed keys are valid, proceed silently.
