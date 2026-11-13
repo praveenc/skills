@@ -63,3 +63,9 @@ API key to Brave or Tavily; `github_search.py` sends the query and
 `KROKI_URL` (local Docker by default, never a public host automatically).
 None of these calls carries findings files, reports, or the research
 contract; Kroki receives only the D2 source.
+
+**Accepted risk (2026-11-13):** `agents/web-content-researcher.json`
+auto-approves fetchv2's `fetch`, `fetch_batch` and `discover_links`. This is
+kept on purpose, on a pinned server version. It is mitigated by the
+untrusted-content rule in `contract-compliance-rules.md` and by the
+public-web approval gate in SKILL.md Step 4 (`public-web-approved: true`).
