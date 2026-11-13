@@ -89,13 +89,6 @@ in every project directory you run the skill from.
 Agent definitions: `$SKILL_DIR/agents/`. Dispatch details: see
 [references/platform-dispatch.md](references/platform-dispatch.md).
 
-## Prerequisites
-
-`uv` (Python scripts, Python 3.13+) and Node (`npx`, for the llmstxt docs
-client). Optional: API keys in `$CONFIG_FILE`, AWS credentials (`AWS_PROFILE`),
-Docker for Kroki diagrams. Full setup:
-[references/setup-guide.md](references/setup-guide.md).
-
 ## Step 0 - First-Run Setup (one-time)
 
 Check whether the external config exists and differs from the template:
@@ -406,39 +399,6 @@ In an **interactive** session, offer (don't block waiting on an answer) to open
 it: `${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"`. In a **headless
 / `-p` / SDK** run, skip the offer entirely - print the saved path and finish so
 the run terminates without an unanswered question.
-
-## Gotchas
-
-- **Kiro 4-subagent limit**: never dispatch more than 4 per round. Plan rounds.
-- **Work dir is global**: `$WORK_DIR/<slug>/` (default `~/.aws-deep-research/work/<slug>/`),
-  never `./output/research/<slug>/`. Override via `RESEARCH_WORK_DIR` in
-  `$CONFIG_FILE`.
-- **Slug discipline**: 4-7 words, 30-60 chars (see Step 2). Terse slugs
-  make artifacts unrecoverable later.
-- **Parallel fetch**: web-content-researcher MUST use `fetchv2:fetch_batch`
-  (up to 10 URLs per call) for page extraction. Trafilatura is a fallback only.
-- **Domain blocklist**: `$SKILL_DIR/scripts/blocklist.txt` filters URLs
-  from Brave/Tavily results automatically. When a subagent constructs a
-  URL by hand (not from search), it must still check against the blocklist
-  before calling `fetchv2:fetch_batch`. Add domains to the list as
-  new SEC/DEAD/SPAM hits are observed.
-- **Blog miscategorizations**: some services sit in a non-obvious feed category
-  (OpenSearch/Glue are `bigdata`, Kendra is `machinelearning`). Check
-  `references/blog-categories.md` when unsure.
-- **AWS docs source**: `llmstxt_doc_search.py` (llms.txt indexes) is the
-  primary docs tool for Bedrock/AgentCore/Well-Architected; `aws_doc_search.py`
-  (SigV4 proxy) is the fallback for other `docs.aws.amazon.com` pages. No AWS
-  profile is hardcoded - the fallback takes an optional `--profile <name>` (or
-  `AWS_PROFILE`) only when your credentials need one.
-- **Web search budget**: Brave 2K/month, Tavily 1K/month. Never use both for
-  the same subquery. MCP servers are free - prefer them. Usage is persisted
-  in `~/.aws-deep-research/budget.json`; when a search script's `--json`
-  output shows `"budget": {"over_80": true}`, switch to MCP-only and note it
-  in the report's Gaps section.
-- **Evidence tags**: every finding carries a `{authority·date}` tag
-  (`official` / `vendor-claim` / `third-party` / `community`). The synthesizer
-  uses these to weight conflicting sources, so an untagged finding is treated
-  as lowest-confidence. See `references/contract-compliance-rules.md`.
 
 ## Scripts Reference
 
