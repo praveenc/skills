@@ -1,8 +1,8 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#   "mcp>=1.26.0",
-#   "rich>=14.3.3",
+#   "mcp>=1.26.0,<3",
+#   "rich>=14.3.3,<16",
 # ]
 # ///
 """
