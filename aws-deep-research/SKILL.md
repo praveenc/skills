@@ -13,10 +13,12 @@ description: >
   model already knows; writing, reviewing, or debugging code or tests; AWS CLI
   operations; summarizing supplied content; anything answerable from the current
   conversation; or building on / debugging Bedrock itself (use amazon-bedrock).
+license: MIT
 compatibility: >
   Runs on Kiro CLI, Claude Code / Claude Agent SDK (native Agent tool), and the
   pi harness (headless process fan-out); see references/platform-dispatch.md.
-  Requires uv (Python scripts) and Node (npx, for the llmstxt docs client).
+  Requires network access, uv (Python scripts) and Node (npx, for the llmstxt
+  docs client).
   fetchv2 MCP does batched web fetch on Kiro/Claude Code; pi falls back to
   trafilatura. Optional: Brave/Tavily keys, GITHUB_TOKEN, AWS credentials for
   the docs/pricing fallback, Docker-hosted Kroki for diagrams.
@@ -88,13 +90,6 @@ in every project directory you run the skill from.
 
 Agent definitions: `$SKILL_DIR/agents/`. Dispatch details: see
 [references/platform-dispatch.md](references/platform-dispatch.md).
-
-## Prerequisites
-
-`uv` (Python scripts, Python 3.13+) and Node (`npx`, for the llmstxt docs
-client). Optional: API keys in `$CONFIG_FILE`, AWS credentials (`AWS_PROFILE`),
-Docker for Kroki diagrams. Full setup:
-[references/setup-guide.md](references/setup-guide.md).
 
 ## Step 0 - First-Run Setup (one-time)
 
@@ -182,14 +177,21 @@ If the user provides URLs or references a specific project, see
 bash "$SKILL_DIR/scripts/check_api_keys.sh" "$SKILL_DIR"
 ```
 
-Parse the output (one `KEY=STATUS` per line). Only prompt about services the
+Parse the output (one `KEY=STATUS` per line; any `GITHUB=` value other than
+`200` counts as INVALID). Only prompt about services the
 current strategy needs. If a needed service is INVALID/MISSING, inform the
 user with the specific issue and ask whether to proceed without it. When all
 needed keys are valid, proceed silently.
 
 ### 1g. Research Contract
 
-Extract hard facts, entity constraints, and version requirements into
+Generate the slug first (Step 2) and create the work dir:
+
+```bash
+mkdir -p "$WORK_DIR/<slug>/downloads"
+```
+
+Then extract hard facts, entity constraints, and version requirements into
 `$WORK_DIR/<slug>/research-contract.md`. See
 [references/research-contract-guide.md](references/research-contract-guide.md)
 for format and examples.
@@ -197,7 +199,7 @@ for format and examples.
 - **Complex** (3+ entities, version constraints) → show contract, ask user to validate
 - **Simple** → proceed silently
 
-## Step 2 - Generate Slug (MANDATORY before Step 3)
+## Step 2 - Generate Slug (MANDATORY before Step 1g)
 
 The slug identifies this research session on disk (`$WORK_DIR/<slug>/`) and
 names the final report file (`<slug>-report.md`). Rules in brief: **4-7 words,
@@ -229,44 +231,25 @@ credits. Update the statuses after Step 5.
 
 ## Step 4 - Dispatch Research
 
-Create the work dir: `$WORK_DIR/<slug>/`
-
-```bash
-mkdir -p "$WORK_DIR/<slug>/downloads"
-```
-
-All **findings files** go into `$WORK_DIR/<slug>/`. Downloads go to
+All **findings files** go into `$WORK_DIR/<slug>/` (created in Step 1g). Downloads go to
 `$WORK_DIR/<slug>/downloads/`. **Never write under the invocation CWD.**
 
-**Determine the harness first, then dispatch accordingly** - there are three
-backends and picking the wrong one is the classic failure (a model improvising
-into whatever delegate-shaped tool it finds). One round covers all applicable
-researchers; the parallel cap is **per-harness** (Kiro 4, Claude Code ~20, pi ≤4):
+**Determine the harness first, then dispatch with its own mechanism** -
+picking the wrong backend is the classic failure (a model improvising into
+whatever delegate-shaped tool it finds). One round covers all applicable
+researchers.
 
-- **Kiro** - dispatch **in-session** via the native subagent tool (`use_subagent`
-  on v2, `subagent` on v3). Prefer the **generic path**: hand each subagent the
-  role from `$SKILL_DIR/agents/<name>.md` inline (omit `agent_name`). **Do NOT
-  shell out** and **do NOT use any other delegate-shaped tool.**
-- **Claude Code / Claude Agent SDK** - dispatch via the native **`Agent` tool**:
-  one call per researcher, all in a **single turn**, backgrounded.
-  `subagent_type: general-purpose`; prompt = *"Read `$SKILL_DIR/agents/<name>.md`
-  and act as that agent"* + the brief. Subagents inherit the session's MCP (so
-  `fetchv2` works). Prepare the synthesizer brief while they run. **Do NOT shell
-  out to `claude -p` for a normal round** - that is the fallback only.
-- **pi** - dispatch as **headless child processes** via `scripts/dispatch.sh`
-  (one call per subagent; background several + per-PID `wait`). pi has no MCP, so
-  the web researcher uses trafilatura, not fetchv2.
-- **Ambiguous or unknown harness** - ask the user one question; use its native
-  subagent tool if any, else `dispatch.sh` best effort.
+| Harness | Dispatch | Cap per round |
+|---|---|---|
+| Kiro | native subagent tool, in-session | 4 |
+| Claude Code / Claude Agent SDK | native `Agent` tool, one call per researcher in a single turn | ~20 |
+| pi | `scripts/dispatch.sh`, one headless process per subagent | ≤4 |
+| Ambiguous or unknown | ask the user one question | - |
 
-Full procedure, detection fingerprints, the `Agent`-tool round shape, the
-`dispatch.sh` contract, and per-harness limits:
-[references/platform-dispatch.md](references/platform-dispatch.md).
-
-Before any **process-fan-out (pi)** round, print the bold disclaimer: **each
-subagent launches a full, separate CLI process (its own model context + auth
-round-trip).** `dispatch.sh` prints this for you. The Claude Code `Agent` tool
-and Kiro subagents run in-session - no cold start, no disclaimer needed.
+Read [references/platform-dispatch.md](references/platform-dispatch.md)
+before the first dispatch: it holds detection fingerprints, the exact call
+shape per harness, when shelling out is allowed, and the `dispatch.sh`
+contract.
 
 | Subagent | Findings file | When |
 |---|---|---|
@@ -367,7 +350,8 @@ or tiered structure. Skip for pricing, feature overviews, or troubleshooting.
 
 Check Kroki availability from the `check_api_keys.sh` output. If UNAVAILABLE,
 skip silently. Otherwise dispatch `diagram-generator` with the report path
-and a brief describing what to diagram.
+and a brief describing what to diagram. When it adds a diagram, re-run the
+Step 6 lint command so the `.lint.json` sidecar matches the final report.
 
 ## Step 8 - Present Results
 
@@ -386,6 +370,10 @@ REPORT_DIR="${REPORT_OUTPUT_DIR:-$HOME/.aws-deep-research/outputs}"
 REPORT_DIR="${REPORT_DIR/#\~/$HOME}"
 mkdir -p "$REPORT_DIR"
 cp "$WORK_DIR/<slug>/<slug>-report.md" "$REPORT_DIR/"
+if [ -d "$WORK_DIR/<slug>/diagrams" ]; then
+  mkdir -p "$REPORT_DIR/diagrams"
+  cp "$WORK_DIR/<slug>/diagrams/"*.svg "$REPORT_DIR/diagrams/" 2>/dev/null || true
+fi
 echo "SAVED=$REPORT_DIR/<slug>-report.md"
 ```
 
@@ -401,39 +389,6 @@ In an **interactive** session, offer (don't block waiting on an answer) to open
 it: `${EDITOR:-${VISUAL:-code}} "$REPORT_DIR/<slug>-report.md"`. In a **headless
 / `-p` / SDK** run, skip the offer entirely - print the saved path and finish so
 the run terminates without an unanswered question.
-
-## Gotchas
-
-- **Kiro 4-subagent limit**: never dispatch more than 4 per round. Plan rounds.
-- **Work dir is global**: `$WORK_DIR/<slug>/` (default `~/.aws-deep-research/work/<slug>/`),
-  never `./output/research/<slug>/`. Override via `RESEARCH_WORK_DIR` in
-  `$CONFIG_FILE`.
-- **Slug discipline**: 4-7 words, 30-60 chars (see Step 2). Terse slugs
-  make artifacts unrecoverable later.
-- **Parallel fetch**: web-content-researcher MUST use `fetchv2:fetch_batch`
-  (up to 10 URLs per call) for page extraction. Trafilatura is a fallback only.
-- **Domain blocklist**: `$SKILL_DIR/scripts/blocklist.txt` filters URLs
-  from Brave/Tavily results automatically. When a subagent constructs a
-  URL by hand (not from search), it must still check against the blocklist
-  before calling `fetchv2:fetch_batch`. Add domains to the list as
-  new SEC/DEAD/SPAM hits are observed.
-- **Blog miscategorizations**: some services sit in a non-obvious feed category
-  (OpenSearch/Glue are `bigdata`, Kendra is `machinelearning`). Check
-  `references/blog-categories.md` when unsure.
-- **AWS docs source**: `llmstxt_doc_search.py` (llms.txt indexes) is the
-  primary docs tool for Bedrock/AgentCore/Well-Architected; `aws_doc_search.py`
-  (SigV4 proxy) is the fallback for other `docs.aws.amazon.com` pages. No AWS
-  profile is hardcoded - the fallback takes an optional `--profile <name>` (or
-  `AWS_PROFILE`) only when your credentials need one.
-- **Web search budget**: Brave 2K/month, Tavily 1K/month. Never use both for
-  the same subquery. MCP servers are free - prefer them. Usage is persisted
-  in `~/.aws-deep-research/budget.json`; when a search script's `--json`
-  output shows `"budget": {"over_80": true}`, switch to MCP-only and note it
-  in the report's Gaps section.
-- **Evidence tags**: every finding carries a `{authority·date}` tag
-  (`official` / `vendor-claim` / `third-party` / `community`). The synthesizer
-  uses these to weight conflicting sources, so an untagged finding is treated
-  as lowest-confidence. See `references/contract-compliance-rules.md`.
 
 ## Scripts Reference
 

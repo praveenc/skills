@@ -102,10 +102,10 @@ the synthesizer"*). Kiro plans the 4-parallel DAG and returns results via the
 built-in `summary` tool.
 
 **Permission note:** on the generic path the subagents run under the default
-agent's permissions, so without `--trust-all-tools` Kiro will prompt per
-subagent. That is expected. Users who dislike prompts should launch with
-`kiro-cli chat --trust-all-tools`. This skill assumes that is acceptable and
-does not require named-agent registration to suppress prompts.
+agent's permissions, so Kiro prompts once per subagent. That is expected.
+Users who want no prompts should use the named-agent path below, which
+pre-trusts only the researchers through `trustedAgents`. This skill assumes
+the prompts are acceptable and does not require named-agent registration.
 
 ### The named-agent path (optional optimization)
 
@@ -193,6 +193,11 @@ Because pi has no MCP, the web researcher cannot use `fetchv2` here - it uses
 `trafilatura_scraper.py` for every URL (see
 [web-content-researcher.md](../agents/web-content-researcher.md)).
 
+Before any process-fan-out round, print the bold disclaimer: **each subagent
+launches a full, separate CLI process (its own model context + auth
+round-trip).** `dispatch.sh` prints this for you. The Claude Code `Agent` tool
+and Kiro subagents run in-session - no cold start, no disclaimer needed.
+
 ### Run a parallel round
 
 The shim dispatches **one** subagent. The parent backgrounds several and waits
@@ -203,13 +208,14 @@ The shim dispatches **one** subagent. The parent backgrounds several and waits
 export DISPATCH_BANNER_SHOWN=1
 echo "⚠️  Each subagent below launches a full, separate pi process."
 
-declare -A PID_AGENT
-scripts/dispatch.sh aws-mcp-researcher     "@$WORK_DIR/$SLUG/brief-aws.md"       "$WORK_DIR/$SLUG/aws-docs.md"      & PID_AGENT[$!]=aws-mcp-researcher
-scripts/dispatch.sh web-content-researcher "@$WORK_DIR/$SLUG/brief-web.md"       "$WORK_DIR/$SLUG/web-content.md"   & PID_AGENT[$!]=web-content-researcher
-scripts/dispatch.sh github-researcher      "@$WORK_DIR/$SLUG/brief-github.md"    "$WORK_DIR/$SLUG/github-repos.md"  & PID_AGENT[$!]=github-researcher
-scripts/dispatch.sh agentcore-researcher   "@$WORK_DIR/$SLUG/brief-agentcore.md" "$WORK_DIR/$SLUG/agentcore.md"     & PID_AGENT[$!]=agentcore-researcher
-for pid in "${!PID_AGENT[@]}"; do
-  wait "$pid" || echo "⚠️  ${PID_AGENT[$pid]} exited $? (see logs/)"
+# parallel arrays, not `declare -A`: macOS ships bash 3.2
+PIDS=(); AGENTS=()
+scripts/dispatch.sh aws-mcp-researcher     "@$WORK_DIR/$SLUG/brief-aws.md"       "$WORK_DIR/$SLUG/aws-docs.md"      & PIDS+=($!); AGENTS+=(aws-mcp-researcher)
+scripts/dispatch.sh web-content-researcher "@$WORK_DIR/$SLUG/brief-web.md"       "$WORK_DIR/$SLUG/web-content.md"   & PIDS+=($!); AGENTS+=(web-content-researcher)
+scripts/dispatch.sh github-researcher      "@$WORK_DIR/$SLUG/brief-github.md"    "$WORK_DIR/$SLUG/github-repos.md"  & PIDS+=($!); AGENTS+=(github-researcher)
+scripts/dispatch.sh agentcore-researcher   "@$WORK_DIR/$SLUG/brief-agentcore.md" "$WORK_DIR/$SLUG/agentcore.md"     & PIDS+=($!); AGENTS+=(agentcore-researcher)
+for i in "${!PIDS[@]}"; do
+  wait "${PIDS[$i]}" || echo "⚠️  ${AGENTS[$i]} exited $? (see logs/)"
 done
 ```
 
@@ -254,11 +260,6 @@ Round 2: [synthesizer]                                    → ~2 min
 ```
 Round 1: [aws-mcp-researcher, web-content-researcher, github-researcher, agentcore-researcher]
 Round 2: [synthesizer]
-```
-
-**With diagram (optional)** - add to the synthesizer round if a slot is free:
-```
-Round 2: [synthesizer, diagram-generator]  (parallel)
 ```
 
 ## Task brief (all backends)

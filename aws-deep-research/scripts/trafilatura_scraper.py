@@ -2,10 +2,10 @@
 # requires-python = ">=3.13"
 # dependencies = [
 #   "trafilatura[all]==2.0.0",
-#   "rich",
-#   "requests",
-#   "defusedxml",
-#   "tenacity>=8.2.0",
+#   "rich<16",
+#   "requests<3",
+#   "defusedxml<1",
+#   "tenacity>=8.2.0,<10",
 # ]
 # ///
 import hashlib

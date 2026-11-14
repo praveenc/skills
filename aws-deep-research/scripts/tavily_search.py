@@ -1,10 +1,10 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#   "requests>=2.31.0",
-#   "rich>=13.7.0",
-#   "trafilatura[all]>=2.0.0",
-#   "defusedxml"
+#   "requests>=2.31.0,<3",
+#   "rich>=13.7.0,<16",
+#   "trafilatura[all]>=2.0.0,<3",
+#   "defusedxml<1"
 # ]
 # ///
 """

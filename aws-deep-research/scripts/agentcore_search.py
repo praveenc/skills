@@ -1,8 +1,8 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#   "mcp>=1.26.0",
-#   "rich>=14.3.3",
+#   "mcp>=1.26.0,<3",
+#   "rich>=14.3.3,<16",
 # ]
 # ///
 """
@@ -77,7 +77,7 @@ class ResearchLogger:
 # resources.
 SERVER_PARAMS = StdioServerParameters(
     command="uvx",
-    args=["awslabs.amazon-bedrock-agentcore-mcp-server@latest"],
+    args=["awslabs.amazon-bedrock-agentcore-mcp-server@0.2.1"],
     env={
         "FASTMCP_LOG_LEVEL": "ERROR",
         "AGENTCORE_ENABLE_TOOLS": "search_agentcore_docs,fetch_agentcore_doc",

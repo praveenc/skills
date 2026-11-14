@@ -1,7 +1,8 @@
 ---
 name: agentcore-researcher
 description: >
-  Researches Amazon Bedrock AgentCore using the bedrock-agentcore-mcp-server.
+  Researches Amazon Bedrock AgentCore via its llms.txt docs index, with the
+  bedrock-agentcore-mcp-server as fallback.
   Searches AgentCore documentation for Runtime, Memory, Code Interpreter,
   Browser, Gateway, Observability, and Identity services.
 tools:

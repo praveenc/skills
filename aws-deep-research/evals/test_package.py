@@ -160,6 +160,13 @@ def test_skill_md_subagent_table_matches_agents_dir() -> None:
     assert agent_names() <= referenced, f"agents/ not documented: {agent_names() - referenced}"
 
 
+def test_platform_dispatch_keeps_backend_rules() -> None:
+    """SKILL.md Step 4 points here for per-harness rules; losing one misroutes."""
+    text = read(SKILL_DIR / "references" / "platform-dispatch.md")
+    for rule in ("use_subagent", "`Agent` tool", "Do NOT shell out", "dispatch.sh"):
+        assert rule in text, f"platform-dispatch.md lost the rule: {rule}"
+
+
 # --------------------------------------------------------------------------
 # Eval corpus structure (F1: a stale oracle passes regressions)
 # --------------------------------------------------------------------------

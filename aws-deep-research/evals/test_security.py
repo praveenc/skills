@@ -59,6 +59,39 @@ def test_check_api_keys_does_not_execute_dotenv(tmp_path: Path) -> None:
     assert not marker.exists()
 
 
+def test_check_api_keys_keeps_github_token_off_argv(tmp_path: Path) -> None:
+    """The token must reach curl on stdin, never argv (visible in `ps`)."""
+    token = "fake-test-token-not-real"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    argv_log, stdin_log = tmp_path / "argv.txt", tmp_path / "stdin.txt"
+    _write_executable(fake_bin / "aws", "#!/bin/sh\nexit 1\n")
+    # Stub curl: log argv; for the GitHub probe, capture stdin and answer 200.
+    _write_executable(
+        fake_bin / "curl",
+        "#!/bin/sh\n"
+        f'printf "%s\\n" "$@" >> "{argv_log}"\n'
+        'case "$*" in *api.github.com*) '
+        f'cat > "{stdin_log}"; printf 200 ;; *) exit 7 ;; esac\n',
+    )
+    env = dict(os.environ)
+    for key in ("TAVILY_API_KEY", "BRAVE_SEARCH_API_KEY", "KROKI_URL", "AWS_PROFILE"):
+        env.pop(key, None)
+    env["GITHUB_TOKEN"] = token
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["AWS_DEEP_RESEARCH_CONFIG"] = str(tmp_path / "absent.env")
+
+    result = subprocess.run(
+        ["bash", str(SCRIPTS_DIR / "check_api_keys.sh"), str(SKILL_DIR)],
+        capture_output=True, text=True, env=env, check=True,
+    )
+
+    assert "GITHUB=200" in result.stdout
+    assert token not in argv_log.read_text(encoding="utf-8")
+    assert f"Authorization: Bearer {token}" in stdin_log.read_text(encoding="utf-8")
+    assert token not in result.stdout + result.stderr
+
+
 def test_resolver_quotes_dotenv_value_for_shell_eval(tmp_path: Path) -> None:
     marker = tmp_path / "executed"
     copied_skill = tmp_path / "skill"

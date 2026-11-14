@@ -1,8 +1,8 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#   "mcp>=1.26.0",
-#   "rich>=14.3.3",
+#   "mcp>=1.26.0,<3",
+#   "rich>=14.3.3,<16",
 # ]
 # ///
 """
@@ -95,7 +95,7 @@ def make_server_params(region: str = "us-east-1", profile: str | None = None) ->
         env["AWS_PROFILE"] = profile
 
     args = [
-        "mcp-proxy-for-aws@latest",
+        "mcp-proxy-for-aws@1.8.0",
         AWS_MCP_ENDPOINT,
         "--metadata",
         f"AWS_REGION={region}",

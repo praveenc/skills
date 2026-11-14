@@ -2,7 +2,7 @@
 name: aws-mcp-researcher
 description: >
   Researches AWS documentation and pricing using MCP client scripts.
-  Searches across AWS docs, blog posts, What's New, Well-Architected guidance,
+  Searches across AWS docs, What's New, Well-Architected guidance,
   API references, and real-time pricing data. Returns structured findings.
 tools:
   - bash

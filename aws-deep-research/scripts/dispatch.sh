@@ -28,7 +28,8 @@
 #   DISPATCH_MODEL         optional model override passed to the child CLI
 #                          (on pi, encode effort here too, e.g. sonnet:high)
 #   DISPATCH_EFFORT        optional reasoning effort for claude (--effort);
-#                          default medium for researchers, high for synthesizer
+#                          no default (platform-dispatch.md suggests high
+#                          for the synthesizer, medium for researchers)
 #   DISPATCH_TIMEOUT       seconds before the child is killed (default 900)
 #
 # Exit codes:
@@ -135,7 +136,7 @@ esac
 # --- harness detection ------------------------------------------------------
 # Returns exactly one of pi|claude|kiro when a single fingerprint matches, or
 # empty string when zero or more-than-one match (ambiguous → caller asks). On
-# Claude Code the PREFERRED path is the native Agent tool (Backend C in
+# Claude Code the PREFERRED path is the native Agent tool (Backend B in
 # references/platform-dispatch.md); this shim is the process-fan-out fallback.
 detect_harness() {
   local matches="" n=0
@@ -230,7 +231,7 @@ render_display() {
 DISPLAY_CMD="$(render_display)"
 
 err "harness=$HARNESS  backend=$BACKEND  agent=$AGENT  ->  $OUTFILE"
-err "\$ $DISPLAY_CMD  > $OUTFILE"
+err "\$ $DISPLAY_CMD  > $(dirname "$OUTFILE")/logs/${AGENT}.stdout"
 
 # --- bold process disclaimer (once per call unless already shown) -----------
 if [ "${DISPATCH_BANNER_SHOWN:-}" != "1" ]; then
@@ -254,7 +255,7 @@ fi
 command -v "${CMD[0]}" >/dev/null 2>&1 || \
   die 4 "child CLI '${CMD[0]}' is not on PATH. Install it, or dispatch on a \
 harness whose CLI is available (on Claude Code prefer the native Agent tool - \
-Backend C in references/platform-dispatch.md - which needs no child CLI)."
+Backend B in references/platform-dispatch.md - which needs no child CLI)."
 
 # --- execute -----------------------------------------------------------------
 # The child writes its findings/report to $OUTFILE with its *write tool* (the
@@ -274,6 +275,11 @@ LOGFILE="$LOGDIR/${AGENT}.stdout"
 # The child's exit code propagates via set -e so the caller sees failures.
 if command -v timeout >/dev/null 2>&1; then
   timeout "${DISPATCH_TIMEOUT:-900}" "${CMD[@]}" > "$LOGFILE" 2>&1
+elif command -v gtimeout >/dev/null 2>&1; then
+  # macOS ships no `timeout`; Homebrew coreutils installs it as gtimeout.
+  gtimeout "${DISPATCH_TIMEOUT:-900}" "${CMD[@]}" > "$LOGFILE" 2>&1
 else
+  err "dispatch.sh: warning: neither timeout nor gtimeout is on PATH -" \
+      "DISPATCH_TIMEOUT is not enforced (macOS: brew install coreutils)"
   "${CMD[@]}" > "$LOGFILE" 2>&1
 fi

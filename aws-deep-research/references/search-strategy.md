@@ -90,8 +90,8 @@ Only use web search when ALL of these are true:
 1. **The information is unlikely to be in AWS docs** - third-party comparisons,
    community benchmarks, non-AWS service details, very recent announcements
    (< 1 week old)
-2. **MCP server results are insufficient** - you searched aws-knowledge and
-   didn't find what you need
+2. **MCP server results are insufficient** - you searched the AWS docs
+   sources and didn't find what you need
 3. **The query explicitly or implicitly requires external perspective** -
    "vs", "compared to", "alternatives", "community opinion", "benchmark"
 
@@ -100,7 +100,7 @@ Only use web search when ALL of these are true:
 - The query is about AWS pricing (use pricing MCP server)
 - The query is about AWS best practices or Well-Architected guidance
 - The query is about AgentCore (use agentcore MCP server)
-- The query is about code examples in AWS repos (use GitHub MCP server)
+- The query is about code examples in AWS repos (use github-researcher)
 
 ## Brave vs Tavily Decision
 
@@ -149,7 +149,7 @@ uv run $SKILL_DIR/scripts/brave_search.py \
 uv run $SKILL_DIR/scripts/tavily_search.py \
   "<keywords>" \
   --include-domains builder.aws.com,repost.aws,community.aws,dev.to \
-  --count 10 --json -y \
+  --max-results 10 --no-scrape --json -y \
   -o <output-dir>/downloads/tavily
 ```
 
@@ -276,8 +276,8 @@ facet costs a second full research session.
 
 ### What about AWS topics specifically?
 
-For AWS topics, the same 2-query decomposition applies to the docs and
-blog-feed calls inside `aws-mcp-researcher`. The parent still routes to the
+For AWS topics, the same 2-query decomposition applies to the docs calls
+inside `aws-mcp-researcher`. The parent still routes to the
 docs/pricing sources first (per SKILL.md Step 1a/1d) - decomposition governs
 *what queries hit those sources*, not *whether to hit them*. Web search stays
 "supplementary" for pure-AWS topics (Tier 2 budget: 0-2 web credits if any
