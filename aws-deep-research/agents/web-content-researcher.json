@@ -5,7 +5,7 @@
   "mcpServers": {
     "fetchv2": {
       "command": "uvx",
-      "args": ["fetchv2-mcp-server@2.0.0"],
+      "args": ["fetchv2-mcp-server@2.1.0"],
       "disabled": false,
       "autoApprove": ["fetch", "fetch_batch", "discover_links"]
     }

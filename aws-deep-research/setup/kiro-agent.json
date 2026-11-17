@@ -7,7 +7,7 @@
     "fetchv2": {
       "command": "uvx",
       "args": [
-        "fetchv2-mcp-server@2.0.0"
+        "fetchv2-mcp-server@2.1.0"
       ],
       "env": {
         "FASTMCP_LOG_LEVEL": "WARNING"

@@ -55,7 +55,7 @@ data:
 | `mcp-proxy-for-aws` | `aws_doc_search.py`, `setup/kiro-agent.json` | doc search queries, signed with SigV4 from local AWS credentials | AWS MCP Server, `aws-mcp.us-east-1.api.aws` |
 | `awslabs.aws-pricing-mcp-server` | `aws_pricing_search.py` | service codes, filters and region, using local AWS credentials | AWS Price List API |
 | `awslabs.amazon-bedrock-agentcore-mcp-server` | `agentcore_search.py`, `setup/kiro-agent.json` | AgentCore doc search and fetch requests | public AgentCore documentation |
-| `fetchv2-mcp-server` | `agents/web-content-researcher.json`, `setup/kiro-agent.json` | an HTTP GET for each URL the web researcher fetches | the site at that URL |
+| `fetchv2-mcp-server` | `agents/web-content-researcher.json`, `setup/kiro-agent.json` | an HTTP GET for each URL the web researcher fetches; 2.1.0+ refuses private and local addresses | the public site at that URL |
 
 Non-MCP calls: `brave_search.py` and `tavily_search.py` send the query and
 API key to Brave or Tavily; `github_search.py` sends the query and
@@ -64,8 +64,28 @@ API key to Brave or Tavily; `github_search.py` sends the query and
 None of these calls carries findings files, reports, or the research
 contract; Kroki receives only the D2 source.
 
-**Accepted risk (2026-11-13):** `agents/web-content-researcher.json`
-auto-approves fetchv2's `fetch`, `fetch_batch` and `discover_links`. This is
-kept on purpose, on a pinned server version. It is mitigated by the
-untrusted-content rule in `contract-compliance-rules.md` and by the
-public-web approval gate in SKILL.md Step 4 (`public-web-approved: true`).
+**Accepted risk: fetchv2 auto-approve (updated 2026-11-16).**
+`agents/web-content-researcher.json` auto-approves fetchv2's `fetch`,
+`fetch_batch` and `discover_links`. This stays on by the user's decision. The
+pin must be `fetchv2-mcp-server` 2.1.0 or newer.
+
+- Socket flagged 2.0.0 with a `gptSecurity` alert (severity middle). Socket
+  gave no reasoning.
+- A code review of 2.0.0 found no private-address check, redirects followed
+  to internal hosts, and no response size cap.
+- 2.1.0 fixes these. It refuses private, loopback, link-local and reserved
+  addresses on the first request and on every redirect. This applies to
+  `fetch`, `fetch_batch`, `discover_links`, the robots.txt check and
+  `fetch_llms_txt`. It caps each response at 5 MB.
+- Keep `FETCHV2_ALLOW_PRIVATE_NETWORKS` unset. Setting it to `1` turns the
+  address check off.
+
+Known limits that remain:
+
+- DNS rebinding can still get past the address check.
+- Fetched page text is untrusted and can carry prompt injection. The
+  existing gates stay: `public-web-approved: true` in SKILL.md Step 4, the
+  untrusted-content rule in `contract-compliance-rules.md`, and
+  `scripts/blocklist.txt`.
+- `fetch_batch` and `fetch_llms_txt` do not check robots.txt.
+- When extraction fails, the server returns the raw HTML.
